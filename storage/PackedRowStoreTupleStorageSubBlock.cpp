@@ -58,7 +58,7 @@ PackedRowStoreTupleStorageSubBlock::PackedRowStoreTupleStorageSubBlock(
                            sub_block_memory_size),
       header_(static_cast<PackedRowStoreHeader*>(sub_block_memory)),
       null_bitmap_bytes_(0) {
-  if (!DescriptionIsValid(relation_, description_)) {
+  if (DescriptionIsValid(relation_, description_) != 0) {
     FATAL_ERROR("Attempted to construct a PackedRowStoreTupleStorageSubBlock from an invalid description.");
   }
 
@@ -103,29 +103,29 @@ PackedRowStoreTupleStorageSubBlock::PackedRowStoreTupleStorageSubBlock(
   }
 }
 
-bool PackedRowStoreTupleStorageSubBlock::DescriptionIsValid(
+int PackedRowStoreTupleStorageSubBlock::DescriptionIsValid(
     const CatalogRelationSchema &relation,
     const TupleStorageSubBlockDescription &description) {
   // Make sure description is initialized and specifies PackedRowStore.
   if (!description.IsInitialized()) {
-    return false;
+    return -1;
   }
   if (description.sub_block_type() != TupleStorageSubBlockDescription::PACKED_ROW_STORE) {
-    return false;
+    return -2;
   }
 
   // Make sure relation is not variable-length.
   if (relation.isVariableLength()) {
-    return false;
+    return -3;
   }
 
-  return true;
+  return 0;
 }
 
 std::size_t PackedRowStoreTupleStorageSubBlock::EstimateBytesPerTuple(
     const CatalogRelationSchema &relation,
     const TupleStorageSubBlockDescription &description) {
-  DEBUG_ASSERT(DescriptionIsValid(relation, description));
+  DEBUG_ASSERT(DescriptionIsValid(relation, description) == 0);
 
   // NOTE(chasseur): We round-up the number of bytes needed in the NULL bitmap
   // to avoid estimating 0 bytes needed for a relation with less than 8

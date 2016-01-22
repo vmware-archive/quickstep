@@ -261,18 +261,18 @@ typedef PackedRowStoreTupleStorageSubBlockTest PackedRowStoreTupleStorageSubBloc
 
 TEST_P(PackedRowStoreTupleStorageSubBlockTest, DescriptionIsValidTest) {
   // The descriptions we use for the other tests should be valid.
-  EXPECT_TRUE(PackedRowStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
-                                                                     *tuple_store_description_));
+  EXPECT_EQ(0, PackedRowStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
+                                                                      *tuple_store_description_));
 
   // An uninitialized description is not valid.
   tuple_store_description_.reset(new TupleStorageSubBlockDescription());
-  EXPECT_FALSE(PackedRowStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
-                                                                      *tuple_store_description_));
+  EXPECT_EQ(-1, PackedRowStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
+                                                                       *tuple_store_description_));
 
   // A description that specifies the wrong sub_block_type is not valid.
   tuple_store_description_->set_sub_block_type(TupleStorageSubBlockDescription::BASIC_COLUMN_STORE);
-  EXPECT_FALSE(PackedRowStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
-                                                                      *tuple_store_description_));
+  EXPECT_EQ(-2, PackedRowStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
+                                                                       *tuple_store_description_));
 
   // A relation with a nullable attribute is OK.
   std::unique_ptr<CatalogRelation> nullable_relation(new CatalogRelation(NULL, "nullable_relation"));
@@ -282,8 +282,8 @@ TEST_P(PackedRowStoreTupleStorageSubBlockTest, DescriptionIsValidTest) {
   ASSERT_EQ(0, nullable_relation->addAttribute(nullable_attribute));
   tuple_store_description_.reset(new TupleStorageSubBlockDescription());
   tuple_store_description_->set_sub_block_type(TupleStorageSubBlockDescription::PACKED_ROW_STORE);
-  EXPECT_TRUE(PackedRowStoreTupleStorageSubBlock::DescriptionIsValid(*nullable_relation,
-                                                                     *tuple_store_description_));
+  EXPECT_EQ(0, PackedRowStoreTupleStorageSubBlock::DescriptionIsValid(*nullable_relation,
+                                                                      *tuple_store_description_));
 
   // A relation with a variable-length attribute can't be used with this block type.
   std::unique_ptr<CatalogRelation> variable_length_relation(new CatalogRelation(NULL, "variable_length_relation"));
@@ -291,8 +291,8 @@ TEST_P(PackedRowStoreTupleStorageSubBlockTest, DescriptionIsValidTest) {
                                                                     "variable_length_attr",
                                                                      TypeFactory::GetType(kVarChar, 20, false));
   ASSERT_EQ(0, variable_length_relation->addAttribute(variable_length_attribute));
-  EXPECT_FALSE(PackedRowStoreTupleStorageSubBlock::DescriptionIsValid(*variable_length_relation,
-                                                                      *tuple_store_description_));
+  EXPECT_EQ(-3, PackedRowStoreTupleStorageSubBlock::DescriptionIsValid(*variable_length_relation,
+                                                                       *tuple_store_description_));
 }
 
 TEST_P(PackedRowStoreTupleStorageSubBlockDeathTest, ConstructWithInvalidDescriptionTest) {
