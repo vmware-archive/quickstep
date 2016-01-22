@@ -36,6 +36,11 @@ namespace quickstep {
  *  @{
  */
 
+/**
+ * @brief Parsed BlockPropertyItem which simply a key (property) and the corresponding value.
+ * @details The value may actually be a list of Parse strings. This is to cover the case where a 
+ *    user specifies a subset of columns to compress rather than using the keyword ALL 
+ */
 class ParseBlockPropertyItem : public ParseTreeNode {
  public:
 
@@ -52,6 +57,9 @@ class ParseBlockPropertyItem : public ParseTreeNode {
    *
    * @param line_number Line number of the first token of this node in the SQL statement.
    * @param column_number Column number of the first token of this node in the SQL statement.
+   * @param property describes which type of block property this is. Corresponds to a field of the 
+   *          StorageBlockLayoutDescription message
+   * @param value a parse string representing the assignment of the property
    **/
   ParseBlockPropertyItem( int line_number, 
                           int column_number,
@@ -63,6 +71,15 @@ class ParseBlockPropertyItem : public ParseTreeNode {
     values_->push_back(value);
   }
 
+  /**
+   * @brief Constructor.
+   *
+   * @param line_number Line number of the first token of this node in the SQL statement.
+   * @param column_number Column number of the first token of this node in the SQL statement.
+   * @param property describes which type of block property this is. Corresponds to a field of the 
+   *          StorageBlockLayoutDescription message
+   * @param values list of parse strings representing the assignment of the property
+   **/
   ParseBlockPropertyItem( int line_number, 
                           int column_number,
                           Property property,
@@ -75,6 +92,11 @@ class ParseBlockPropertyItem : public ParseTreeNode {
     return "BlockPropertyItem";
   }
 
+  /**
+   * @brief Gets a string version of the property which this pair describes
+   * 
+   * @return a string description of the property
+   */
   std::string getPropertyString() const {
     switch(property_) {
       case kCompress:
@@ -88,6 +110,11 @@ class ParseBlockPropertyItem : public ParseTreeNode {
     }
   }
 
+  /**
+   * @brief Returns if the user specified to compress all attributes using a special keyword
+   * 
+   * @return true if this is a compression property and the value is all
+   */
   bool compressAll() const {
     return (property_ == kCompress && values_->begin()->value().compare(AllString) == 0);
   }
@@ -106,11 +133,12 @@ class ParseBlockPropertyItem : public ParseTreeNode {
     inline_field_values->push_back(getPropertyString());
 
     inline_field_names->push_back("value");
+
+    // pretty print the list
     if(values_->size() > 1) {
       std::string str("(");
       for(const ParseString& parseString : *values_) {
-        str += parseString.value();
-        str += ",";
+        str += parseString.value() + ',';
       }
       str.erase(str.size() - 1, 1);
       str += ")";
@@ -129,7 +157,7 @@ class ParseBlockPropertyItem : public ParseTreeNode {
 };
 
 /**
- * @brief Contains user-specified physical properties of a table's blocks.
+ * @brief Contains user-specified physical properties of a table's blocks as BlockPropertyItem's
  */
 class ParseBlockProperties : public ParseTreeNode {
  public:
