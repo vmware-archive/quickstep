@@ -30,29 +30,4 @@ namespace quickstep {
 
 const std::string ParseBlockPropertyItem::AllString = std::string("ALL");
 
-// const ParseString* ParseBlockProperties::storageType() const {
-//   return storage_type_.get();
-// }
-
-// bool ParseBlockProperties::hasSortColumn() const {
-//   return opt_sort_col_name_.get() != nullptr;
-// }
-
-// const ParseString* ParseBlockProperties::sortColumn() const {
-//   DEBUG_ASSERT(hasSortColumn());
-//   return opt_sort_col_name_.get();
-// }
-
-// bool ParseBlockProperties::hasCompressedColumns() const {
-//   return all_columns_compressed_ || opt_compressed_col_names_.get() != nullptr;
-// }
-
-// bool ParseBlockProperties::compressAll() const {
-//   return all_columns_compressed_;
-// }
-
-// const PtrList<ParseString>& ParseBlockProperties::compressedColumns() const {
-//   return *opt_compressed_col_names_.get();
-// }
-
 } // namespace quickstep
