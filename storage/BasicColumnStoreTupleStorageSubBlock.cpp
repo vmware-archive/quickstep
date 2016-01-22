@@ -106,7 +106,7 @@ BasicColumnStoreTupleStorageSubBlock::BasicColumnStoreTupleStorageSubBlock(
                            sub_block_memory_size),
       sorted_(true),
       header_(static_cast<BasicColumnStoreHeader*>(sub_block_memory)) {
-  if (!DescriptionIsValid(relation_, description_)) {
+  if (DescriptionIsValid(relation_, description_) != 0) {
     FATAL_ERROR("Attempted to construct a BasicColumnStoreTupleStorageSubBlock from an invalid description.");
   }
 
@@ -173,45 +173,45 @@ BasicColumnStoreTupleStorageSubBlock::BasicColumnStoreTupleStorageSubBlock(
   }
 }
 
-bool BasicColumnStoreTupleStorageSubBlock::DescriptionIsValid(
+int BasicColumnStoreTupleStorageSubBlock::DescriptionIsValid(
     const CatalogRelationSchema &relation,
     const TupleStorageSubBlockDescription &description) {
   // Make sure description is initialized and specifies BasicColumnStore.
   if (!description.IsInitialized()) {
-    return false;
+    return -1;
   }
   if (description.sub_block_type() != TupleStorageSubBlockDescription::BASIC_COLUMN_STORE) {
-    return false;
+    return -2;
   }
   // Make sure a sort_attribute_id is specified.
   if (!description.HasExtension(BasicColumnStoreTupleStorageSubBlockDescription::sort_attribute_id)) {
-    return false;
+    return -4;
   }
 
   // Make sure relation is not variable-length.
   if (relation.isVariableLength()) {
-    return false;
+    return -3;
   }
 
   // Check that the specified sort attribute exists and can be ordered by LessComparison.
   attribute_id sort_attribute_id = description.GetExtension(
       BasicColumnStoreTupleStorageSubBlockDescription::sort_attribute_id);
   if (!relation.hasAttributeWithId(sort_attribute_id)) {
-    return false;
+    return -5;
   }
   const Type &sort_attribute_type = relation.getAttributeById(sort_attribute_id)->getType();
   if (!ComparisonFactory::GetComparison(ComparisonID::kLess).canCompareTypes(sort_attribute_type,
                                                                              sort_attribute_type)) {
-    return false;
+    return -6;
   }
 
-  return true;
+  return 0;
 }
 
 std::size_t BasicColumnStoreTupleStorageSubBlock::EstimateBytesPerTuple(
     const CatalogRelationSchema &relation,
     const TupleStorageSubBlockDescription &description) {
-  DEBUG_ASSERT(DescriptionIsValid(relation, description));
+  DEBUG_ASSERT(DescriptionIsValid(relation, description) == 0);
 
   // NOTE(chasseur): We round-up the number of bytes needed in the NULL bitmaps
   // to avoid estimating 0 bytes needed for a relation with less than 8

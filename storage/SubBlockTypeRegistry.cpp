@@ -50,7 +50,7 @@ bool SubBlockTypeRegistry::LayoutDescriptionIsValid(
   if (it == Instance()->tuple_store_description_is_valid_functions_.end()) {
     return false;
   }
-  if (!(*it->second)(relation, tuple_store_description)) {
+  if ((*it->second)(relation, tuple_store_description) != 0) {
     return false;
   }
 

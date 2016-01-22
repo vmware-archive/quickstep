@@ -153,6 +153,17 @@ class SqlError : public std::exception {
   // Copyable.
 };
 
+  /**
+   * @brief Gives a small description of an error code returned from the DescriptionIsValid
+   * function of the StorageBlock (PackedRowStoreTupleStorageSubBlock, SplitRowStoreTupleStorageSubBlock, 
+   * ..., *TupleStorageSuBlock) classes.
+   *  
+   * @param error_code The code from DescriptionIsValid of the TupleStorageSubBlock class.
+   * 
+   * @return a short string describing the error code.
+   */
+  std::string getTupleStorageBlockDescriptionErrorMessage(int error_code);
+
 /** @} */
 
 }  // namespace quickstep

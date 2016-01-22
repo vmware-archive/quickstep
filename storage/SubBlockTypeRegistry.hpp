@@ -76,7 +76,7 @@ class SubBlockTypeRegistry {
       IndexTypeIntegral;
 
  public:
-  typedef bool (*TupleStoreDescriptionIsValidFunction)(
+  typedef int (*TupleStoreDescriptionIsValidFunction)(
       const CatalogRelationSchema&,
       const TupleStorageSubBlockDescription&);
 

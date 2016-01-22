@@ -71,7 +71,7 @@ CompressedPackedRowStoreTupleStorageSubBlock::CompressedPackedRowStoreTupleStora
                                      sub_block_memory,
                                      sub_block_memory_size),
       num_uncompressed_attributes_with_nulls_(0) {
-  if (!DescriptionIsValid(relation_, description_)) {
+  if (DescriptionIsValid(relation_, description_) != 0) {
     FATAL_ERROR("Attempted to construct a CompressedPackedRowStoreTupleStorageSubBlock "
                 "from an invalid description.");
   }
@@ -81,16 +81,16 @@ CompressedPackedRowStoreTupleStorageSubBlock::CompressedPackedRowStoreTupleStora
   }
 }
 
-bool CompressedPackedRowStoreTupleStorageSubBlock::DescriptionIsValid(
+int CompressedPackedRowStoreTupleStorageSubBlock::DescriptionIsValid(
     const CatalogRelationSchema &relation,
     const TupleStorageSubBlockDescription &description) {
   // Make sure description is initialized and specifies
   // CompressedPackedRowStore.
   if (!description.IsInitialized()) {
-    return false;
+    return -1;
   }
   if (description.sub_block_type() != TupleStorageSubBlockDescription::COMPRESSED_PACKED_ROW_STORE) {
-    return false;
+    return -2;
   }
 
   // Make sure all the specified compressed attributes exist and can be ordered
@@ -105,11 +105,11 @@ bool CompressedPackedRowStoreTupleStorageSubBlock::DescriptionIsValid(
         CompressedPackedRowStoreTupleStorageSubBlockDescription::compressed_attribute_id,
         compressed_attribute_num);
     if (!relation.hasAttributeWithId(compressed_attribute_id)) {
-      return false;
+      return -7;
     }
     const Type &attr_type = relation.getAttributeById(compressed_attribute_id)->getType();
     if (!less_comparison.canCompareTypes(attr_type, attr_type)) {
-      return false;
+      return -8;
     }
     if (attr_type.isVariableLength()) {
       compressed_variable_length_attributes.insert(compressed_attribute_id);
@@ -125,20 +125,20 @@ bool CompressedPackedRowStoreTupleStorageSubBlock::DescriptionIsValid(
       if (attr_it->getType().isVariableLength()) {
         if (compressed_variable_length_attributes.find(attr_it->getID())
             == compressed_variable_length_attributes.end()) {
-          return false;
+          return -9;
         }
       }
     }
   }
 
-  return true;
+  return 0;
 }
 
 // TODO(chasseur): Make this heuristic better.
 std::size_t CompressedPackedRowStoreTupleStorageSubBlock::EstimateBytesPerTuple(
     const CatalogRelationSchema &relation,
     const TupleStorageSubBlockDescription &description) {
-  DEBUG_ASSERT(DescriptionIsValid(relation, description));
+  DEBUG_ASSERT(DescriptionIsValid(relation, description) == 0);
 
   std::unordered_set<attribute_id> compressed_attributes;
   for (int compressed_attribute_num = 0;
