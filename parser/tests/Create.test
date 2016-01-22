@@ -137,3 +137,38 @@ create table test (attr int) check(attr>0)
 ERROR: Table Constraints (CHECK) is not supported yet (1 : 30)
 create table test (attr int) check(attr>0)
                              ^
+==
+
+create table test (attr0 int, attr1 int) with blockproperties (type rowstore);
+--
+CreateTableStatement[relation_name=test]
++-block_properties=BlockProperties
+| +-BlockPropertyItem=BlockPropertyItem[property=type,value=rowstore]
++-attribute_list=
+  +-AttributeDefinition[name=attr0,type=Int]
+  +-AttributeDefinition[name=attr1,type=Int]
+==
+
+create table test (attr0 int, attr1 int) with blockproperties (type compressed_columnstore, sort attr0, compress ALL);
+--
+CreateTableStatement[relation_name=test]
++-block_properties=BlockProperties
+| +-BlockPropertyItem=BlockPropertyItem[property=type,
+| | value=compressed_columnstore]
+| +-BlockPropertyItem=BlockPropertyItem[property=sort,value=attr0]
+| +-BlockPropertyItem=BlockPropertyItem[property=compress,value=ALL]
++-attribute_list=
+  +-AttributeDefinition[name=attr0,type=Int]
+  +-AttributeDefinition[name=attr1,type=Int]
+==
+
+create table test (attr0 int, attr1 int) with blockproperties (type compressed_rowstore, sort attr0, compress (attr0, attr1));
+--
+CreateTableStatement[relation_name=test]
++-block_properties=BlockProperties
+| +-BlockPropertyItem=BlockPropertyItem[property=type,value=compressed_rowstore]
+| +-BlockPropertyItem=BlockPropertyItem[property=sort,value=attr0]
+| +-BlockPropertyItem=BlockPropertyItem[property=compress,value=(attr0,attr1)]
++-attribute_list=
+  +-AttributeDefinition[name=attr0,type=Int]
+  +-AttributeDefinition[name=attr1,type=Int]
