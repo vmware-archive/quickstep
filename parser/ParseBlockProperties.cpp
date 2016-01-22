@@ -23,4 +23,21 @@ namespace quickstep {
 
 const std::string ParseBlockPropertyItem::AllString = std::string("ALL");
 
+std::string ParseBlockPropertyItem::getPropertyString() const {
+  switch(property_) {
+    case kCompress:
+      return "compress";
+    case kSort:
+      return "sort";
+    case kType:
+      return "type";
+    default:
+      return "unknown";
+  }
+}
+
+bool ParseBlockPropertyItem::compressAll() const {
+  return (property_ == kCompress && values_->begin()->value().compare(AllString) == 0);
+}
+
 } // namespace quickstep

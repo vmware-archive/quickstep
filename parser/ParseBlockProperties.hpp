@@ -41,6 +41,7 @@ namespace quickstep {
 class ParseBlockPropertyItem : public ParseTreeNode {
  public:
 
+  // string representation of the ALL SQL keyword
   static const std::string AllString;
 
   enum Property {
@@ -94,27 +95,14 @@ class ParseBlockPropertyItem : public ParseTreeNode {
    * 
    * @return a string description of the property
    */
-  std::string getPropertyString() const {
-    switch(property_) {
-      case kCompress:
-        return "compress";
-      case kSort:
-        return "sort";
-      case kType:
-        return "type";
-      default:
-        return "unknown";
-    }
-  }
+  std::string getPropertyString() const;
 
   /**
    * @brief Returns if the user specified to compress all attributes using a special keyword
    * 
    * @return true if this is a compression property and the value is all
    */
-  bool compressAll() const {
-    return (property_ == kCompress && values_->begin()->value().compare(AllString) == 0);
-  }
+  bool compressAll() const;
 
  protected:
 
