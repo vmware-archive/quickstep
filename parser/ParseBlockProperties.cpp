@@ -18,13 +18,6 @@
 #include "parser/ParseBlockProperties.hpp"
 
 #include <string>
-#include <vector>
-#include <stdexcept>
-
-#include "parser/ParseExpression.hpp"
-#include "parser/ParseString.hpp"
-#include "parser/ParseTreeNode.hpp"
-#include "utility/StringUtil.hpp"
  
 namespace quickstep {
 
