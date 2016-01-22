@@ -131,11 +131,8 @@ target_link_libraries(quickstep_parser_ParseBasicExpressions
 target_link_libraries(quickstep_parser_ParseBlockProperties
                       quickstep_parser_ParseString
                       quickstep_parser_ParseTreeNode
-                      quickstep_storage_StorageBlockInfo
-                      quickstep_types_Type
                       quickstep_utility_Macros
-                      quickstep_utility_PtrList
-                      quickstep_utility_StringUtil)
+                      quickstep_utility_PtrList)
 target_link_libraries(quickstep_parser_ParseExpression
                       quickstep_parser_ParseTreeNode
                       quickstep_utility_Macros)
