@@ -34,6 +34,7 @@ class NumericParseLiteralValue;
 class ParseAssignment;
 class ParseAttribute;
 class ParseAttributeDefinition;
+class ParseBlockProperties;
 class ParseColumnConstraint;
 class ParseDataType;
 class ParseFunctionCall;
