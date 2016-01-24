@@ -127,6 +127,15 @@ class ParseStatementCreateTable : public ParseStatement {
   }
 
   /**
+   * @brief Get the block properties which describe the relation.
+   *
+   * @return \c nullptr if there are no block properties.
+   */
+  const ParseBlockProperties* block_properties() const {
+    return opt_block_properties_.get();
+  }
+
+  /**
    * @brief Get the list of attribute definitions.
    *
    * @return The list of attribute definitions for the new relation.

@@ -78,6 +78,25 @@ bool SubBlockTypeRegistry::LayoutDescriptionIsValid(
   return true;
 }
 
+int SubBlockTypeRegistry::TupleStoreDescriptionIsValid(
+    const CatalogRelationSchema &relation,
+    const TupleStorageSubBlockDescription &description) {
+  // Check that the tuple_store_description is valid.
+  if (!description.IsInitialized()) {
+    return -1;
+  }
+
+  std::unordered_map<TupleStoreTypeIntegral,
+                     TupleStoreDescriptionIsValidFunction>::const_iterator
+      it = Instance()->tuple_store_description_is_valid_functions_.find(
+          static_cast<TupleStoreTypeIntegral>(description.sub_block_type()));
+  if (it == Instance()->tuple_store_description_is_valid_functions_.end()) {
+    return -10;
+  }
+
+  return (*it->second)(relation, description);
+}
+
 std::size_t SubBlockTypeRegistry::EstimateBytesPerTupleForTupleStore(
     const CatalogRelationSchema &relation,
     const TupleStorageSubBlockDescription &description) {

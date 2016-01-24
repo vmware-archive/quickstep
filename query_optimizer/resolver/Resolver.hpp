@@ -29,6 +29,7 @@
 #include "query_optimizer/expressions/Predicate.hpp"
 #include "query_optimizer/expressions/Scalar.hpp"
 #include "query_optimizer/logical/Logical.hpp"
+#include "storage/StorageBlockLayout.pb.h"
 #include "utility/Macros.hpp"
 
 namespace quickstep {
@@ -36,6 +37,8 @@ namespace quickstep {
 class CatalogDatabase;
 class CatalogRelation;
 class Comparison;
+class ParseAttributeDefinition;
+class ParseBlockProperties;
 class ParseExpression;
 class ParseFunctionCall;
 class ParseOrderBy;
@@ -158,6 +161,18 @@ class Resolver {
    */
   logical::LogicalPtr resolveCreateTable(
       const ParseStatementCreateTable &create_table_statement);
+
+  /**
+   * @brief Helper method for resolving physical block properties.
+   *
+   * @param block_properties The user's parsed block properties
+   * @param attributes The attributes for the table (needed for SORT and COMPRESS
+   *          attribute name to id mappings)
+   * @return A valid TupleStorageSubBlockDescription. Caller takes ownership
+   **/
+  TupleStorageSubBlockDescription* resolveBlockProperties(
+                        const ParseBlockProperties& block_properties,
+                        const PtrList<ParseAttributeDefinition>& attributes) const;
 
   /**
    * @brief Resolves a DELETE query and returns a logical plan.
