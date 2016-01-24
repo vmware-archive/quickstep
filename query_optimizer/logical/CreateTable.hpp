@@ -31,6 +31,9 @@
 #include "glog/logging.h"
 
 namespace quickstep {
+
+class TupleStorageSubBlockDescription;
+
 namespace optimizer {
 namespace logical {
 
@@ -62,10 +65,15 @@ class CreateTable : public Logical {
     return attributes_;
   }
 
+  /**
+   * @return The block properties of the relation
+   */
+  const TupleStorageSubBlockDescription* block_properties() const { return block_properties_; }
+
   LogicalPtr copyWithNewChildren(
       const std::vector<LogicalPtr> &new_children) const override {
     DCHECK_EQ(getNumChildren(), new_children.size());
-    return Create(relation_name_, attributes_);
+    return Create(relation_name_, attributes_, block_properties_);
   }
 
   std::vector<expressions::AttributeReferencePtr> getOutputAttributes() const override {
@@ -86,8 +94,9 @@ class CreateTable : public Logical {
    */
   static CreateTablePtr Create(
       const std::string &relation_name,
-      const std::vector<expressions::AttributeReferencePtr> &attributes) {
-    return CreateTablePtr(new CreateTable(relation_name, attributes));
+      const std::vector<expressions::AttributeReferencePtr> &attributes,
+      const TupleStorageSubBlockDescription *block_properties) {
+    return CreateTablePtr(new CreateTable(relation_name, attributes, block_properties));
   }
 
  protected:
@@ -102,11 +111,13 @@ class CreateTable : public Logical {
  private:
   CreateTable(
       const std::string &relation_name,
-      const std::vector<expressions::AttributeReferencePtr> &attributes)
-      : relation_name_(relation_name), attributes_(attributes) {}
+      const std::vector<expressions::AttributeReferencePtr> &attributes,
+      const  TupleStorageSubBlockDescription *block_properties)
+      : relation_name_(relation_name), attributes_(attributes), block_properties_(block_properties) {}
 
   std::string relation_name_;
   std::vector<expressions::AttributeReferencePtr> attributes_;
+  const TupleStorageSubBlockDescription *block_properties_;
 
   DISALLOW_COPY_AND_ASSIGN(CreateTable);
 };

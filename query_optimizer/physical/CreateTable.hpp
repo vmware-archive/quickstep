@@ -33,6 +33,9 @@
 #include "glog/logging.h"
 
 namespace quickstep {
+
+class TupleStorageSubBlockDescription;
+
 namespace optimizer {
 namespace physical {
 
@@ -69,7 +72,7 @@ class CreateTable : public Physical {
   PhysicalPtr copyWithNewChildren(
       const std::vector<PhysicalPtr> &new_children) const override {
     DCHECK_EQ(getNumChildren(), new_children.size());
-    return Create(relation_name_, attributes_);
+    return Create(relation_name_, attributes_, block_properties_);
   }
 
   std::vector<expressions::AttributeReferencePtr> getOutputAttributes() const override {
@@ -79,6 +82,11 @@ class CreateTable : public Physical {
   std::vector<expressions::AttributeReferencePtr> getReferencedAttributes() const override {
     return attributes_;
   }
+
+  /**
+   * @return The block properties of the relation
+   */
+  const TupleStorageSubBlockDescription* block_properties() const { return block_properties_; }
 
   bool maybeCopyWithPrunedExpressions(
       const expressions::UnorderedNamedExpressionSet &referenced_expressions,
@@ -96,8 +104,9 @@ class CreateTable : public Physical {
    */
   static CreateTablePtr Create(
       const std::string &relation_name,
-      const std::vector<expressions::AttributeReferencePtr> &attributes) {
-    return CreateTablePtr(new CreateTable(relation_name, attributes));
+      const std::vector<expressions::AttributeReferencePtr> &attributes,
+      const TupleStorageSubBlockDescription* block_properties) {
+    return CreateTablePtr(new CreateTable(relation_name, attributes, block_properties));
   }
 
  protected:
@@ -112,11 +121,13 @@ class CreateTable : public Physical {
  private:
   CreateTable(
       const std::string &relation_name,
-      const std::vector<expressions::AttributeReferencePtr> &attributes)
-      : relation_name_(relation_name), attributes_(attributes) {}
+      const std::vector<expressions::AttributeReferencePtr> &attributes,
+      const TupleStorageSubBlockDescription *block_properties)
+      : relation_name_(relation_name), attributes_(attributes), block_properties_(block_properties) {}
 
   std::string relation_name_;
   std::vector<expressions::AttributeReferencePtr> attributes_;
+  const TupleStorageSubBlockDescription *block_properties_;
 
   DISALLOW_COPY_AND_ASSIGN(CreateTable);
 };

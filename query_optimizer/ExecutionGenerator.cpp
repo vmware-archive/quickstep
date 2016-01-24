@@ -89,6 +89,7 @@
 #include "storage/InsertDestination.pb.h"
 #include "storage/StorageBlockLayout.hpp"
 #include "storage/StorageBlockLayout.pb.h"
+#include "storage/SubBlockTypeRegistry.hpp"
 #include "types/Type.hpp"
 #include "types/Type.pb.h"
 #include "types/TypedValue.hpp"
@@ -759,6 +760,25 @@ void ExecutionGenerator::convertCreateTable(
         attribute->attribute_alias()));
     catalog_relation->addAttribute(catalog_attribute.release());
     ++aid;
+  }
+
+  // if specified, set the physical block type
+  // otherwise, the system uses the default layout
+  if(physical_plan->block_properties() != nullptr) {
+    TupleStorageSubBlockDescription *block_properties = 
+                  const_cast<TupleStorageSubBlockDescription*>(physical_plan->block_properties());
+    StorageBlockLayout *layout = new StorageBlockLayout(*catalog_relation);
+    layout->getDescriptionMutable()->set_num_slots(1);
+    layout->getDescriptionMutable()->set_allocated_tuple_store_description(block_properties);
+    int block_error_code = SubBlockTypeRegistry::TupleStoreDescriptionIsValid(
+                                                    *catalog_relation, 
+                                                    layout->getDescription().tuple_store_description());
+    if(block_error_code != 0) {
+      delete layout;
+      THROW_SQL_ERROR() << "BLOCKPROPERTIES is invalid: " << getTupleStorageBlockDescriptionErrorMessage(block_error_code) ;
+    }
+    layout->finalize();
+    catalog_relation->setDefaultStorageBlockLayout(layout);
   }
 
   execution_plan_->addRelationalOperator(

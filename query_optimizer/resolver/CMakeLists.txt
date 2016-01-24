@@ -34,6 +34,7 @@ target_link_libraries(quickstep_queryoptimizer_resolver_Resolver
                       quickstep_expressions_aggregation_AggregateFunction
                       quickstep_expressions_aggregation_AggregateFunctionFactory
                       quickstep_parser_ParseAssignment
+                      quickstep_parser_ParseAttributeDefinition
                       quickstep_parser_ParseBasicExpressions
                       quickstep_parser_ParseExpression
                       quickstep_parser_ParseGroupBy
@@ -86,6 +87,7 @@ target_link_libraries(quickstep_queryoptimizer_resolver_Resolver
                       quickstep_queryoptimizer_logical_TopLevelPlan
                       quickstep_queryoptimizer_logical_UpdateTable
                       quickstep_queryoptimizer_resolver_NameResolver
+                      quickstep_storage_StorageBlockLayout_proto
                       quickstep_types_IntType
                       quickstep_types_Type
                       quickstep_types_TypeFactory

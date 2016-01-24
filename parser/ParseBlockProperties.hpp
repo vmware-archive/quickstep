@@ -90,6 +90,18 @@ class ParseBlockPropertyItem : public ParseTreeNode {
     return "BlockPropertyItem";
   }
 
+  Property property() const {
+    return property_;
+  }
+
+  const ParseString* value() const {
+    return &*values_->begin();
+  }
+
+  const PtrList<ParseString>& values() const {
+    return *(values_.get());
+  }
+
   /**
    * @brief Gets a string version of the property which this pair describes
    * 
@@ -119,7 +131,7 @@ class ParseBlockPropertyItem : public ParseTreeNode {
 
     inline_field_names->push_back("value");
 
-    // pretty print the list
+    // pretty print multiple values as a list
     if(values_->size() > 1) {
       std::string str("(");
       for(const ParseString& parseString : *values_) {
@@ -161,6 +173,21 @@ class ParseBlockProperties : public ParseTreeNode {
 
   std::string getName() const override {
     return "BlockProperties";
+  }
+
+  /**
+   * @brief Gets the specified BlockPropertyItem.
+   * 
+   * @param property The property, one of kSort, kCompress, or kType.
+   * @return Pointer to the property or nullptr if not found.
+   */
+  const ParseBlockPropertyItem* getPropertyItem(ParseBlockPropertyItem::Property property) const {
+    for(auto propertyItem = properties_->begin(); propertyItem != properties_->end(); ++propertyItem) {
+      if(propertyItem->property() == property) {
+        return &*propertyItem;
+      }
+    }
+    return nullptr;
   }
 
  protected:
