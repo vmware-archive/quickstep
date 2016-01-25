@@ -90,6 +90,11 @@ class ParseBlockPropertyItem : public ParseTreeNode {
     return "BlockPropertyItem";
   }
 
+  /**
+   * @brief The type of property being described.
+   * 
+   * @return The specific block property which this instance is describing.
+   */
   Property property() const {
     return property_;
   }
