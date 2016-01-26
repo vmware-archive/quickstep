@@ -80,9 +80,12 @@ class SplitRowStoreTupleStorageSubBlock: public TupleStorageSubBlock {
    *         TupleStorageSubBlock belonging to relation (i.e. whether a
    *         TupleStorageSubBlock of this type, belonging to relation, can be
    *         constructed according to description).
+   *         Returns 0 on valid description or a negative number based on the
+   *         error which occurred. Error meanings can be found in 
+   *         utility/SqlError.hpp
    **/
-  static bool DescriptionIsValid(const CatalogRelationSchema &relation,
-                                 const TupleStorageSubBlockDescription &description);
+  static int DescriptionIsValid(const CatalogRelationSchema &relation,
+                                const TupleStorageSubBlockDescription &description);
 
   /**
    * @brief Estimate the average number of bytes (including any applicable

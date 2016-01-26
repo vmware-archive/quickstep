@@ -100,7 +100,7 @@ SplitRowStoreTupleStorageSubBlock::SplitRowStoreTupleStorageSubBlock(
                            sub_block_memory,
                            sub_block_memory_size),
       header_(static_cast<Header*>(sub_block_memory)) {
-  if (!DescriptionIsValid(relation_, description_)) {
+  if (DescriptionIsValid(relation_, description_) != 0) {
     FATAL_ERROR("Attempted to construct a SplitRowStoreTupleStorageSubBlock from an invalid description.");
   }
 
@@ -149,24 +149,24 @@ SplitRowStoreTupleStorageSubBlock::SplitRowStoreTupleStorageSubBlock(
   }
 }
 
-bool SplitRowStoreTupleStorageSubBlock::DescriptionIsValid(
+int SplitRowStoreTupleStorageSubBlock::DescriptionIsValid(
     const CatalogRelationSchema &relation,
     const TupleStorageSubBlockDescription &description) {
   // Make sure description is initialized and specifies SplitRowStore.
   if (!description.IsInitialized()) {
-    return false;
+    return -1;
   }
   if (description.sub_block_type() != TupleStorageSubBlockDescription::SPLIT_ROW_STORE) {
-    return false;
+    return -2;
   }
 
-  return true;
+  return 0;
 }
 
 std::size_t SplitRowStoreTupleStorageSubBlock::EstimateBytesPerTuple(
     const CatalogRelationSchema &relation,
     const TupleStorageSubBlockDescription &description) {
-  DEBUG_ASSERT(DescriptionIsValid(relation, description));
+  DEBUG_ASSERT(DescriptionIsValid(relation, description) == 0);
 
   return relation.getFixedByteLength()                                           // Fixed-length attrs
          + BitVector<true>::BytesNeeded(relation.numNullableAttributes())        // Null bitmap

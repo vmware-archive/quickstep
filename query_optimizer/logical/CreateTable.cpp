@@ -39,6 +39,11 @@ void CreateTable::getFieldStringItems(
   inline_field_names->push_back("relation");
   inline_field_values->push_back(relation_name_);
 
+  if(block_properties_ != nullptr) {
+    inline_field_names->push_back("block_properties");
+    inline_field_values->push_back("PROTO_MESSAGE");
+  }
+
   container_child_field_names->push_back("attributes");
   container_child_fields->push_back(CastSharedPtrVector<OptimizerTreeBase>(attributes_));
 }

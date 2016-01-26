@@ -270,18 +270,18 @@ typedef SplitRowStoreTupleStorageSubBlockTest SplitRowStoreTupleStorageSubBlockD
 TEST_P(SplitRowStoreTupleStorageSubBlockTest, DescriptionIsValidTest) {
   // The descriptions we use for the other tests (which includes nullable and
   // variable-length attributes) should be valid.
-  EXPECT_TRUE(SplitRowStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
-                                                                    *tuple_store_description_));
+  EXPECT_EQ(0, SplitRowStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
+                                                                     *tuple_store_description_));
 
   // An uninitialized description is not valid.
   tuple_store_description_.reset(new TupleStorageSubBlockDescription());
-  EXPECT_FALSE(SplitRowStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
-                                                                     *tuple_store_description_));
+  EXPECT_EQ(-1, SplitRowStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
+                                                                      *tuple_store_description_));
 
   // A description that specifies the wrong sub_block_type is not valid.
   tuple_store_description_->set_sub_block_type(TupleStorageSubBlockDescription::BASIC_COLUMN_STORE);
-  EXPECT_FALSE(SplitRowStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
-                                                                     *tuple_store_description_));
+  EXPECT_EQ(-2, SplitRowStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
+                                                                      *tuple_store_description_));
 }
 
 TEST_P(SplitRowStoreTupleStorageSubBlockDeathTest, ConstructWithInvalidDescriptionTest) {

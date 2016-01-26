@@ -29,6 +29,7 @@
 #include "expressions/aggregation/AggregateFunction.hpp"
 #include "expressions/aggregation/AggregateFunctionFactory.hpp"
 #include "parser/ParseAssignment.hpp"
+#include "parser/ParseAttributeDefinition.hpp"
 #include "parser/ParseBasicExpressions.hpp"
 #include "parser/ParseExpression.hpp"
 #include "parser/ParseGroupBy.hpp"
@@ -80,6 +81,7 @@
 #include "query_optimizer/logical/TopLevelPlan.hpp"
 #include "query_optimizer/logical/UpdateTable.hpp"
 #include "query_optimizer/resolver/NameResolver.hpp"
+#include "storage/StorageBlockLayout.pb.h"
 #include "types/IntType.hpp"
 #include "types/Type.hpp"
 #include "types/TypeFactory.hpp"
@@ -385,7 +387,117 @@ L::LogicalPtr Resolver::resolveCreateTable(
     attribute_name_set.insert(lower_attribute_name);
   }
 
-  return L::CreateTable::Create(relation_name, attributes);
+  const ParseBlockProperties* properties = create_table_statement.block_properties();
+  if(properties != nullptr) {
+    TupleStorageSubBlockDescription* desc = resolveBlockProperties(*properties, 
+                                                create_table_statement.attribute_definition_list());
+    return L::CreateTable::Create(relation_name, attributes, desc);
+  }
+
+  return L::CreateTable::Create(relation_name, attributes, nullptr);
+}
+
+// helper method which is used multiple times in resolveBlockProperties
+// returns -1 if given name was not found among the attribute names
+// it might be possible to change this to a lambda statment within the method resolveBlockProperties
+attribute_id attributeIdFromAttributeName(const std::string& name, const PtrList<ParseAttributeDefinition>& attributes) {
+  std::string lower_name = ToLower(name);
+  attribute_id attr_id = 0;
+  for (const ParseAttributeDefinition &attribute_definition : attributes) {
+    if(lower_name.compare(ToLower(attribute_definition.name()->value())) == 0){
+      return attr_id;
+    }
+    ++attr_id;
+  }
+  return -1;
+}
+
+TupleStorageSubBlockDescription* Resolver::resolveBlockProperties(
+                        const ParseBlockProperties& block_properties,
+                        const PtrList<ParseAttributeDefinition>& attributes) const {
+  std::unique_ptr<TupleStorageSubBlockDescription> subblock_desc(new TupleStorageSubBlockDescription());
+
+  // resolve storage type 
+  const ParseBlockPropertyItem* type_property = block_properties.getPropertyItem(ParseBlockPropertyItem::kType);
+  if(type_property == nullptr){
+    THROW_SQL_ERROR_AT(&block_properties) << "a type must be specified";
+  }
+  const std::string type_str = ToLower(type_property->value()->value());
+  bool requires_sort = false;
+  bool requires_compress = false;
+  if(type_str.compare("rowstore") == 0) {
+    subblock_desc->set_sub_block_type(quickstep::TupleStorageSubBlockDescription::PACKED_ROW_STORE);
+  } else if(type_str.compare("split_rowstore") == 0){
+    subblock_desc->set_sub_block_type(quickstep::TupleStorageSubBlockDescription::SPLIT_ROW_STORE);
+  } else if(type_str.compare("column_store") == 0){
+    subblock_desc->set_sub_block_type(quickstep::TupleStorageSubBlockDescription::BASIC_COLUMN_STORE);
+    requires_sort = true;
+  } else if(type_str.compare("compressed_rowstore") == 0) {
+    subblock_desc->set_sub_block_type( quickstep::TupleStorageSubBlockDescription::COMPRESSED_PACKED_ROW_STORE);
+    requires_compress = true;
+  } else if(type_str.compare("compressed_columnstore") == 0){
+    subblock_desc->set_sub_block_type( quickstep::TupleStorageSubBlockDescription::COMPRESSED_COLUMN_STORE);
+    requires_sort = true;
+    requires_compress = true;
+  } else {
+    THROW_SQL_ERROR_AT(&block_properties)
+             << "\"" + type_str + "\"" << " is not a valid storage type.";
+  }
+
+  // resolve Sort property
+  const ParseBlockPropertyItem* sort_property = block_properties.getPropertyItem(ParseBlockPropertyItem::kSort);
+  if(requires_sort) {
+    if(sort_property == nullptr){
+      THROW_SQL_ERROR_AT(sort_property)  << "\"SORT\" must be specified with this storage type";
+    }
+    const std::string& sort_str = sort_property->value()->value();
+    attribute_id sort_id = attributeIdFromAttributeName(sort_str, attributes);
+    if(sort_id == -1) {
+      THROW_SQL_ERROR_AT(sort_property)  << "\"SORT\" attribute does not exist";
+    } else {
+      if(subblock_desc->sub_block_type() == quickstep::TupleStorageSubBlockDescription::BASIC_COLUMN_STORE) {
+        subblock_desc->SetExtension(quickstep::BasicColumnStoreTupleStorageSubBlockDescription::sort_attribute_id, sort_id);
+      } else if(subblock_desc->sub_block_type() == quickstep::TupleStorageSubBlockDescription::COMPRESSED_COLUMN_STORE) {
+        subblock_desc->SetExtension(quickstep::CompressedColumnStoreTupleStorageSubBlockDescription::sort_attribute_id, sort_id);
+      }
+    }
+  } else {
+    if(sort_property != nullptr){
+      THROW_SQL_ERROR_AT(sort_property)  << "\"SORT\" should not be specified with this storage type";
+    }
+  }
+
+  // resolve compress property
+  const ParseBlockPropertyItem* compress_property = block_properties.getPropertyItem(ParseBlockPropertyItem::kCompress);
+  if(requires_compress) {
+    if(compress_property == nullptr){
+      THROW_SQL_ERROR_AT(compress_property)  << "\"COMPRESS\" must be specified with this storage type";
+    }
+    if(compress_property->compressAll()) {
+      for(attribute_id attr = 0; attr < attributes.size(); ++attr) {
+        if(subblock_desc->sub_block_type() == quickstep::TupleStorageSubBlockDescription::COMPRESSED_PACKED_ROW_STORE) {
+          subblock_desc->AddExtension(quickstep::CompressedPackedRowStoreTupleStorageSubBlockDescription::compressed_attribute_id, attr);
+        } else if(subblock_desc->sub_block_type() == quickstep::TupleStorageSubBlockDescription::COMPRESSED_COLUMN_STORE) {
+          subblock_desc->AddExtension(quickstep::CompressedColumnStoreTupleStorageSubBlockDescription::compressed_attribute_id, attr);
+        }
+      }
+    } else {
+      // lookup attributes individually
+      for(const ParseString& attr_name : compress_property->values()) {
+        attribute_id attr = attributeIdFromAttributeName(attr_name.value(), attributes);
+        if(subblock_desc->sub_block_type() == quickstep::TupleStorageSubBlockDescription::COMPRESSED_PACKED_ROW_STORE) {
+          subblock_desc->AddExtension(quickstep::CompressedPackedRowStoreTupleStorageSubBlockDescription::compressed_attribute_id, attr);
+        } else if(subblock_desc->sub_block_type() == quickstep::TupleStorageSubBlockDescription::COMPRESSED_COLUMN_STORE) {
+          subblock_desc->AddExtension(quickstep::CompressedColumnStoreTupleStorageSubBlockDescription::compressed_attribute_id, attr);
+        }
+      }
+    }
+  } else {
+    if(compress_property != nullptr){
+      THROW_SQL_ERROR_AT(compress_property)  << "\"COMPRESS\" should not be specified with this storage type";
+    }
+  }
+  return subblock_desc.release();
 }
 
 L::LogicalPtr Resolver::resolveDelete(

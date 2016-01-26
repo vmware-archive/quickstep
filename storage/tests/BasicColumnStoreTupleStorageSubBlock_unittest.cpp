@@ -815,21 +815,21 @@ TEST_P(BasicColumnStoreTupleStorageSubBlockTest, DescriptionIsValidTest) {
     tuple_store_description_->SetExtension(
         BasicColumnStoreTupleStorageSubBlockDescription::sort_attribute_id,
         attr.getID());
-    EXPECT_TRUE(BasicColumnStoreTupleStorageSubBlock::DescriptionIsValid(
+    EXPECT_EQ(0, BasicColumnStoreTupleStorageSubBlock::DescriptionIsValid(
         *relation_,
         *tuple_store_description_));
   }
 
   // An uninitialized description is not valid.
   tuple_store_description_.reset(new TupleStorageSubBlockDescription());
-  EXPECT_FALSE(BasicColumnStoreTupleStorageSubBlock::DescriptionIsValid(
+  EXPECT_EQ(-1, BasicColumnStoreTupleStorageSubBlock::DescriptionIsValid(
                    *relation_,
                    *tuple_store_description_));
 
   // A description that specifies the wrong sub_block_type is not valid.
   tuple_store_description_->set_sub_block_type(
       TupleStorageSubBlockDescription::PACKED_ROW_STORE);
-  EXPECT_FALSE(BasicColumnStoreTupleStorageSubBlock::DescriptionIsValid(
+  EXPECT_EQ(-2, BasicColumnStoreTupleStorageSubBlock::DescriptionIsValid(
                    *relation_,
                    *tuple_store_description_));
 
@@ -847,8 +847,8 @@ TEST_P(BasicColumnStoreTupleStorageSubBlockTest, DescriptionIsValidTest) {
   tuple_store_description_->SetExtension(
       BasicColumnStoreTupleStorageSubBlockDescription::sort_attribute_id,
       0);
-  EXPECT_FALSE(BasicColumnStoreTupleStorageSubBlock::DescriptionIsValid(*variable_length_relation,
-                                                                        *tuple_store_description_));
+  EXPECT_EQ(-3, BasicColumnStoreTupleStorageSubBlock::DescriptionIsValid(*variable_length_relation,
+                                                                         *tuple_store_description_));
 }
 
 TEST_P(BasicColumnStoreTupleStorageSubBlockDeathTest, ConstructWithInvalidDescriptionTest) {

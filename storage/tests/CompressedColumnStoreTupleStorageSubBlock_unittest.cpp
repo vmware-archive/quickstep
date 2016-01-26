@@ -999,41 +999,41 @@ TEST_P(CompressedColumnStoreTupleStorageSubBlockTest, DescriptionIsValidTest) {
   tuple_store_description_.reset(new TupleStorageSubBlockDescription());
 
   // An uninitialized description is not valid.
-  EXPECT_FALSE(CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
-                                                                             *tuple_store_description_));
+  EXPECT_EQ(-1, CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
+                                                                              *tuple_store_description_));
 
   // A description that specifies the wrong sub_block_type is not valid.
   tuple_store_description_->set_sub_block_type(TupleStorageSubBlockDescription::BASIC_COLUMN_STORE);
-  EXPECT_FALSE(CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
-                                                                             *tuple_store_description_));
+  EXPECT_EQ(-2, CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
+                                                                              *tuple_store_description_));
 
   // A description with no sort column specified is not valid.
   tuple_store_description_->set_sub_block_type(TupleStorageSubBlockDescription::COMPRESSED_COLUMN_STORE);
-  EXPECT_FALSE(CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
-                                                                             *tuple_store_description_));
+  EXPECT_EQ(-4, CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
+                                                                              *tuple_store_description_));
 
   // A description which has an uncompressed variable-length attribute is not
   // valid.
   tuple_store_description_->SetExtension(
       CompressedColumnStoreTupleStorageSubBlockDescription::sort_attribute_id,
       0);
-  EXPECT_FALSE(CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
-                                                                             *tuple_store_description_));
+  EXPECT_EQ(-9, CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
+                                                                              *tuple_store_description_));
 
   // Specifying that the variable-length attribute is compressed should make
   // the description valid.
   tuple_store_description_->AddExtension(
       CompressedColumnStoreTupleStorageSubBlockDescription::compressed_attribute_id,
       3);
-  EXPECT_TRUE(CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
-                                                                            *tuple_store_description_));
+  EXPECT_EQ(0, CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
+                                                                             *tuple_store_description_));
 
   // Specifying a non-existent attribute for compression causes the description
   // to be invalid.
   tuple_store_description_->AddExtension(
       CompressedColumnStoreTupleStorageSubBlockDescription::compressed_attribute_id,
       64);
-  EXPECT_FALSE(CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
+  EXPECT_EQ(-7, CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
                                                                              *tuple_store_description_));
 
   // A relation with a nullable attribute is OK.
@@ -1047,20 +1047,20 @@ TEST_P(CompressedColumnStoreTupleStorageSubBlockTest, DescriptionIsValidTest) {
   tuple_store_description_->SetExtension(
       CompressedColumnStoreTupleStorageSubBlockDescription::sort_attribute_id,
       0);
-  EXPECT_TRUE(CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*nullable_relation,
-                                                                            *tuple_store_description_));
+  EXPECT_EQ(0, CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*nullable_relation,
+                                                                             *tuple_store_description_));
 
   // It's also OK if the nullable attribute is compressed.
   tuple_store_description_->AddExtension(
       CompressedColumnStoreTupleStorageSubBlockDescription::compressed_attribute_id,
       0);
-  EXPECT_TRUE(CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*nullable_relation,
-                                                                            *tuple_store_description_));
+  EXPECT_EQ(0, CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*nullable_relation,
+                                                                             *tuple_store_description_));
 
   // The description we use for the other tests should be valid.
   initializeTupleStoreDescription(0);
-  EXPECT_TRUE(CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
-                                                                            *tuple_store_description_));
+  EXPECT_EQ(0, CompressedColumnStoreTupleStorageSubBlock::DescriptionIsValid(*relation_,
+                                                                             *tuple_store_description_));
 }
 
 TEST_P(CompressedColumnStoreTupleStorageSubBlockDeathTest, ConstructWithInvalidDescriptionTest) {

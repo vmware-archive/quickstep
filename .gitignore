@@ -8,3 +8,4 @@ Makefile.in
 autom4te.cache
 .DS_Store
 *~
+/doc

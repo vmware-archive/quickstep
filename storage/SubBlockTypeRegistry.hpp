@@ -76,7 +76,7 @@ class SubBlockTypeRegistry {
       IndexTypeIntegral;
 
  public:
-  typedef bool (*TupleStoreDescriptionIsValidFunction)(
+  typedef int (*TupleStoreDescriptionIsValidFunction)(
       const CatalogRelationSchema&,
       const TupleStorageSubBlockDescription&);
 
@@ -127,6 +127,10 @@ class SubBlockTypeRegistry {
   static bool LayoutDescriptionIsValid(
       const CatalogRelationSchema &relation,
       const StorageBlockLayoutDescription &description);
+
+  static int TupleStoreDescriptionIsValid(
+      const CatalogRelationSchema &relation,
+      const TupleStorageSubBlockDescription &description);
 
   static std::size_t EstimateBytesPerTupleForTupleStore(
       const CatalogRelationSchema &relation,

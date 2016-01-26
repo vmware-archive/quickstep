@@ -160,4 +160,29 @@ int SqlError::getEndErrorPos(int center_pos, const std::string &sql_statement) c
   return end_pos;
 }
 
+std::string getTupleStorageBlockDescriptionErrorMessage(int error_code) {
+  switch(error_code) {
+    case -1:
+      return std::string("description was not initialized");
+    case -2:
+      return std::string("specified block type did not match");
+    case -3:
+      return std::string("specified block type cannot store variable length attributes");
+    case -4:
+      return std::string("specified block type requires a sort column to be specified");
+    case -5:
+      return std::string("specified sort attribute was not found");
+    case -6:
+      return std::string("specified sort attribute cannot be sorted on");
+    case -7:
+      return std::string("a specified compressed attribute could not be found");
+    case -8:
+      return std::string("a specified compressed attribute does not support compression");
+    case -9:
+      return std::string("all variable length attributes must be compressed for this storage type");
+    default:
+      return std::string("an unrecognized error code");
+  }
+}
+
 }  // namespace quickstep
