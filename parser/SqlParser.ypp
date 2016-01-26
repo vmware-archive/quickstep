@@ -67,6 +67,7 @@ typedef struct YYLTYPE {
 #include "parser/ParseAssignment.hpp"
 #include "parser/ParseAttributeDefinition.hpp"
 #include "parser/ParseBasicExpressions.hpp"
+#include "parser/ParseBlockProperties.hpp"
 #include "parser/ParseExpression.hpp"
 #include "parser/ParseGroupBy.hpp"
 #include "parser/ParseHaving.hpp"
