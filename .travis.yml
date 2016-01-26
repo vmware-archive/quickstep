@@ -56,6 +56,9 @@ script:
   - (cd build && make -j$MAKE_JOBS)
   - (cd build && ctest --output-on-failure -j$TEST_JOBS)
 
+after_success:
+  - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
+
 after_failure:
   - df -h
   - free -m
