@@ -39,6 +39,8 @@ class Comparison;
 class ParseAssignment;
 class ParseAttribute;
 class ParseAttributeDefinition;
+class ParseBlockProperties;
+class ParseBlockPropertyItem;
 class ParseColumnConstraint;
 struct ParseCopyFromParams;
 class ParseDataType;
@@ -118,6 +120,7 @@ unsigned_numeric_literal {exact_numeric_literal}|{approximate_numeric_literal}
 "asc"              return TOKEN_ASC;
 "ascending"        return TOKEN_ASC;
 "between"          return TOKEN_BETWEEN;
+"blockproperties"  return TOKEN_BLOCKPROPERTIES;
 "bigint"           return TOKEN_BIGINT;
 "bit"              return TOKEN_BIT;
 "by"               return TOKEN_BY;
@@ -125,6 +128,7 @@ unsigned_numeric_literal {exact_numeric_literal}|{approximate_numeric_literal}
 "character"        return TOKEN_CHARACTER;
 "check"            return TOKEN_CHECK;
 "column"           return TOKEN_COLUMN;
+"compress"         return TOKEN_COMPRESS;
 "constraint"       return TOKEN_CONSTRAINT;
 "copy"             return TOKEN_COPY;
 "create"           return TOKEN_CREATE;
@@ -179,10 +183,12 @@ unsigned_numeric_literal {exact_numeric_literal}|{approximate_numeric_literal}
 "select"           return TOKEN_SELECT;
 "set"              return TOKEN_SET;
 "smallint"         return TOKEN_SMALLINT;
+"sort"             return TOKEN_SORT;
 "table"            return TOKEN_TABLE;
 "time"             return TOKEN_TIME;
 "timestamp"        return TOKEN_TIMESTAMP;
 "true"             return TOKEN_TRUE;
+"type"             return TOKEN_TYPE;
 "unique"           return TOKEN_UNIQUE;
 "update"           return TOKEN_UPDATE;
 "values"           return TOKEN_VALUES;
