@@ -24,7 +24,7 @@
 #include "parser/ParseString.hpp"
 #include "parser/ParseTreeNode.hpp"
 #include "utility/Macros.hpp"
-#include "utility/PtrVector.hpp"
+#include "utility/PtrList.hpp"
 
 namespace quickstep {
 
@@ -66,7 +66,7 @@ class ParseBlockPropertyItem : public ParseTreeNode {
                              : ParseTreeNode(line_number, column_number),
                                property_(property),
                                compress_all_(false) {
-    values_.reset(new PtrVector<ParseString>);
+    values_.reset(new PtrList<ParseString>);
     values_->push_back(value);
   }
 
@@ -84,7 +84,7 @@ class ParseBlockPropertyItem : public ParseTreeNode {
   ParseBlockPropertyItem(int line_number,
                          int column_number,
                          Property property,
-                         PtrVector<ParseString>* values)
+                         PtrList<ParseString>* values)
                              : ParseTreeNode(line_number, column_number),
                                property_(property),
                                values_(values),
@@ -103,7 +103,7 @@ class ParseBlockPropertyItem : public ParseTreeNode {
     ParseBlockPropertyItem* compress_all = new ParseBlockPropertyItem(line_number,
                                                                       column_number,
                                                                       Property::kCompress,
-                                                                      new PtrVector<ParseString>());
+                                                                      new PtrList<ParseString>());
     compress_all->compress_all_ = true;
     return compress_all;
   }
@@ -124,10 +124,10 @@ class ParseBlockPropertyItem : public ParseTreeNode {
   }
 
   /**
-   * @return A vector of ParseString values which the parser has captured to 
+   * @return A list of ParseString values which the parser has captured to 
    *  describe this property. This may be empty in the case of 'COMPRESS ALL'.
    */
-  const PtrVector<ParseString>& values() const {
+  const PtrList<ParseString>& values() const {
     return *(values_.get());
   }
 
@@ -174,7 +174,7 @@ class ParseBlockPropertyItem : public ParseTreeNode {
 
  private:
   Property property_;
-  std::unique_ptr<PtrVector<ParseString>> values_;
+  std::unique_ptr<PtrList<ParseString>> values_;
   bool compress_all_;
 
   DISALLOW_COPY_AND_ASSIGN(ParseBlockPropertyItem);
@@ -195,7 +195,7 @@ class ParseBlockProperties : public ParseTreeNode {
    **/
   ParseBlockProperties(int line_number,
                        int column_number,
-                       PtrVector<ParseBlockPropertyItem>* properties)
+                       PtrList<ParseBlockPropertyItem>* properties)
                            : ParseTreeNode(line_number, column_number),
                              properties_(properties) { }
 
@@ -235,7 +235,7 @@ class ParseBlockProperties : public ParseTreeNode {
   }
 
  private:
-  std::unique_ptr<PtrVector<ParseBlockPropertyItem> > properties_;
+  std::unique_ptr<PtrList<ParseBlockPropertyItem> > properties_;
 
   DISALLOW_COPY_AND_ASSIGN(ParseBlockProperties);
 };
