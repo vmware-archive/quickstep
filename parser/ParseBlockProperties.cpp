@@ -22,11 +22,11 @@ namespace quickstep {
 
 std::string ParseBlockPropertyItem::getPropertyString() const {
   switch (property_) {
-    case kCompress:
+    case Property::kCompress:
       return "compress";
-    case kSort:
+    case Property::kSort:
       return "sort";
-    case kType:
+    case Property::kType:
       return "type";
     default:
       return "unknown";
@@ -34,7 +34,7 @@ std::string ParseBlockPropertyItem::getPropertyString() const {
 }
 
 bool ParseBlockPropertyItem::compressAll() const {
-  return property_ == kCompress && compress_all_;
+  return property_ == Property::kCompress && compress_all_;
 }
 
 }  // namespace quickstep
