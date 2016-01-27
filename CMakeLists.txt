@@ -441,6 +441,9 @@ elseif(MSVC)
   add_definitions( /D _VARIADIC_MAX=10 )
 endif()
 
+# Add the coverage flag.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+
 # Set the include directories to the project root directory and the root of the build tree (where
 # generated headers will go).
 include_directories(${PROJECT_SOURCE_DIR})

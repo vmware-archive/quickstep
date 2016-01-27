@@ -35,6 +35,7 @@ install:
   - export LINKER_FLAGS="-s"
 
 before_script:
+  - pip install --user cpp-coveralls
   - $CC --version
   - $CXX --version
   - (cd build &&
