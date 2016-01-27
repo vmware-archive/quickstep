@@ -441,8 +441,25 @@ elseif(MSVC)
   add_definitions( /D _VARIADIC_MAX=10 )
 endif()
 
-# Add the coverage flag.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+# Add the coverage build type.
+set(CMAKE_CXX_FLAGS_COVERAGE "${CMAKE_CXX_FLAGS_DEBUG} --coverage" CACHE STRING
+  "Flags used by the C++ compiler during coverage builds."
+  FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
+  "${CMAKE_EXE_LINKER_FLAGS_DEBUG}" CACHE STRING
+  "Flags used for linking binaries during coverage builds."
+  FORCE)
+set(CMAKE_SHARED_LINKER_FLAGS_COVERAGE
+  "${CMAKE_SHARED_LINKER_FLAGS_DEBUG}" CACHE STRING
+  "Flags used by the shared libraries linker during coverage builds."
+  FORCE)
+mark_as_advanced(
+  CMAKE_CXX_FLAGS_COVERAGE
+  CMAKE_EXE_LINKER_FLAGS_COVERAGE
+  CMAKE_SHARED_LINKER_FLAGS_COVERAGE)
+set(CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING
+  "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel Coverage."
+  FORCE)
 
 # Set the include directories to the project root directory and the root of the build tree (where
 # generated headers will go).
