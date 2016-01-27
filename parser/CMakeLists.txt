@@ -243,6 +243,7 @@ target_link_libraries(quickstep_parser_SqlParser
                       quickstep_parser_ParseAssignment
                       quickstep_parser_ParseAttributeDefinition
                       quickstep_parser_ParseBasicExpressions
+                      quickstep_parser_ParseBlockProperties
                       quickstep_parser_ParseGroupBy
                       quickstep_parser_ParseHaving
                       quickstep_parser_ParseExpression
