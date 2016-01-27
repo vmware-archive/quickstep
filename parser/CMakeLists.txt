@@ -132,7 +132,7 @@ target_link_libraries(quickstep_parser_ParseBlockProperties
                       quickstep_parser_ParseString
                       quickstep_parser_ParseTreeNode
                       quickstep_utility_Macros
-                      quickstep_utility_PtrVector)
+                      quickstep_utility_PtrList)
 target_link_libraries(quickstep_parser_ParseExpression
                       quickstep_parser_ParseTreeNode
                       quickstep_utility_Macros)
@@ -201,6 +201,7 @@ target_link_libraries(quickstep_parser_ParseStatement
                       quickstep_parser_ParseAssignment
                       quickstep_parser_ParseAttributeDefinition
                       quickstep_parser_ParseBasicExpressions
+                      quickstep_parser_ParseBlockProperties
                       quickstep_parser_ParsePredicate
                       quickstep_parser_ParseSelect
                       quickstep_parser_ParseString
