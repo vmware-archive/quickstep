@@ -109,7 +109,7 @@ class ParseBlockPropertyItem : public ParseTreeNode {
   }
 
   /**
-   * @return Name of this class.
+   * @return Name of the parser construct represented by this class.
    */
   std::string getName() const override {
     return std::string("BlockPropertyItem");
@@ -157,7 +157,6 @@ class ParseBlockPropertyItem : public ParseTreeNode {
     inline_field_names->push_back("property");
     inline_field_values->push_back(getPropertyString());
 
-    // Size > 1 indicates this is a COMPRESS property with multiple compressed attributes.
     if (values_->size() > 1) {
       container_child_field_names->push_back(std::string("values"));
       container_child_fields->emplace_back();
@@ -201,7 +200,7 @@ class ParseBlockProperties : public ParseTreeNode {
                              properties_(properties) { }
 
   /**
-   * @return Name of this class.
+   * @return Name of the parser construct represented by this class.
    */
   std::string getName() const override {
     return "BlockProperties";
