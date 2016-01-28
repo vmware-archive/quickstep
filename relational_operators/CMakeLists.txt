@@ -19,6 +19,9 @@ QS_PROTOBUF_GENERATE_CPP(relationaloperators_SortMergeRunOperator_proto_srcs
 QS_PROTOBUF_GENERATE_CPP(relationaloperators_TextScanOperator_proto_srcs
                          relationaloperators_TextScanOperator_proto_hdrs
                          TextScanOperator.proto)
+QS_PROTOBUF_GENERATE_CPP(relationaloperators_WorkOrder_proto_srcs
+                         relationaloperators_WorkOrder_proto_hdrs
+                         WorkOrder.proto)
 
 # Declare micro-libs:
 add_library(quickstep_relationaloperators_AggregationOperator AggregationOperator.cpp AggregationOperator.hpp)
@@ -54,6 +57,9 @@ add_library(quickstep_relationaloperators_TextScanOperator_proto
             ${relationaloperators_TextScanOperator_proto_hdrs})
 add_library(quickstep_relationaloperators_UpdateOperator UpdateOperator.cpp UpdateOperator.hpp)
 add_library(quickstep_relationaloperators_WorkOrder ../empty_src.cpp WorkOrder.hpp)
+add_library(quickstep_relationaloperators_WorkOrder_proto
+            ${relationaloperators_WorkOrder_proto_srcs}
+            ${relationaloperators_WorkOrder_proto_hdrs})
 
 # Link dependencies:
 target_link_libraries(quickstep_relationaloperators_AggregationOperator
@@ -333,6 +339,10 @@ target_link_libraries(quickstep_relationaloperators_WorkOrder
                       tmb
                       quickstep_queryexecution_QueryExecutionTypedefs
                       quickstep_utility_Macros)
+target_link_libraries(quickstep_relationaloperators_WorkOrder_proto
+                      quickstep_relationaloperators_SortMergeRunOperator_proto
+                      quickstep_relationaloperators_TextScanOperator_proto
+                      ${PROTOBUF_LIBRARY})
 
 # Module all-in-one library:
 add_library(quickstep_relationaloperators ../empty_src.cpp RelationalOperatorsModule.hpp)
