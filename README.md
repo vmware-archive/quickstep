@@ -1,12 +1,14 @@
 # Quickstep
 
-[![Travis Widget]][Travis]
+[![Travis Widget]][Travis] [![Coverage Status Widget]][Coverage Status]
 
 [Travis]: https://travis-ci.org/pivotalsoftware/quickstep
 [Travis Widget]: https://travis-ci.org/pivotalsoftware/quickstep.svg?branch=master
+[Coverage Status]: https://coveralls.io/r/pivotalsoftware/quickstep
+[Coverage Status Widget]: https://coveralls.io/repos/pivotalsoftware/quickstep/badge.svg
 
 Quickstep is an experimental high-performance database engine designed with the
-aim of Data at Bare-Metal Speed. It began life in 2011 as a 
+aim of Data at Bare-Metal Speed. It began life in 2011 as a
 [research project at the University of Wisconsin](https://quickstep.cs.wisc.edu)
 and was acquired by [Pivotal](https://pivotal.io) in 2015.
 

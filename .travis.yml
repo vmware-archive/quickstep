@@ -11,6 +11,7 @@ compiler:
   - gcc
 
 env:
+  - BUILD_TYPE=Coverage VECTOR_COPY_ELISION_LEVEL=none
   - BUILD_TYPE=Debug VECTOR_COPY_ELISION_LEVEL=none
   - BUILD_TYPE=Release VECTOR_COPY_ELISION_LEVEL=none
   - BUILD_TYPE=Debug VECTOR_COPY_ELISION_LEVEL=joinwithbinaryexpressions
@@ -23,6 +24,8 @@ install:
       export MAKE_JOBS=2;
     fi
   - export TEST_JOBS=2;
+  - pip install --user --upgrade pip
+  - pip install --user cpp-coveralls
   - if [ "$CC" = "gcc" ]; then
       export CC="gcc-4.9";
       export CXX="g++-4.9";
@@ -55,6 +58,11 @@ script:
   - ./cyclic_dependency.py
   - (cd build && make -j$MAKE_JOBS)
   - (cd build && ctest --output-on-failure -j$TEST_JOBS)
+
+after_success:
+  - if [ "${BUILD_TYPE}" = "Coverage" ]; then
+      coveralls --exclude third_party --exclude tests --gcov-options '\-lp';
+    fi
 
 after_failure:
   - df -h
