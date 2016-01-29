@@ -209,6 +209,7 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_AS;
 %token TOKEN_ASC;
 %token TOKEN_BLOCKPROPERTIES;
+%token TOKEN_BLOCKSIZE;
 %token TOKEN_BIGINT;
 %token TOKEN_BIT;
 %token TOKEN_BY;
@@ -236,6 +237,7 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_FOREIGN;
 %token TOKEN_FROM;
 %token TOKEN_FULL;
+%token TOKEN_GB;
 %token TOKEN_GROUP;
 %token TOKEN_HAVING;
 %token TOKEN_INNER;
@@ -249,6 +251,7 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_LEFT;
 %token TOKEN_LIMIT;
 %token TOKEN_LONG;
+%token TOKEN_MB;
 %token TOKEN_NOT;
 %token TOKEN_NULL;
 %token TOKEN_NULLS;
@@ -797,20 +800,25 @@ block_property_item_list:
 
 block_property_item:
   TOKEN_TYPE any_name {
-    $$ = new quickstep::ParseBlockPropertyItem(@1.first_line, @1.first_column,
-                                               quickstep::ParseBlockPropertyItem::Property::kType, $2);
+    $$ = quickstep::ParseBlockPropertyItem::GetTypeItem(@1.first_line, @1.first_column, $2);
   }
   | TOKEN_SORT any_name {
-    $$ = new quickstep::ParseBlockPropertyItem(@1.first_line, @1.first_column,
-                                               quickstep::ParseBlockPropertyItem::Property::kSort, $2);
+    $$ = quickstep::ParseBlockPropertyItem::GetSortItem(@1.first_line, @1.first_column, $2);
   }
   | TOKEN_COMPRESS '(' name_commalist ')' {
-    $$ = new quickstep::ParseBlockPropertyItem(@1.first_line, @1.first_column,
-                                               quickstep::ParseBlockPropertyItem::Property::kCompress, $3);
+    $$ = quickstep::ParseBlockPropertyItem::GetCompressAttributesItem(@1.first_line, @1.first_column, $3);
   } 
   | TOKEN_COMPRESS TOKEN_ALL {
     $$ = quickstep::ParseBlockPropertyItem::GetCompressAllItem(@1.first_line, @1.first_column,
                                                                @2.first_line, @2.first_column);
+  }
+  | TOKEN_BLOCKSIZE TOKEN_UNSIGNED_NUMVAL TOKEN_MB {
+    $$ = quickstep::ParseBlockPropertyItem::GetBlockSizeItem(@1.first_line, @1.first_column, $2,
+        quickstep::ParseBlockPropertyItem::MemoryUnit::kMb);
+  }
+  | TOKEN_BLOCKSIZE TOKEN_UNSIGNED_NUMVAL TOKEN_GB {
+    $$ = quickstep::ParseBlockPropertyItem::GetBlockSizeItem(@1.first_line, @1.first_column, $2, 
+        quickstep::ParseBlockPropertyItem::MemoryUnit::kGb);
   };
 
 /* Update Database Contents */
