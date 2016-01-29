@@ -169,15 +169,13 @@ class ParseBlockPropertyItem : public ParseTreeNode {
     inline_field_names->push_back("property");
     inline_field_values->push_back(getPropertyString());
 
-    if (values_->size() > 1) {
-      container_child_field_names->push_back(std::string("values"));
+    // There are some cases (COMPRESS ALL) where values_ will be empty.
+    if (values_->size() > 0) {
+      container_child_field_names->push_back((values_->size() == 1) ? "value" : "values");
       container_child_fields->emplace_back();
       for (const ParseString& item_value : *values_) {
         container_child_fields->back().push_back(&item_value);
       }
-    } else if (values_->size() == 1) {
-      inline_field_names->push_back("value");
-      inline_field_values->push_back(values_->begin()->value());
     } else if (compressAll()) {
       inline_field_names->push_back("value");
       inline_field_values->push_back("ALL");
