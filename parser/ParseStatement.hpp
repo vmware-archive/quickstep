@@ -151,6 +151,11 @@ class ParseStatementCreateTable : public ParseStatement {
     for (const ParseAttributeDefinition& attribute_definition : *attribute_definition_list_) {
       container_child_fields->back().push_back(&attribute_definition);
     }
+
+    if (opt_block_properties_) {
+      non_container_child_field_names->push_back("block_properties");
+      non_container_child_fields->push_back(opt_block_properties_.get());
+    }
   }
 
  private:
