@@ -135,7 +135,18 @@ class ParseBlockPropertyItem : public ParseTreeNode {
    *
    * @return A string description of the property.
    */
-  std::string getPropertyString() const;
+  std::string getPropertyString() const {
+    switch (property_) {
+      case Property::kCompress:
+        return "compress";
+      case Property::kSort:
+        return "sort";
+      case Property::kType:
+        return "type";
+      default:
+        return "unknown";
+    }
+  }
 
   /**
    * @brief Returns if the user specified to compress all attributes (COMPRESS 
@@ -143,7 +154,9 @@ class ParseBlockPropertyItem : public ParseTreeNode {
    *  
    * @return \ctrue if this is a compression property and the value is 'ALL'.
    */
-  bool compressAll() const;
+  bool compressAll() const {
+    return property_ == Property::kCompress && compress_all_;
+  }
 
  protected:
   void getFieldStringItems(
