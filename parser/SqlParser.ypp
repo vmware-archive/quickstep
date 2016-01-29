@@ -809,7 +809,8 @@ block_property_item:
                                                quickstep::ParseBlockPropertyItem::Property::kCompress, $3);
   } 
   | TOKEN_COMPRESS TOKEN_ALL {
-    $$ = quickstep::ParseBlockPropertyItem::GetCompressAllItem(@1.first_line, @1.first_column);
+    $$ = quickstep::ParseBlockPropertyItem::GetCompressAllItem(@1.first_line, @1.first_column,
+                                                               @2.first_line, @2.first_column);
   };
 
 /* Update Database Contents */

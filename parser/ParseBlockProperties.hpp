@@ -95,12 +95,14 @@ class ParseBlockPropertyItem : public ParseTreeNode {
    * @return A caller-managed BlockPropertyItem representing the property of 
    *         COMPRESS ALL for compressing all attributes in a table.
    */
-  static ParseBlockPropertyItem* GetCompressAllItem(int line_number, int column_number) {
+  static ParseBlockPropertyItem* GetCompressAllItem(int line_number, int column_number, 
+                                                    int line_number_all, int column_number_all) {
     ParseBlockPropertyItem* compress_all = new ParseBlockPropertyItem(line_number,
                                                                       column_number,
                                                                       Property::kCompress,
                                                                       new PtrList<ParseString>());
     compress_all->compress_all_ = true;
+    compress_all->values_->push_back(new ParseString(line_number_all, column_number_all, "ALL"));
     return compress_all;
   }
 
@@ -169,16 +171,10 @@ class ParseBlockPropertyItem : public ParseTreeNode {
     inline_field_names->push_back("property");
     inline_field_values->push_back(getPropertyString());
 
-    // There are some cases (COMPRESS ALL) where values_ will be empty.
-    if (values_->size() > 0) {
-      container_child_field_names->push_back((values_->size() == 1) ? "value" : "values");
-      container_child_fields->emplace_back();
-      for (const ParseString& item_value : *values_) {
-        container_child_fields->back().push_back(&item_value);
-      }
-    } else if (compressAll()) {
-      inline_field_names->push_back("value");
-      inline_field_values->push_back("ALL");
+    container_child_field_names->push_back((values_->size() == 1) ? "value" : "values");
+    container_child_fields->emplace_back();
+    for (const ParseString& item_value : *values_) {
+      container_child_fields->back().push_back(&item_value);
     }
   }
 
