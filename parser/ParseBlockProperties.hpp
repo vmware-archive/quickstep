@@ -95,7 +95,7 @@ class ParseBlockPropertyItem : public ParseTreeNode {
    * @return A caller-managed BlockPropertyItem representing the property of 
    *         COMPRESS ALL for compressing all attributes in a table.
    */
-  static ParseBlockPropertyItem* GetCompressAllItem(int line_number, int column_number, 
+  static ParseBlockPropertyItem* GetCompressAllItem(int line_number, int column_number,
                                                     int line_number_all, int column_number_all) {
     ParseBlockPropertyItem* compress_all = new ParseBlockPropertyItem(line_number,
                                                                       column_number,
