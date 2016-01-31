@@ -813,12 +813,13 @@ block_property_item:
                                                                @2.first_line, @2.first_column);
   }
   | TOKEN_BLOCKSIZE TOKEN_UNSIGNED_NUMVAL TOKEN_MB {
-    $$ = quickstep::ParseBlockPropertyItem::GetBlockSizeItem(@1.first_line, @1.first_column, $2,
-        quickstep::ParseBlockPropertyItem::MemoryUnit::kMb);
+    $$ = quickstep::ParseBlockPropertyItem::GetBlockSizeItem(@1.first_line, @1.first_column, $2);
   }
   | TOKEN_BLOCKSIZE TOKEN_UNSIGNED_NUMVAL TOKEN_GB {
-    $$ = quickstep::ParseBlockPropertyItem::GetBlockSizeItem(@1.first_line, @1.first_column, $2, 
-        quickstep::ParseBlockPropertyItem::MemoryUnit::kGb);
+    delete $2;
+    $$ = nullptr;
+    NotSupported(&@3, yyscanner, "Gb unit not supported");
+    YYERROR;
   };
 
 /* Update Database Contents */
