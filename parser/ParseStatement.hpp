@@ -25,6 +25,7 @@
 #include "parser/ParseAssignment.hpp"
 #include "parser/ParseAttributeDefinition.hpp"
 #include "parser/ParseBasicExpressions.hpp"
+#include "parser/ParseBlockProperties.hpp"
 #include "parser/ParsePredicate.hpp"
 #include "parser/ParseSelect.hpp"
 #include "parser/ParseString.hpp"
@@ -99,10 +100,12 @@ class ParseStatementCreateTable : public ParseStatement {
   ParseStatementCreateTable(const int line_number,
                             const int column_number,
                             ParseString *relation_name,
-                            PtrList<ParseAttributeDefinition> *attribute_definition_list)
+                            PtrList<ParseAttributeDefinition> *attribute_definition_list,
+                            ParseBlockProperties *opt_block_properties)
       : ParseStatement(line_number, column_number),
         relation_name_(relation_name),
-        attribute_definition_list_(attribute_definition_list) {
+        attribute_definition_list_(attribute_definition_list),
+        opt_block_properties_(opt_block_properties) {
   }
 
   ~ParseStatementCreateTable() override {
@@ -132,6 +135,15 @@ class ParseStatementCreateTable : public ParseStatement {
     return *attribute_definition_list_;
   }
 
+  /**
+   * @brief Get the block properties.
+   *
+   * @return Parsed block properties or \c nullptr if not specified.
+   **/
+  const ParseBlockProperties* block_properties() const {
+    return opt_block_properties_.get();
+  }
+
  protected:
   void getFieldStringItems(
       std::vector<std::string> *inline_field_names,
@@ -148,11 +160,17 @@ class ParseStatementCreateTable : public ParseStatement {
     for (const ParseAttributeDefinition& attribute_definition : *attribute_definition_list_) {
       container_child_fields->back().push_back(&attribute_definition);
     }
+
+    if (opt_block_properties_) {
+      non_container_child_field_names->push_back("block_properties");
+      non_container_child_fields->push_back(opt_block_properties_.get());
+    }
   }
 
  private:
   std::unique_ptr<ParseString> relation_name_;
   std::unique_ptr<PtrList<ParseAttributeDefinition> > attribute_definition_list_;
+  std::unique_ptr<ParseBlockProperties> opt_block_properties_;
 
   DISALLOW_COPY_AND_ASSIGN(ParseStatementCreateTable);
 };

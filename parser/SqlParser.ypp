@@ -67,6 +67,7 @@ typedef struct YYLTYPE {
 #include "parser/ParseAssignment.hpp"
 #include "parser/ParseAttributeDefinition.hpp"
 #include "parser/ParseBasicExpressions.hpp"
+#include "parser/ParseBlockProperties.hpp"
 #include "parser/ParseExpression.hpp"
 #include "parser/ParseGroupBy.hpp"
 #include "parser/ParseHaving.hpp"
@@ -151,6 +152,10 @@ typedef void* yyscan_t;
   quickstep::ParseStatementDropTable *drop_table_statement_;
   quickstep::ParseStatementQuit *quit_statement_;
 
+  quickstep::ParseBlockProperties *block_properties_;
+  quickstep::ParseBlockPropertyItem *block_property_item_;
+  quickstep::PtrList<quickstep::ParseBlockPropertyItem> *block_property_item_list_;
+
   const quickstep::Comparison *comparison_;
   const quickstep::UnaryOperation *unary_operation_;
   const quickstep::BinaryOperation *binary_operation_;
@@ -203,12 +208,15 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_AND;
 %token TOKEN_AS;
 %token TOKEN_ASC;
+%token TOKEN_BLOCKPROPERTIES;
+%token TOKEN_BLOCKSIZE;
 %token TOKEN_BIGINT;
 %token TOKEN_BIT;
 %token TOKEN_BY;
 %token TOKEN_CHARACTER;
 %token TOKEN_CHECK;
 %token TOKEN_COLUMN;
+%token TOKEN_COMPRESS;
 %token TOKEN_CONSTRAINT;
 %token TOKEN_COPY;
 %token TOKEN_CREATE;
@@ -229,6 +237,7 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_FOREIGN;
 %token TOKEN_FROM;
 %token TOKEN_FULL;
+%token TOKEN_GB;
 %token TOKEN_GROUP;
 %token TOKEN_HAVING;
 %token TOKEN_INNER;
@@ -242,6 +251,7 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_LEFT;
 %token TOKEN_LIMIT;
 %token TOKEN_LONG;
+%token TOKEN_MB;
 %token TOKEN_NOT;
 %token TOKEN_NULL;
 %token TOKEN_NULLS;
@@ -259,10 +269,12 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_SELECT;
 %token TOKEN_SET;
 %token TOKEN_SMALLINT;
+%token TOKEN_SORT;
 %token TOKEN_TABLE;
 %token TOKEN_TIME;
 %token TOKEN_TIMESTAMP;
 %token TOKEN_TRUE;
+%token TOKEN_TYPE;
 %token TOKEN_UNIQUE;
 %token TOKEN_UPDATE;
 %token TOKEN_VALUES;
@@ -395,6 +407,15 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 /* binary_operation */
   add_operation
   multiply_operation
+
+%type <block_properties_>
+  opt_block_properties
+
+%type <block_property_item_>
+  block_property_item
+
+%type <block_property_item_list_>
+  block_property_item_list
 
 %type <function_call_>
   function_call
@@ -539,8 +560,8 @@ alter_table_statement:
   };
 
 create_table_statement:
-  TOKEN_CREATE TOKEN_TABLE any_name '(' column_def_commalist ')' opt_table_constraint_def_commalist {
-    $$ = new quickstep::ParseStatementCreateTable(@1.first_line, @1.first_column, $3, $5);
+  TOKEN_CREATE TOKEN_TABLE any_name '(' column_def_commalist ')' opt_table_constraint_def_commalist opt_block_properties {
+    $$ = new quickstep::ParseStatementCreateTable(@1.first_line, @1.first_column, $3, $5, $8);
   };
 
 drop_table_statement:
@@ -757,6 +778,48 @@ opt_table_constraint_def_commalist:
   }
   | table_constraint_def_commalist {
     /* $$ = $1; */
+  };
+
+opt_block_properties:
+  TOKEN_WITH TOKEN_BLOCKPROPERTIES '(' block_property_item_list ')' {
+    $$ = new quickstep::ParseBlockProperties(@1.first_line, @1.first_column, $4);
+  } 
+  | {
+    $$ = NULL;
+  };
+
+block_property_item_list:
+  block_property_item {
+    $$ = new quickstep::PtrList<quickstep::ParseBlockPropertyItem>();
+    $$->push_back($1);
+  }
+  | block_property_item_list ',' block_property_item {
+    $$ = $1;
+    $$->push_back($3);    
+  };
+
+block_property_item:
+  TOKEN_TYPE any_name {
+    $$ = quickstep::ParseBlockPropertyItem::GetTypeItem(@1.first_line, @1.first_column, $2);
+  }
+  | TOKEN_SORT any_name {
+    $$ = quickstep::ParseBlockPropertyItem::GetSortItem(@1.first_line, @1.first_column, $2);
+  }
+  | TOKEN_COMPRESS '(' name_commalist ')' {
+    $$ = quickstep::ParseBlockPropertyItem::GetCompressAttributesItem(@1.first_line, @1.first_column, $3);
+  } 
+  | TOKEN_COMPRESS TOKEN_ALL {
+    $$ = quickstep::ParseBlockPropertyItem::GetCompressAllItem(@1.first_line, @1.first_column,
+                                                               @2.first_line, @2.first_column);
+  }
+  | TOKEN_BLOCKSIZE TOKEN_UNSIGNED_NUMVAL TOKEN_MB {
+    $$ = quickstep::ParseBlockPropertyItem::GetBlockSizeItem(@1.first_line, @1.first_column, $2);
+  }
+  | TOKEN_BLOCKSIZE TOKEN_UNSIGNED_NUMVAL TOKEN_GB {
+    delete $2;
+    $$ = nullptr;
+    NotSupported(&@3, yyscanner, "Gb unit not supported");
+    YYERROR;
   };
 
 /* Update Database Contents */
