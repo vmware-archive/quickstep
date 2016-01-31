@@ -135,6 +135,15 @@ class ParseStatementCreateTable : public ParseStatement {
     return *attribute_definition_list_;
   }
 
+  /**
+   * @brief Get the block properties.
+   *
+   * @return Parsed block properties or \c nullptr if not specified.
+   **/
+  const ParseBlockProperties* block_properties() const {
+    return opt_block_properties_.get();
+  }
+
  protected:
   void getFieldStringItems(
       std::vector<std::string> *inline_field_names,

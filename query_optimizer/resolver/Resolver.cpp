@@ -385,6 +385,11 @@ L::LogicalPtr Resolver::resolveCreateTable(
     attribute_name_set.insert(lower_attribute_name);
   }
 
+  if(create_table_statement.block_properties() != nullptr) {
+    THROW_SQL_ERROR_AT(create_table_statement.block_properties())
+        << "BLOCKPROPERTIES is not supported.";
+  }
+
   return L::CreateTable::Create(relation_name, attributes);
 }
 
