@@ -3,6 +3,7 @@
 
 #include "threading/Mutex.hpp"
 #include "transaction/AccessMode.hpp"
+#include "transaction/DeadLockDetector.hpp"
 #include "transaction/LockTable.hpp"
 #include "transaction/ResourceId.hpp"
 #include "transaction/Transaction.hpp"
@@ -12,6 +13,8 @@ namespace quickstep {
   
 class LockManager {
 public:
+  LockManager();
+  
   bool acquireLock(TransactionId tid,
 		   const ResourceId &rid,
 		   AccessMode access_mode);
@@ -26,7 +29,8 @@ private:
 
   std::unique_ptr<LockTable> lock_table_;
   std::unique_ptr<TransactionTable> transaction_table_;
-
+  std::unique_ptr<DeadLockDetector> deadlock_detector_;
+  
   Mutex mutex_;
 };
 

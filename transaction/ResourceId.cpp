@@ -1,4 +1,3 @@
-
 #include "transaction/ResourceId.hpp"
 
 namespace quickstep {

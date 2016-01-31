@@ -4,7 +4,10 @@
 #include <utility>
 
 namespace quickstep {
-
+  LockManager::LockManager()
+    : lock_table_(std::make_unique<LockTable>())
+    , transaction_table_(std::make_unique<TransactionTable>()) {}
+  
   bool LockManager::acquireLock(TransactionId tid,
 				const ResourceId &rid,
 				AccessMode access_mode) {

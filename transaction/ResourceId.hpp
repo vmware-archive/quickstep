@@ -5,10 +5,10 @@
 #include <string>
 #include <type_traits>
 
-
 #include "catalog/CatalogTypedefs.hpp"
 #include "storage/StorageBlockInfo.hpp"
 #include "utility/HashPair.hpp"
+#include "utility/Macros.hpp"
 
 namespace quickstep {
 
