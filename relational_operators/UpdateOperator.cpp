@@ -22,11 +22,12 @@
 #include <ostream>
 #include <utility>
 
-#include "catalog/CatalogDatabase.hpp"
-#include "query_execution/QueryContext.hpp"
+#include "catalog/CatalogRelationSchema.hpp"
 #include "query_execution/QueryExecutionMessages.pb.h"
+#include "query_execution/QueryExecutionTypedefs.hpp"
 #include "query_execution/QueryExecutionUtil.hpp"
 #include "query_execution/WorkOrdersContainer.hpp"
+#include "relational_operators/WorkOrder.pb.h"
 #include "storage/InsertDestination.hpp"
 #include "storage/StorageBlock.hpp"
 #include "storage/StorageBlockInfo.hpp"
@@ -45,41 +46,28 @@ namespace quickstep {
 bool UpdateOperator::getAllWorkOrders(WorkOrdersContainer *container) {
   if (blocking_dependencies_met_ && !started_) {
     for (const block_id input_block_id : input_blocks_) {
-      container->addNormalWorkOrder(
-          new UpdateWorkOrder(relation_.getID(),
-                              relocation_destination_index_,
-                              predicate_index_,
-                              update_group_index_,
-                              input_block_id,
-                              op_index_,
-                              foreman_client_id_,
-                              bus_),
-          op_index_);
+      serialization::WorkOrder *proto = new serialization::WorkOrder;
+      proto->set_work_order_type(serialization::UPDATE);
+      proto->SetExtension(serialization::UpdateWorkOrder::operator_index, op_index_);
+      proto->SetExtension(serialization::UpdateWorkOrder::relation_id, relation_.getID());
+      proto->SetExtension(serialization::UpdateWorkOrder::insert_destination_index, relocation_destination_index_);
+      proto->SetExtension(serialization::UpdateWorkOrder::predicate_index, predicate_index_);
+      proto->SetExtension(serialization::UpdateWorkOrder::update_group_index, update_group_index_);
+      proto->SetExtension(serialization::UpdateWorkOrder::block_id, input_block_id);
+
+      container->addNormalWorkOrder(proto, op_index_);
     }
     started_ = true;
   }
   return started_;
 }
 
-void UpdateWorkOrder::execute(QueryContext *query_context,
-                              CatalogDatabase *database,
-                              StorageManager *storage_manager) {
-  DCHECK(query_context != nullptr);
-  DCHECK(database != nullptr);
-  DCHECK(storage_manager != nullptr);
-
+void UpdateWorkOrder::execute() {
   MutableBlockReference block(
-      storage_manager->getBlockMutable(input_block_id_,
-                                       *database->getRelationById(rel_id_)));
-
-  InsertDestination *relocation_destination =
-      query_context->getInsertDestination(relocation_destination_index_);
-  DCHECK(relocation_destination != nullptr);
+      storage_manager_->getBlockMutable(input_block_id_, input_relation_schema_));
 
   StorageBlock::UpdateResult result =
-      block->update(query_context->getUpdateGroup(update_group_index_),
-                    query_context->getPredicate(predicate_index_),
-                    relocation_destination);
+      block->update(update_assignments_, predicate_, relocation_destination_);
 
   if (!result.indices_consistent) {
     LOG_WARNING("An UPDATE caused one or more IndexSubBlocks in StorageBlock "
@@ -92,7 +80,7 @@ void UpdateWorkOrder::execute(QueryContext *query_context,
   serialization::DataPipelineMessage proto;
   proto.set_operator_index(update_operator_index_);
   proto.set_block_id(input_block_id_);
-  proto.set_relation_id(rel_id_);
+  proto.set_relation_id(input_relation_schema_.getID());
 
   // NOTE(zuyu): Using the heap memory to serialize proto as a c-like string.
   const std::size_t proto_length = proto.ByteSize();

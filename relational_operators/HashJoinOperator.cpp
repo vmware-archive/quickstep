@@ -24,14 +24,13 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/CatalogDatabase.hpp"
 #include "catalog/CatalogRelation.hpp"
 #include "catalog/CatalogRelationSchema.hpp"
 #include "catalog/CatalogTypedefs.hpp"
 #include "expressions/predicate/Predicate.hpp"
 #include "expressions/scalar/Scalar.hpp"
-#include "query_execution/QueryContext.hpp"
 #include "query_execution/WorkOrdersContainer.hpp"
+#include "relational_operators/WorkOrder.pb.h"
 #include "storage/HashTable.hpp"
 #include "storage/InsertDestination.hpp"
 #include "storage/StorageBlock.hpp"
@@ -43,7 +42,6 @@
 #include "types/containers/ColumnVectorsValueAccessor.hpp"
 
 #include "gflags/gflags.h"
-#include "glog/logging.h"
 
 using std::unique_ptr;
 using std::vector;
@@ -185,89 +183,78 @@ class VectorBasedJoinedTupleCollector {
 
 }  // namespace
 
-bool HashJoinOperator::getAllWorkOrders(WorkOrdersContainer *container) {
-  // We wait until the building of global hash table is complete.
-  if (blocking_dependencies_met_) {
-    if (probe_relation_is_stored_) {
-      if (!started_) {
-        for (const block_id probe_block_id : probe_relation_block_ids_) {
-          container->addNormalWorkOrder(
-              new HashJoinWorkOrder(build_relation_.getID(),
-                                    probe_relation_.getID(),
-                                    join_key_attributes_,
-                                    any_join_key_attributes_nullable_,
-                                    output_destination_index_,
-                                    hash_table_index_,
-                                    residual_predicate_index_,
-                                    selection_index_,
-                                    probe_block_id),
-              op_index_);
-        }
-        started_ = true;
-      }
-      return started_;
-    } else {
-      while (num_workorders_generated_ < probe_relation_block_ids_.size()) {
-        container->addNormalWorkOrder(
-            new HashJoinWorkOrder(
-                build_relation_.getID(),
-                probe_relation_.getID(),
-                join_key_attributes_,
-                any_join_key_attributes_nullable_,
-                output_destination_index_,
-                hash_table_index_,
-                residual_predicate_index_,
-                selection_index_,
-                probe_relation_block_ids_[num_workorders_generated_]),
-            op_index_);
-        ++num_workorders_generated_;
-      }  // end while
-      return done_feeding_input_relation_;
-    }  // end else (input_relation_is_stored is false)
-  }  // end if (blocking_dependencies_met)
-  return false;
+serialization::WorkOrder* HashJoinOperator::createWorkOrderProto(const block_id block) const {
+  serialization::WorkOrder *proto = new serialization::WorkOrder;
+  proto->set_work_order_type(serialization::HASH_JOIN);
+
+  proto->SetExtension(serialization::HashJoinWorkOrder::build_relation_id, build_relation_.getID());
+  proto->SetExtension(serialization::HashJoinWorkOrder::probe_relation_id, probe_relation_.getID());
+  for (const attribute_id attr_id : join_key_attributes_) {
+    proto->AddExtension(serialization::HashJoinWorkOrder::join_key_attributes, attr_id);
+  }
+  proto->SetExtension(serialization::HashJoinWorkOrder::any_join_key_attributes_nullable,
+                      any_join_key_attributes_nullable_);
+  proto->SetExtension(serialization::HashJoinWorkOrder::insert_destination_index, output_destination_index_);
+  proto->SetExtension(serialization::HashJoinWorkOrder::join_hash_table_index, hash_table_index_);
+  proto->SetExtension(serialization::HashJoinWorkOrder::residual_predicate_index, residual_predicate_index_);
+  proto->SetExtension(serialization::HashJoinWorkOrder::selection_index, selection_index_);
+  proto->SetExtension(serialization::HashJoinWorkOrder::block_id, block);
+
+  return proto;
 }
 
-void HashJoinWorkOrder::execute(QueryContext *query_context,
-                                CatalogDatabase *catalog_database,
-                                StorageManager *storage_manager) {
-  DCHECK(query_context != nullptr);
-  DCHECK(catalog_database != nullptr);
-  DCHECK(storage_manager != nullptr);
+bool HashJoinOperator::getAllWorkOrders(WorkOrdersContainer *container) {
+  // We wait until the building of global hash table is complete.
+  if (!blocking_dependencies_met_) {
+    return false;
+  }
 
-  if (FLAGS_vector_based_joined_tuple_collector) {
-    executeWithCollectorType<VectorBasedJoinedTupleCollector>(query_context,
-                                                              catalog_database,
-                                                              storage_manager);
+  if (probe_relation_is_stored_) {
+    if (!started_) {
+      for (const block_id probe_block_id : probe_relation_block_ids_) {
+        container->addNormalWorkOrder(createWorkOrderProto(probe_block_id), op_index_);
+      }
+      started_ = true;
+    }
+    return true;
   } else {
-    executeWithCollectorType<MapBasedJoinedTupleCollector>(query_context,
-                                                           catalog_database,
-                                                           storage_manager);
+    while (num_workorders_generated_ < probe_relation_block_ids_.size()) {
+      container->addNormalWorkOrder(
+          createWorkOrderProto(probe_relation_block_ids_[num_workorders_generated_]),
+          op_index_);
+      ++num_workorders_generated_;
+    }  // end while
+    return done_feeding_input_relation_;
+  }  // end else (input_relation_is_stored is false)
+}
+
+void HashJoinWorkOrder::execute() {
+  if (FLAGS_vector_based_joined_tuple_collector) {
+    executeWithCollectorType<VectorBasedJoinedTupleCollector>();
+  } else {
+    executeWithCollectorType<MapBasedJoinedTupleCollector>();
   }
 }
 
 template <typename CollectorT>
-void HashJoinWorkOrder::executeWithCollectorType(QueryContext *query_context,
-                                                 CatalogDatabase *catalog_database,
-                                                 StorageManager *storage_manager) {
-  JoinHashTable *hash_table = query_context->getJoinHashTable(hash_table_index_);
-  DCHECK(hash_table != nullptr);
+void HashJoinWorkOrder::executeWithCollectorType() {
+  const relation_id build_relation_id = build_relation_schema_.getID();
+  const relation_id probe_relation_id = probe_relation_schema_.getID();
 
   BlockReference probe_block(
-      storage_manager->getBlock(block_id_,
-                                *catalog_database->getRelationById(probe_relation_id_)));
+      storage_manager_->getBlock(block_id_, probe_relation_schema_));
   const TupleStorageSubBlock &probe_store = probe_block->getTupleStorageSubBlock();
 
   std::unique_ptr<ValueAccessor> probe_accessor(probe_store.createValueAccessor());
   CollectorT collector;
   if (join_key_attributes_.size() == 1) {
-    hash_table->getAllFromValueAccessor(
+    hash_table_->getAllFromValueAccessor(
         probe_accessor.get(),
         join_key_attributes_.front(),
         any_join_key_attributes_nullable_,
         &collector);
   } else {
-    hash_table->getAllFromValueAccessorCompositeKey(
+    hash_table_->getAllFromValueAccessorCompositeKey(
         probe_accessor.get(),
         join_key_attributes_,
         any_join_key_attributes_nullable_,
@@ -275,24 +262,14 @@ void HashJoinWorkOrder::executeWithCollectorType(QueryContext *query_context,
   }
   collector.consolidate();
 
-  const Predicate *residual_predicate = query_context->getPredicate(residual_predicate_index_);
-
-  InsertDestination *output_destination =
-      query_context->getInsertDestination(output_destination_index_);
-  DCHECK(output_destination != nullptr);
-
-  const vector<unique_ptr<const Scalar>> &selection =
-      query_context->getScalarGroup(selection_index_);
-
   for (std::pair<const block_id, std::vector<std::pair<tuple_id, tuple_id>>>
            &build_block_entry : *collector.getJoinedTuples()) {
-    BlockReference build_block = storage_manager->getBlock(
-        build_block_entry.first,
-        *catalog_database->getRelationById(build_relation_id_));
+    BlockReference build_block =
+        storage_manager_->getBlock(build_block_entry.first, build_relation_schema_);
     const TupleStorageSubBlock &build_store = build_block->getTupleStorageSubBlock();
     std::unique_ptr<ValueAccessor> build_accessor(build_store.createValueAccessor());
 
-    // Evaluate '*residual_predicate', if any.
+    // Evaluate '*residual_predicate_', if any.
     //
     // TODO(chasseur): We might consider implementing true vectorized
     // evaluation for join predicates that are not equijoins (although in
@@ -302,17 +279,17 @@ void HashJoinWorkOrder::executeWithCollectorType(QueryContext *query_context,
     // vectorized materialization and evaluation if the set of matches from the
     // hash join is below a reasonable threshold so that we don't blow up
     // temporary memory requirements to an unreasonable degree.
-    if (residual_predicate != nullptr) {
+    if (residual_predicate_ != nullptr) {
       std::vector<std::pair<tuple_id, tuple_id>> filtered_matches;
 
       for (const std::pair<tuple_id, tuple_id> &hash_match
            : build_block_entry.second) {
-        if (residual_predicate->matchesForJoinedTuples(*build_accessor,
-                                                       build_relation_id_,
-                                                       hash_match.first,
-                                                       *probe_accessor,
-                                                       probe_relation_id_,
-                                                       hash_match.second)) {
+        if (residual_predicate_->matchesForJoinedTuples(*build_accessor,
+                                                        build_relation_id,
+                                                        hash_match.first,
+                                                        *probe_accessor,
+                                                        probe_relation_id,
+                                                        hash_match.second)) {
           filtered_matches.emplace_back(hash_match);
         }
       }
@@ -337,12 +314,12 @@ void HashJoinWorkOrder::executeWithCollectorType(QueryContext *query_context,
     // matching tuples in each individual inner block but very many inner
     // blocks with at least one match).
     ColumnVectorsValueAccessor temp_result;
-    for (vector<unique_ptr<const Scalar>>::const_iterator selection_cit = selection.begin();
-         selection_cit != selection.end();
+    for (vector<unique_ptr<const Scalar>>::const_iterator selection_cit = selection_.begin();
+         selection_cit != selection_.end();
          ++selection_cit) {
-      temp_result.addColumn((*selection_cit)->getAllValuesForJoin(build_relation_id_,
+      temp_result.addColumn((*selection_cit)->getAllValuesForJoin(build_relation_id,
                                                                   build_accessor.get(),
-                                                                  probe_relation_id_,
+                                                                  probe_relation_id,
                                                                   probe_accessor.get(),
                                                                   build_block_entry.second));
     }
@@ -351,7 +328,7 @@ void HashJoinWorkOrder::executeWithCollectorType(QueryContext *query_context,
     // for each pair of joined blocks incurs some extra overhead that could be
     // avoided by keeping checked-out MutableBlockReferences across iterations
     // of this loop, but that would get messy when combined with partitioning.
-    output_destination->bulkInsertTuples(&temp_result);
+    output_destination_->bulkInsertTuples(&temp_result);
   }
 }
 

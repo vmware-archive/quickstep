@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -25,12 +25,12 @@
 #include "catalog/CatalogRelation.hpp"
 #include "catalog/CatalogTypedefs.hpp"
 #include "query_execution/QueryContext.hpp"
-#include "query_execution/QueryExecutionTypedefs.hpp"
 #include "relational_operators/RelationalOperator.hpp"
 #include "relational_operators/SortMergeRunOperatorHelpers.hpp"
 #include "relational_operators/WorkOrder.hpp"
 #include "storage/StorageBlockInfo.hpp"
 #include "utility/Macros.hpp"
+#include "utility/SortConfiguration.hpp"
 
 #include "glog/logging.h"
 
@@ -40,9 +40,12 @@ namespace tmb { class MessageBus; }
 
 namespace quickstep {
 
-class CatalogDatabase;
+class CatalogRelationSchema;
+class InsertDestination;
 class StorageManager;
 class WorkOrdersContainer;
+
+namespace serialization { class WorkOrder; }
 
 /**
  * @defgroup SortMergeRun Merging Sorted Runs
@@ -86,8 +89,6 @@ class SortMergeRunOperator : public RelationalOperator {
    *              \c top_k is 0.
    * @param input_relation_is_stored Boolean to indicate is input relation is
    *                                 stored or streamed.
-   * @param foreman_client_id The TMB client ID of the Foreman thread.
-   * @param bus A pointer to the TMB.
    **/
   SortMergeRunOperator(const CatalogRelation &input_relation,
                        const CatalogRelation &output_relation,
@@ -97,9 +98,7 @@ class SortMergeRunOperator : public RelationalOperator {
                        const QueryContext::sort_config_id sort_config_index,
                        const std::size_t merge_factor,
                        const std::size_t top_k,
-                       const bool input_relation_is_stored,
-                       const tmb::client_id foreman_client_id,
-                       tmb::MessageBus *bus)
+                       const bool input_relation_is_stored)
       : input_relation_(input_relation),
         output_relation_(output_relation),
         output_destination_index_(output_destination_index),
@@ -115,8 +114,6 @@ class SortMergeRunOperator : public RelationalOperator {
         run_block_destination_index_(run_block_destination_index),
         input_relation_is_stored_(input_relation_is_stored),
         input_stream_done_(input_relation_is_stored),
-        foreman_client_id_(foreman_client_id),
-        bus_(bus),
         started_(false) {
     DCHECK_GT(merge_factor_, 1u);
   }
@@ -167,8 +164,8 @@ class SortMergeRunOperator : public RelationalOperator {
   // Generate work orders for the current state of operator.
   bool generateWorkOrders(WorkOrdersContainer *container);
 
-  // Create a merge work order for the given merge job.
-  WorkOrder *createWorkOrder(merge_run_operator::MergeTree::MergeJob *job);
+  // Create a merge work order proto for the given merge job.
+  serialization::WorkOrder *createWorkOrderProto(merge_run_operator::MergeTree::MergeJob *job) const;
 
   const CatalogRelation &input_relation_;
 
@@ -189,10 +186,6 @@ class SortMergeRunOperator : public RelationalOperator {
   const bool input_relation_is_stored_;
   const bool input_stream_done_;
 
-  const tmb::client_id foreman_client_id_;
-  // TODO(zuyu): Remove 'bus_' once WorkOrder serialization is done.
-  tmb::MessageBus *bus_;
-
   bool started_;
 
   DISALLOW_COPY_AND_ASSIGN(SortMergeRunOperator);
@@ -204,60 +197,65 @@ class SortMergeRunOperator : public RelationalOperator {
  */
 class SortMergeRunWorkOrder : public WorkOrder {
  public:
-  ~SortMergeRunWorkOrder() {}
-
-  void execute(QueryContext *query_context,
-               CatalogDatabase *catalog_database,
-               StorageManager *storage_manager) override;
-
- private:
   /**
    * @brief Constructor.
    *
-   * @param sort_config_index The index of the Sort configuration in
-   *        QueryContext.
+   * @param run_relation_schema The relation schema to which the run blocks
+   *        belong to.
+   * @param sort_config The Sort configuration.
    * @param input_runs Input runs to merge.
    * @param top_k If non-zero will merge only \c top_k tuples.
    * @param merge_level Merge level in the merge tree.
-   * @param run_relation_id The id of the relation to which the run blocks
-   *        belong to.
-   * @param output_destination_index The index of the InsertDestination in the
-   *        QueryContext to create new blocks.
    * @param operator_index Merge-run operator index to send feedback messages
-   *                       to.
+   *        to.
    * @param foreman_client_id Foreman's TMB client ID.
+   * @param output_destination Where to create new blocks.
+   * @param storage_manager The StorageManager to use.
    * @param bus TMB to send the feedback message on.
    **/
   SortMergeRunWorkOrder(
-      const QueryContext::sort_config_id sort_config_index,
+      const CatalogRelationSchema &run_relation_schema,
+      const SortConfiguration &sort_config,
       std::vector<merge_run_operator::Run> &&input_runs,
       const std::size_t top_k,
       const std::size_t merge_level,
-      const relation_id run_relation_id,
-      const QueryContext::insert_destination_id output_destination_index,
       const std::size_t operator_index,
       const tmb::client_id foreman_client_id,
-      MessageBus *bus)
-      : sort_config_index_(sort_config_index),
+      InsertDestination *output_destination,
+      StorageManager *storage_manager,
+      tmb::MessageBus *bus)
+      : run_relation_schema_(run_relation_schema),
+        sort_config_(sort_config),
         input_runs_(std::move(input_runs)),
         top_k_(top_k),
         merge_level_(merge_level),
-        run_relation_id_(run_relation_id),
-        output_destination_index_(output_destination_index),
         operator_index_(operator_index),
         foreman_client_id_(foreman_client_id),
-        bus_(bus) {}
+        output_destination_(output_destination),
+        storage_manager_(storage_manager),
+        bus_(bus) {
+    DCHECK(sort_config_.isValid());
+  }
 
-  const QueryContext::sort_config_id sort_config_index_;
+  ~SortMergeRunWorkOrder() {}
+
+  void execute() override;
+
+ private:
+  const CatalogRelationSchema &run_relation_schema_;
+  const SortConfiguration &sort_config_;
   std::vector<merge_run_operator::Run> input_runs_;
   const std::size_t top_k_;
   const std::size_t merge_level_;
-  const relation_id run_relation_id_;
-  const QueryContext::insert_destination_id output_destination_index_;
-
   const std::size_t operator_index_;
+
   const tmb::client_id foreman_client_id_;
-  MessageBus *bus_;
+
+  InsertDestination *output_destination_;
+
+  StorageManager *storage_manager_;
+
+  tmb::MessageBus *bus_;
 
   friend class SortMergeRunOperator;
 

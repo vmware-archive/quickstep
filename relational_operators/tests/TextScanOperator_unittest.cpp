@@ -30,6 +30,8 @@
 #include "relational_operators/RelationalOperator.hpp"
 #include "relational_operators/TextScanOperator.hpp"
 #include "relational_operators/WorkOrder.hpp"
+#include "relational_operators/WorkOrder.pb.h"
+#include "relational_operators/WorkOrderFactory.hpp"
 #include "storage/InsertDestination.pb.h"
 #include "storage/StorageManager.hpp"
 #include "types/TypeFactory.hpp"
@@ -41,6 +43,8 @@
 #include "gtest/gtest.h"
 
 #include "tmb/id_typedefs.h"
+
+using std::unique_ptr;
 
 // Global variables used by test, set up by main().
 namespace {
@@ -89,15 +93,27 @@ class TextScanOperatorTest : public ::testing::Test {
     op->getAllWorkOrders(&container);
 
     while (container.hasNormalWorkOrder(op_index)) {
-      WorkOrder *work_order = container.getNormalWorkOrder(op_index);
-      work_order->execute(query_context_.get(), db_.get(), storage_manager_.get());
-      delete work_order;
+      unique_ptr<serialization::WorkOrder> work_order_proto(container.getNormalWorkOrder(op_index));
+      unique_ptr<WorkOrder> work_order(
+          WorkOrderFactory::ReconstructFromProto(*work_order_proto,
+                                                 tmb::kClientIdNone /* foreman_client_id */,
+                                                 db_.get(),
+                                                 query_context_.get(),
+                                                 storage_manager_.get(),
+                                                 nullptr /* TMB */));
+      work_order->execute();
     }
 
     while (container.hasRebuildWorkOrder(op_index)) {
-      WorkOrder *work_order = container.getRebuildWorkOrder(op_index);
-      work_order->execute(query_context_.get(), db_.get(), storage_manager_.get());
-      delete work_order;
+      unique_ptr<serialization::WorkOrder> work_order_proto(container.getRebuildWorkOrder(op_index));
+      unique_ptr<WorkOrder> work_order(
+          WorkOrderFactory::ReconstructFromProto(*work_order_proto,
+                                                 tmb::kClientIdNone /* foreman_client_id */,
+                                                 db_.get(),
+                                                 query_context_.get(),
+                                                 storage_manager_.get(),
+                                                 nullptr /* TMB */));
+      work_order->execute();
     }
   }
 
@@ -141,7 +157,6 @@ TEST_F(TextScanOperatorTest, ScanTest) {
   output_destination_proto->set_relation_id(relation_->getID());
   output_destination_proto->set_need_to_add_blocks_from_relation(false);
   output_destination_proto->set_relational_op_index(kOpIndex);
-  output_destination_proto->set_foreman_client_id(tmb::kClientIdNone);
 
   std::unique_ptr<TextScanOperator> text_scan_op(
       new TextScanOperator(input_filename,
@@ -149,12 +164,11 @@ TEST_F(TextScanOperatorTest, ScanTest) {
                            true,
                            false,
                            *relation_,
-                           output_destination_index,
-                           tmb::kClientIdNone /* foreman_client_id */,
-                           nullptr /* TMB */));
+                           output_destination_index));
 
   // Setup query_context_.
   query_context_.reset(new QueryContext(query_context_proto,
+                                        tmb::kClientIdNone,
                                         db_.get(),
                                         storage_manager_.get(),
                                         nullptr /* TMB */));

@@ -45,6 +45,8 @@
 #include "relational_operators/HashJoinOperator.hpp"
 #include "relational_operators/RelationalOperator.hpp"
 #include "relational_operators/WorkOrder.hpp"
+#include "relational_operators/WorkOrder.pb.h"
+#include "relational_operators/WorkOrderFactory.hpp"
 #include "storage/HashTable.pb.h"
 #include "storage/HashTableBase.hpp"
 #include "storage/InsertDestination.hpp"
@@ -96,6 +98,8 @@ constexpr int kOpIndex = 0;
 
 class HashJoinOperatorTest : public ::testing::TestWithParam<HashTableImplType> {
  protected:
+  static const tmb::client_id kForemanClientId = tmb::kClientIdNone;
+
   virtual void SetUp() {
     storage_manager_.reset(new StorageManager("./test_data/"));
 
@@ -232,9 +236,15 @@ class HashJoinOperatorTest : public ::testing::TestWithParam<HashTableImplType> 
     op->getAllWorkOrders(&container);
 
     while (container.hasNormalWorkOrder(op_index)) {
-      WorkOrder *work_order = container.getNormalWorkOrder(op_index);
-      work_order->execute(query_context_.get(), db_.get(), storage_manager_.get());
-      delete work_order;
+      unique_ptr<serialization::WorkOrder> work_order_proto(container.getNormalWorkOrder(op_index));
+      unique_ptr<WorkOrder> work_order(
+          WorkOrderFactory::ReconstructFromProto(*work_order_proto,
+                                                 kForemanClientId,
+                                                 db_.get(),
+                                                 query_context_.get(),
+                                                 storage_manager_.get(),
+                                                 nullptr /* TMB */));
+      work_order->execute();
     }
   }
 
@@ -314,7 +324,6 @@ TEST_P(HashJoinOperatorTest, LongKeyHashJoinTest) {
   insert_destination_proto->set_relation_id(output_relation_id);
   insert_destination_proto->set_need_to_add_blocks_from_relation(false);
   insert_destination_proto->set_relational_op_index(kOpIndex);
-  insert_destination_proto->set_foreman_client_id(tmb::kClientIdNone);
 
   unique_ptr<HashJoinOperator> prober(
       new HashJoinOperator(*dim_table_,
@@ -329,7 +338,12 @@ TEST_P(HashJoinOperatorTest, LongKeyHashJoinTest) {
                            selection_index));
 
   // Set up the QueryContext.
-  query_context_.reset(new QueryContext(query_context_proto, db_.get(), storage_manager_.get(), nullptr /* TMB */));
+  query_context_.reset(
+      new QueryContext(query_context_proto,
+                       kForemanClientId,
+                       db_.get(),
+                       storage_manager_.get(),
+                       nullptr /* TMB */));
 
   // Execute the operators.
   fetchAndExecuteWorkOrders(builder.get());
@@ -454,7 +468,6 @@ TEST_P(HashJoinOperatorTest, IntDuplicateKeyHashJoinTest) {
   insert_destination_proto->set_relation_id(output_relation_id);
   insert_destination_proto->set_need_to_add_blocks_from_relation(false);
   insert_destination_proto->set_relational_op_index(kOpIndex);
-  insert_destination_proto->set_foreman_client_id(tmb::kClientIdNone);
 
   unique_ptr<HashJoinOperator> prober(
       new HashJoinOperator(*dim_table_,
@@ -469,7 +482,12 @@ TEST_P(HashJoinOperatorTest, IntDuplicateKeyHashJoinTest) {
                            selection_index));
 
   // Set up the QueryContext.
-  query_context_.reset(new QueryContext(query_context_proto, db_.get(), storage_manager_.get(), nullptr /* TMB */));
+  query_context_.reset(
+      new QueryContext(query_context_proto,
+                       kForemanClientId,
+                       db_.get(),
+                       storage_manager_.get(),
+                       nullptr /* TMB */));
 
   // Execute the operators.
   fetchAndExecuteWorkOrders(builder.get());
@@ -602,7 +620,6 @@ TEST_P(HashJoinOperatorTest, CharKeyCartesianProductHashJoinTest) {
   insert_destination_proto->set_relation_id(output_relation_id);
   insert_destination_proto->set_need_to_add_blocks_from_relation(false);
   insert_destination_proto->set_relational_op_index(kOpIndex);
-  insert_destination_proto->set_foreman_client_id(tmb::kClientIdNone);
 
   unique_ptr<HashJoinOperator> prober(
       new HashJoinOperator(*dim_table_,
@@ -617,7 +634,12 @@ TEST_P(HashJoinOperatorTest, CharKeyCartesianProductHashJoinTest) {
                            selection_index));
 
   // Set up the QueryContext.
-  query_context_.reset(new QueryContext(query_context_proto, db_.get(), storage_manager_.get(), nullptr /* TMB */));
+  query_context_.reset(
+      new QueryContext(query_context_proto,
+                       kForemanClientId,
+                       db_.get(),
+                       storage_manager_.get(),
+                       nullptr /* TMB */));
 
   // Execute the operators.
   fetchAndExecuteWorkOrders(builder.get());
@@ -735,7 +757,6 @@ TEST_P(HashJoinOperatorTest, VarCharDuplicateKeyHashJoinTest) {
   insert_destination_proto->set_relation_id(output_relation_id);
   insert_destination_proto->set_need_to_add_blocks_from_relation(false);
   insert_destination_proto->set_relational_op_index(kOpIndex);
-  insert_destination_proto->set_foreman_client_id(tmb::kClientIdNone);
 
   unique_ptr<HashJoinOperator> prober(
       new HashJoinOperator(*dim_table_,
@@ -750,7 +771,12 @@ TEST_P(HashJoinOperatorTest, VarCharDuplicateKeyHashJoinTest) {
                            selection_index));
 
   // Set up the QueryContext.
-  query_context_.reset(new QueryContext(query_context_proto, db_.get(), storage_manager_.get(), nullptr /* TMB */));
+  query_context_.reset(
+      new QueryContext(query_context_proto,
+                       kForemanClientId,
+                       db_.get(),
+                       storage_manager_.get(),
+                       nullptr /* TMB */));
 
   // Execute the operators.
   fetchAndExecuteWorkOrders(builder.get());
@@ -898,7 +924,6 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinTest) {
   insert_destination_proto->set_relation_id(output_relation_id);
   insert_destination_proto->set_need_to_add_blocks_from_relation(false);
   insert_destination_proto->set_relational_op_index(kOpIndex);
-  insert_destination_proto->set_foreman_client_id(tmb::kClientIdNone);
 
   std::vector<attribute_id> fact_key_attrs;
   fact_key_attrs.push_back(fact_col_long.getID());
@@ -917,7 +942,12 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinTest) {
                            selection_index));
 
   // Set up the QueryContext.
-  query_context_.reset(new QueryContext(query_context_proto, db_.get(), storage_manager_.get(), nullptr /* TMB */));
+  query_context_.reset(
+      new QueryContext(query_context_proto,
+                       kForemanClientId,
+                       db_.get(),
+                       storage_manager_.get(),
+                       nullptr /* TMB */));
 
   // Execute the operators.
   fetchAndExecuteWorkOrders(builder.get());
@@ -1066,7 +1096,6 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinWithResidualPredicateTest) {
   insert_destination_proto->set_relation_id(output_relation_id);
   insert_destination_proto->set_need_to_add_blocks_from_relation(false);
   insert_destination_proto->set_relational_op_index(kOpIndex);
-  insert_destination_proto->set_foreman_client_id(tmb::kClientIdNone);
 
   // Include a residual predicate that selects a subset of the joined tuples.
   unique_ptr<Predicate> residual_pred(new ComparisonPredicate(
@@ -1095,7 +1124,12 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinWithResidualPredicateTest) {
                            selection_index));
 
   // Set up the QueryContext.
-  query_context_.reset(new QueryContext(query_context_proto, db_.get(), storage_manager_.get(), nullptr /* TMB */));
+  query_context_.reset(
+      new QueryContext(query_context_proto,
+                       kForemanClientId,
+                       db_.get(),
+                       storage_manager_.get(),
+                       nullptr /* TMB */));
 
   // Execute the operators.
   fetchAndExecuteWorkOrders(builder.get());

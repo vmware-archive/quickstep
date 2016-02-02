@@ -22,11 +22,12 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/CatalogDatabase.hpp"
-#include "query_execution/QueryContext.hpp"
+#include "catalog/CatalogRelationSchema.hpp"
 #include "query_execution/QueryExecutionMessages.pb.h"
+#include "query_execution/QueryExecutionTypedefs.hpp"
 #include "query_execution/QueryExecutionUtil.hpp"
 #include "query_execution/WorkOrdersContainer.hpp"
+#include "relational_operators/WorkOrder.pb.h"
 #include "storage/StorageBlock.hpp"
 #include "storage/StorageBlockInfo.hpp"
 #include "storage/StorageManager.hpp"
@@ -40,19 +41,24 @@
 
 namespace quickstep {
 
+serialization::WorkOrder* DeleteOperator::createWorkOrderProto(const block_id block) const {
+  serialization::WorkOrder *proto = new serialization::WorkOrder;
+  proto->set_work_order_type(serialization::DELETE);
+
+  proto->SetExtension(serialization::DeleteWorkOrder::operator_index, op_index_);
+  proto->SetExtension(serialization::DeleteWorkOrder::relation_id, relation_.getID());
+  proto->SetExtension(serialization::DeleteWorkOrder::predicate_index, predicate_index_);
+  proto->SetExtension(serialization::DeleteWorkOrder::block_id, block);
+
+  return proto;
+}
+
 bool DeleteOperator::getAllWorkOrders(WorkOrdersContainer *container) {
   if (relation_is_stored_) {
     // If relation_ is stored, iterate over the list of blocks in relation_.
     if (!started_) {
       for (const block_id input_block_id : relation_block_ids_) {
-        container->addNormalWorkOrder(
-            new DeleteWorkOrder(relation_.getID(),
-                                predicate_index_,
-                                input_block_id,
-                                op_index_,
-                                foreman_client_id_,
-                                bus_),
-            op_index_);
+        container->addNormalWorkOrder(createWorkOrderProto(input_block_id), op_index_);
       }
       started_ = true;
     }
@@ -60,12 +66,7 @@ bool DeleteOperator::getAllWorkOrders(WorkOrdersContainer *container) {
   } else {
     while (num_workorders_generated_ < relation_block_ids_.size()) {
       container->addNormalWorkOrder(
-          new DeleteWorkOrder(relation_.getID(),
-                              predicate_index_,
-                              relation_block_ids_[num_workorders_generated_],
-                              op_index_,
-                              foreman_client_id_,
-                              bus_),
+          createWorkOrderProto(relation_block_ids_[num_workorders_generated_]),
           op_index_);
       ++num_workorders_generated_;
     }
@@ -73,24 +74,17 @@ bool DeleteOperator::getAllWorkOrders(WorkOrdersContainer *container) {
   }
 }
 
-void DeleteWorkOrder::execute(QueryContext *query_context,
-                              CatalogDatabase *database,
-                              StorageManager *storage_manager) {
-  DCHECK(query_context != nullptr);
-  DCHECK(database != nullptr);
-  DCHECK(storage_manager != nullptr);
-
+void DeleteWorkOrder::execute() {
   MutableBlockReference block(
-      storage_manager->getBlockMutable(input_block_id_,
-                                       *database->getRelationById(rel_id_)));
-  block->deleteTuples(query_context->getPredicate(predicate_index_));
+      storage_manager_->getBlockMutable(input_block_id_, input_relation_schema_));
+  block->deleteTuples(predicate_);
 
   // TODO(harshad): Stream the block ID only if the predicate returned at least
   // one match in the StorageBlock.
   serialization::DataPipelineMessage proto;
   proto.set_operator_index(delete_operator_index_);
   proto.set_block_id(input_block_id_);
-  proto.set_relation_id(rel_id_);
+  proto.set_relation_id(input_relation_schema_.getID());
 
   // NOTE(zuyu): Using the heap memory to serialize proto as a c-like string.
   const std::size_t proto_length = proto.ByteSize();

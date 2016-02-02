@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -25,8 +25,6 @@
 
 namespace quickstep {
 
-class CatalogDatabase;
-class StorageManager;
 class WorkOrdersContainer;
 
 /** \addtogroup RelationalOperators
@@ -67,18 +65,21 @@ class DestroyHashWorkOrder : public WorkOrder {
    * @brief Constructor.
    *
    * @param hash_table_index The index of the JoinHashTable in QueryContext.
+   * @param query_context The QueryContext to use.
    **/
-  explicit DestroyHashWorkOrder(const QueryContext::join_hash_table_id hash_table_index)
-      : hash_table_index_(hash_table_index) {}
+  DestroyHashWorkOrder(const QueryContext::join_hash_table_id hash_table_index,
+                       QueryContext *query_context)
+      : hash_table_index_(hash_table_index),
+        query_context_(query_context) {}
 
   ~DestroyHashWorkOrder() override {}
 
-  void execute(QueryContext *query_context,
-               CatalogDatabase *catalog_database,
-               StorageManager *storage_manager) override;
+  void execute() override;
 
  private:
   const QueryContext::join_hash_table_id hash_table_index_;
+
+  QueryContext *query_context_;
 
   DISALLOW_COPY_AND_ASSIGN(DestroyHashWorkOrder);
 };

@@ -69,11 +69,9 @@ void ExecutionGeneratorTestRunner::runTestCase(
   while (true) {
     ParseResult result = sql_parser_.getNextStatement();
 
-    OptimizerContext optimizer_context(foreman_->getBusClientID(),
-                                       0 /* query_id */,
+    OptimizerContext optimizer_context(0 /* query_id */,
                                        test_database_loader_.catalog_database(),
-                                       test_database_loader_.storage_manager(),
-                                       &bus_);
+                                       test_database_loader_.storage_manager());
 
     if (result.condition != ParseResult::kSuccess) {
       if (result.condition == ParseResult::kError) {
@@ -97,6 +95,7 @@ void ExecutionGeneratorTestRunner::runTestCase(
             query_handle.getQueryPlanMutable()->getQueryPlanDAGMutable());
 
         query_context_.reset(new QueryContext(query_handle.getQueryContextProto(),
+                                              foreman_->getBusClientID(),
                                               test_database_loader_.catalog_database(),
                                               test_database_loader_.storage_manager(),
                                               &bus_));

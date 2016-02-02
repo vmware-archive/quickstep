@@ -115,6 +115,8 @@ target_link_libraries(quickstep_queryoptimizer_ExecutionGenerator
                       quickstep_types_TypedValue_proto
                       quickstep_types_containers_Tuple_proto
                       quickstep_utility_Macros
+                      quickstep_utility_SortConfiguration
+                      quickstep_utility_SortConfiguration_proto
                       quickstep_utility_SqlError)
 target_link_libraries(quickstep_queryoptimizer_LogicalGenerator
                       glog
@@ -135,13 +137,11 @@ target_link_libraries(quickstep_queryoptimizer_Optimizer
                       quickstep_queryoptimizer_LogicalGenerator
                       quickstep_queryoptimizer_OptimizerContext
                       quickstep_queryoptimizer_PhysicalGenerator
-                      quickstep_utility_Macros
-                      tmb)
+                      quickstep_utility_Macros)
 target_link_libraries(quickstep_queryoptimizer_OptimizerContext
                       quickstep_catalog_CatalogTypedefs
                       quickstep_queryoptimizer_expressions_ExprId
-                      quickstep_utility_Macros
-                      tmb)
+                      quickstep_utility_Macros)
 target_link_libraries(quickstep_queryoptimizer_OptimizerTree
                       quickstep_utility_TreeStringSerializable
                       quickstep_utility_Macros)
@@ -174,8 +174,7 @@ target_link_libraries(quickstep_queryoptimizer_QueryProcessor
                       quickstep_queryoptimizer_Optimizer
                       quickstep_queryoptimizer_QueryHandle
                       quickstep_storage_StorageManager
-                      quickstep_utility_Macros
-                      tmb)
+                      quickstep_utility_Macros)
 target_link_libraries(quickstep_queryoptimizer_Validator
                       glog
                       quickstep_queryoptimizer_expressions_AttributeReference

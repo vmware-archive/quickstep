@@ -35,6 +35,7 @@ add_library(quickstep_queryexecution_Worker Worker.cpp Worker.hpp)
 add_library(quickstep_queryexecution_WorkerDirectory ../empty_src.cpp WorkerDirectory.hpp)
 add_library(quickstep_queryexecution_WorkerMessage ../empty_src.cpp WorkerMessage.hpp)
 add_library(quickstep_queryexecution_WorkerSelectionPolicy ../empty_src.cpp WorkerSelectionPolicy.hpp)
+add_library(quickstep_queryexecution_tests_MockWorkOrder ../empty_src.cpp tests/MockWorkOrder.hpp)
 
 # Link dependencies:
 target_link_libraries(quickstep_queryexecution_Foreman
@@ -47,9 +48,10 @@ target_link_libraries(quickstep_queryexecution_Foreman
                       quickstep_queryexecution_WorkOrdersContainer
                       quickstep_queryexecution_WorkerDirectory
                       quickstep_queryexecution_WorkerMessage
-                      quickstep_relationaloperators_RebuildWorkOrder
                       quickstep_relationaloperators_RelationalOperator
                       quickstep_relationaloperators_WorkOrder
+                      quickstep_relationaloperators_WorkOrderFactory
+                      quickstep_relationaloperators_WorkOrder_proto
                       quickstep_storage_InsertDestination
                       quickstep_storage_StorageBlock
                       quickstep_storage_StorageBlockInfo
@@ -74,7 +76,8 @@ target_link_libraries(quickstep_queryexecution_QueryContext
                       quickstep_storage_InsertDestination_proto
                       quickstep_types_containers_Tuple
                       quickstep_utility_Macros
-                      quickstep_utility_SortConfiguration)
+                      quickstep_utility_SortConfiguration
+                      tmb)
 target_link_libraries(quickstep_queryexecution_QueryContext_proto
                       quickstep_expressions_Expressions_proto
                       quickstep_storage_AggregationOperationState_proto
@@ -84,7 +87,6 @@ target_link_libraries(quickstep_queryexecution_QueryContext_proto
                       quickstep_utility_SortConfiguration_proto
                       ${PROTOBUF_LIBRARY})
 target_link_libraries(quickstep_queryexecution_QueryExecutionMessages_proto
-                      quickstep_relationaloperators_WorkOrder_proto
                       ${PROTOBUF_LIBRARY})
 target_link_libraries(quickstep_queryexecution_QueryExecutionTypedefs
                       quickstep_threading_ThreadIDBasedMap
@@ -95,7 +97,7 @@ target_link_libraries(quickstep_queryexecution_QueryExecutionUtil
                       tmb)
 target_link_libraries(quickstep_queryexecution_WorkOrdersContainer
                       glog
-                      quickstep_relationaloperators_WorkOrder
+                      quickstep_relationaloperators_WorkOrder_proto
                       quickstep_utility_Macros
                       quickstep_utility_PtrVector)
 target_link_libraries(quickstep_queryexecution_Worker
@@ -116,6 +118,11 @@ target_link_libraries(quickstep_queryexecution_WorkerDirectory
 target_link_libraries(quickstep_queryexecution_WorkerSelectionPolicy
                       quickstep_queryexecution_WorkerDirectory
                       quickstep_utility_Macros)
+target_link_libraries(quickstep_queryexecution_tests_MockWorkOrder
+                      glog
+                      quickstep_queryoptimizer_QueryPlan
+                      quickstep_relationaloperators_WorkOrder
+                      quickstep_utility_Macros)
 
 # Module all-in-one library:
 add_library(quickstep_queryexecution ../empty_src.cpp QueryExecutionModule.hpp)
@@ -130,7 +137,9 @@ target_link_libraries(quickstep_queryexecution
                       quickstep_queryexecution_Worker
                       quickstep_queryexecution_WorkerDirectory
                       quickstep_queryexecution_WorkerMessage
-                      quickstep_queryexecution_WorkerSelectionPolicy)
+                      quickstep_queryexecution_WorkerSelectionPolicy
+                      quickstep_queryexecution_tests_MockWorkOrder)
+
 # Tests:
 add_executable(Foreman_unittest
                "${CMAKE_CURRENT_SOURCE_DIR}/tests/Foreman_unittest.cpp")
@@ -148,6 +157,7 @@ target_link_libraries(Foreman_unittest
                       quickstep_queryexecution_WorkOrdersContainer
                       quickstep_queryexecution_WorkerDirectory
                       quickstep_queryexecution_WorkerMessage
+                      quickstep_queryexecution_tests_MockWorkOrder
                       quickstep_queryoptimizer_QueryPlan
                       quickstep_relationaloperators_RelationalOperator
                       quickstep_relationaloperators_WorkOrder
@@ -164,13 +174,12 @@ add_test(Foreman_unittest Foreman_unittest)
 add_executable(WorkOrdersContainer_unittest
                "${CMAKE_CURRENT_SOURCE_DIR}/tests/WorkOrdersContainer_unittest.cpp")
 target_link_libraries(WorkOrdersContainer_unittest
-                      glog
                       gtest
                       gtest_main
+                      quickstep_catalog_CatalogTypedefs
                       quickstep_queryexecution_WorkOrdersContainer
-                      quickstep_relationaloperators_WorkOrder
-                      quickstep_utility_Macros
-                      quickstep_utility_PtrVector)
+                      quickstep_relationaloperators_WorkOrder_proto
+                      quickstep_utility_Macros)
 add_test(WorkOrdersContainer_unittest WorkOrdersContainer_unittest)
 
 add_executable(WorkerDirectory_unittest

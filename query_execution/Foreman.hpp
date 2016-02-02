@@ -39,7 +39,9 @@
 
 namespace quickstep {
 
+class CatalogDatabase;
 class QueryContext;
+class StorageManager;
 class WorkerDirectory;
 
 /** \addtogroup QueryExecution
@@ -56,6 +58,8 @@ class Foreman : public Thread {
   /**
    * @brief Constructor.
    *
+   * @param catalog_database The catalog database where this query is executed.
+   * @param storage_manager The StorageManager to use.
    * @param bus A pointer to the TMB.
    * @param cpu_id The ID of the CPU to which the Foreman thread can be pinned.
    * @param num_numa_nodes The number of NUMA nodes in the system.
@@ -63,8 +67,14 @@ class Foreman : public Thread {
    * @note If cpu_id is not specified, Foreman thread can be possibly moved
    *       around on different CPUs by the OS.
   **/
-  explicit Foreman(MessageBus *bus, const int cpu_id = -1, const int num_numa_nodes = 1)
-      : bus_(bus),
+  Foreman(CatalogDatabase *catalog_database,
+          StorageManager *storage_manager,
+          MessageBus *bus,
+          const int cpu_id = -1,
+          const int num_numa_nodes = 1)
+      : catalog_database_(catalog_database),
+        storage_manager_(storage_manager),
+        bus_(bus),
         cpu_id_(cpu_id),
         query_context_(nullptr),
         num_operators_finished_(0),
@@ -459,12 +469,15 @@ class Foreman : public Thread {
    **/
   void getRebuildWorkOrders(const dag_node_index index, WorkOrdersContainer *container);
 
+  CatalogDatabase *catalog_database_;
+  StorageManager *storage_manager_;
+
   MessageBus *bus_;
 
   client_id foreman_client_id_;
 
   // The ID of the CPU that the Foreman thread can optionally be pinned to.
-  int cpu_id_;
+  const int cpu_id_;
 
   DAG<RelationalOperator, bool> *query_dag_;
 

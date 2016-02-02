@@ -16,13 +16,6 @@ syntax = "proto2";
 
 package quickstep.serialization;
 
-import "relational_operators/WorkOrder.proto";
-
-message WorkOrderMessage {
-  required uint64 operator_index = 1;
-  required WorkOrder work_order = 2;
-}
-
 // Used for both Normal WorkOrders and RebuildWorkOrders.
 // NOTE(zuyu): we might need to seperate the completion messages to contain
 // run-time information for Foreman to make better decisions on scheduling
