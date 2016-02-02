@@ -21,6 +21,7 @@ import "relational_operators/SortMergeRunOperator.proto";
 import "relational_operators/TextScanOperator.proto";
 
 enum WorkOrderType {
+  MOCK = 0;  // NOTE(zuyu): For unit tests only.
   AGGREGATION = 1;
   BUILD_HASH = 2;
   DELETE = 3;
@@ -37,14 +38,27 @@ enum WorkOrderType {
   TEXT_SCAN = 14;
   TEXT_SPLIT = 15;
   UPDATE = 16;
+  REBUILD = 17;  // TODO(zuyu): Remove this workaround once Shiftboss is ready.
 }
 
 message WorkOrder {
   required WorkOrderType work_order_type = 1;
 
+  repeated int32 preferred_numa_nodes = 2;
+
   // The convention for extension numbering is that extensions for a particular
   // WorkOrderID should begin from (operator_type + 1) * 16.
-  extensions 16 to max;
+  extensions 14 to max;
+}
+
+message MockWorkOrder {
+  extend WorkOrder {
+    // Used in Foreman unit test.
+    optional uint64 operator_index = 14;
+
+    // Used in WorkOrdersContainer unit test.
+    optional int32 id = 15;
+  }
 }
 
 message AggregationWorkOrder {
@@ -215,5 +229,14 @@ message UpdateWorkOrder {
     optional int32 predicate_index = 259;
     optional uint32 update_group_index = 260;
     optional fixed64 block_id = 261;
+  }
+}
+
+message RebuildWorkOrder {
+  extend WorkOrder {
+    // All required.
+    optional fixed64 block_id = 272;
+    optional uint64 operator_index = 274;
+    optional int32 relation_id = 275;
   }
 }

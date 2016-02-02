@@ -36,11 +36,9 @@
 
 #include "glog/logging.h"
 
-namespace quickstep {
+namespace tmb { class MessageBus; }
 
-class CatalogDatabase;
-class QueryContext;
-class StorageManager;
+namespace quickstep {
 
 /** \addtogroup RelationalOperators
  *  @{
@@ -63,7 +61,7 @@ class RebuildWorkOrder : public WorkOrder {
                    const std::size_t input_operator_index,
                    const relation_id input_relation_id,
                    const client_id foreman_client_id,
-                   MessageBus *bus)
+                   tmb::MessageBus *bus)
       : block_ref_(std::move(block_ref)),
         input_operator_index_(input_operator_index),
         input_relation_id_(input_relation_id),
@@ -72,9 +70,7 @@ class RebuildWorkOrder : public WorkOrder {
 
   ~RebuildWorkOrder() {}
 
-  void execute(QueryContext *query_context,
-               CatalogDatabase *catalog_database,
-               StorageManager *storage_manager) {
+  void execute() {
     if (!block_ref_->rebuild()) {
       LOG_WARNING("Rebuilding of StorageBlock with ID: "
                   << block_ref_->getID() << " invalidated one or more "
@@ -115,7 +111,7 @@ class RebuildWorkOrder : public WorkOrder {
   const relation_id input_relation_id_;
   const client_id foreman_client_id_;
 
-  MessageBus *bus_;
+  tmb::MessageBus *bus_;
 
   DISALLOW_COPY_AND_ASSIGN(RebuildWorkOrder);
 };

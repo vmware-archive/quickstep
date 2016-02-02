@@ -38,6 +38,8 @@
 #include "relational_operators/RelationalOperator.hpp"
 #include "relational_operators/SortRunGenerationOperator.hpp"
 #include "relational_operators/WorkOrder.hpp"
+#include "relational_operators/WorkOrder.pb.h"
+#include "relational_operators/WorkOrderFactory.hpp"
 #include "storage/BasicColumnStoreValueAccessor.hpp"
 #include "storage/CompressedColumnStoreValueAccessor.hpp"
 #include "storage/CompressedPackedRowStoreValueAccessor.hpp"
@@ -280,8 +282,15 @@ class SortRunGenerationOperatorTest : public ::testing::Test {
     WorkOrdersContainer container(kOpIndex + 1, 0);
     op->getAllWorkOrders(&container);
     while (container.hasNormalWorkOrder(kOpIndex)) {
-      std::unique_ptr<WorkOrder> order(container.getNormalWorkOrder(kOpIndex));
-      order->execute(query_context_.get(), db_.get(), storage_manager_.get());
+      std::unique_ptr<serialization::WorkOrder> work_order_proto(container.getNormalWorkOrder(kOpIndex));
+      unique_ptr<WorkOrder> work_order(
+          WorkOrderFactory::ReconstructFromProto(*work_order_proto,
+                                                 thread_client_id_,
+                                                 db_.get(),
+                                                 query_context_.get(),
+                                                 storage_manager_.get(),
+                                                 &bus_));
+      work_order->execute();
     }
   }
 
@@ -300,7 +309,6 @@ class SortRunGenerationOperatorTest : public ::testing::Test {
     insert_destination_proto->set_relation_id(result_table_->getID());
     insert_destination_proto->set_need_to_add_blocks_from_relation(false);
     insert_destination_proto->set_relational_op_index(kOpIndex);
-    insert_destination_proto->set_foreman_client_id(thread_client_id_);
 
     // Setup the SortConfiguration proto.
     DCHECK_EQ(attrs.size(), ordering.size());
@@ -328,7 +336,12 @@ class SortRunGenerationOperatorTest : public ::testing::Test {
     run_gen->setOperatorIndex(kOpIndex);
 
     // Set up the QueryContext.
-    query_context_.reset(new QueryContext(query_context_proto, db_.get(), storage_manager_.get(), &bus_));
+    query_context_.reset(
+        new QueryContext(query_context_proto,
+                         thread_client_id_,
+                         db_.get(),
+                         storage_manager_.get(),
+                         &bus_));
 
     executeOperator(run_gen.get());
   }

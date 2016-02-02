@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -34,13 +34,15 @@
 
 namespace quickstep {
 
-class CatalogDatabase;
+class CatalogRelationSchema;
 class InsertDestination;
 class Predicate;
 class Scalar;
 class StorageManager;
 class TupleStorageSubBlock;
 class WorkOrdersContainer;
+
+namespace serialization { class WorkOrder; }
 
 /** \addtogroup RelationalOperators
  *  @{
@@ -129,6 +131,17 @@ class NestedLoopsJoinOperator : public RelationalOperator {
 
  private:
   /**
+   * @brief Create Work Order proto.
+   *
+   * @param left_block The block from left relation used in the Work Order.
+   * @param right_block The block from right relation used in the Work Order.
+
+   * @return The created WorkOrder proto.
+   **/
+  serialization::WorkOrder* createWorkOrderProto(const block_id left_block,
+                                                 const block_id right_block) const;
+
+  /**
    * @brief Pairs block IDs from left and right relation block IDs and generates
    *        NestedLoopsJoinWorkOrders and pushes them to the WorkOrdersContainer
    *        when both relations are not stored relations.
@@ -203,38 +216,38 @@ class NestedLoopsJoinWorkOrder : public WorkOrder {
   /**
    * @brief Constructor.
    *
-   * @param left_input_relation_id The id of the first relation in the join
+   * @param left_input_relation_schema The first relation schema in the join
    *        (order is not actually important).
-   * @param right_input_relation_id The id of the second relation in the join
+   * @param right_input_relation_schema The second relation schema in the join
    *        (order is not actually important).
    * @param left_block_id The block id of the first relation.
    * @param right_block_id The block id of the second relation.
-   * @param output_destination_index The index of the InsertDestination in the
-   *        QueryContext to insert the join results.
-   * @param join_predicate_index The index of join predicate in QueryContext to
-   *        evaluate for each pair of tuples in the input relations.
-   *        (cannot be kInvalidPredicateId).
-   * @param selection_index The group index of Scalars in QueryContext,
-   *        corresponding to the relation attributes in InsertDestination
-   *        referred by output_destination_index in QueryContext. Each Scalar is
-   *        evaluated for the joined tuples, and the resulting value is inserted
-   *        into the join result.
+   * @param join_predicate The join predicate to evaluate for each pair of
+   *        tuples in the input relations. (cannot be NULL).
+   * @param selection A list of Scalars corresponding to the relation attributes
+   *        of 'output_destination''s relation. Each Scalar is evaluated for the
+   *        joined tuples, and the resulting value is inserted into the join
+   *        result.
+   * @param output_destination Where to insert the join results.
+   * @param storage_manager The StorageManager to use.
    **/
-  NestedLoopsJoinWorkOrder(const relation_id left_input_relation_id,
-                           const relation_id right_input_relation_id,
+  NestedLoopsJoinWorkOrder(const CatalogRelationSchema &left_input_relation_schema,
+                           const CatalogRelationSchema &right_input_relation_schema,
                            const block_id left_block_id,
                            const block_id right_block_id,
-                           const QueryContext::insert_destination_id output_destination_index,
-                           const QueryContext::predicate_id join_predicate_index,
-                           const QueryContext::scalar_group_id selection_index)
-      : left_input_relation_id_(left_input_relation_id),
-        right_input_relation_id_(right_input_relation_id),
+                           const std::vector<std::unique_ptr<const Scalar>> &selection,
+                           const Predicate *join_predicate,
+                           InsertDestination *output_destination,
+                           StorageManager *storage_manager)
+      : left_input_relation_schema_(left_input_relation_schema),
+        right_input_relation_schema_(right_input_relation_schema),
         left_block_id_(left_block_id),
         right_block_id_(right_block_id),
-        output_destination_index_(output_destination_index),
-        join_predicate_index_(join_predicate_index),
-        selection_index_(selection_index) {
-    DCHECK_NE(join_predicate_index_, QueryContext::kInvalidPredicateId);
+        selection_(selection),
+        join_predicate_(join_predicate),
+        output_destination_(output_destination),
+        storage_manager_(storage_manager) {
+    DCHECK(join_predicate_ != nullptr);
   }
 
   ~NestedLoopsJoinWorkOrder() override {}
@@ -246,24 +259,21 @@ class NestedLoopsJoinWorkOrder : public WorkOrder {
    *            some tuples inserted into the destination) when this exception
    *            is thrown, causing potential inconsistency.
    **/
-  void execute(QueryContext *query_context,
-               CatalogDatabase *catalog_database,
-               StorageManager *storage_manager) override;
+  void execute() override;
 
  private:
   template <bool LEFT_PACKED, bool RIGHT_PACKED>
   void executeHelper(const TupleStorageSubBlock &left_store,
-                     const TupleStorageSubBlock &right_store,
-                     const std::vector<std::unique_ptr<const Scalar>> &selection,
-                     const Predicate *join_predicate,
-                     InsertDestination *output_destination);
+                     const TupleStorageSubBlock &right_store);
 
-  const relation_id left_input_relation_id_, right_input_relation_id_;
+  const CatalogRelationSchema &left_input_relation_schema_, &right_input_relation_schema_;
   const block_id left_block_id_, right_block_id_;
 
-  const QueryContext::insert_destination_id output_destination_index_;
-  const QueryContext::predicate_id join_predicate_index_;
-  const QueryContext::scalar_group_id selection_index_;
+  const std::vector<std::unique_ptr<const Scalar>> &selection_;
+  const Predicate *join_predicate_;
+  InsertDestination *output_destination_;
+
+  StorageManager *storage_manager_;
 
   DISALLOW_COPY_AND_ASSIGN(NestedLoopsJoinWorkOrder);
 };

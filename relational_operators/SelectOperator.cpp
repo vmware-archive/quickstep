@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -19,10 +19,9 @@
 
 #include <vector>
 
-#include "catalog/CatalogDatabase.hpp"
 #include "catalog/CatalogRelationSchema.hpp"
-#include "query_execution/QueryContext.hpp"
 #include "query_execution/WorkOrdersContainer.hpp"
+#include "relational_operators/WorkOrder.pb.h"
 #include "storage/InsertDestination.hpp"
 #include "storage/StorageBlock.hpp"
 #include "storage/StorageBlockInfo.hpp"
@@ -32,21 +31,30 @@
 
 namespace quickstep {
 
-class Predicate;
+serialization::WorkOrder* SelectOperator::createWorkOrderProto(const block_id block) const {
+  serialization::WorkOrder *proto = new serialization::WorkOrder;
+  proto->set_work_order_type(serialization::SELECT);
+
+  proto->SetExtension(serialization::SelectWorkOrder::relation_id, input_relation_.getID());
+  proto->SetExtension(serialization::SelectWorkOrder::insert_destination_index, output_destination_index_);
+  proto->SetExtension(serialization::SelectWorkOrder::predicate_index, predicate_index_);
+  proto->SetExtension(serialization::SelectWorkOrder::block_id, block);
+  proto->SetExtension(serialization::SelectWorkOrder::simple_projection, simple_projection_);
+  if (simple_projection_) {
+    for (const attribute_id attr_id : *simple_selection_) {
+      proto->AddExtension(serialization::SelectWorkOrder::simple_selection, attr_id);
+    }
+  }
+  proto->SetExtension(serialization::SelectWorkOrder::selection_index, selection_index_);
+
+  return proto;
+}
 
 bool SelectOperator::getAllWorkOrders(WorkOrdersContainer *container) {
   if (input_relation_is_stored_) {
     if (!started_) {
       for (const block_id input_block_id : input_relation_block_ids_) {
-        container->addNormalWorkOrder(
-            new SelectWorkOrder(input_relation_.getID(),
-                                output_destination_index_,
-                                predicate_index_,
-                                selection_index_,
-                                *simple_selection_,
-                                simple_projection_,
-                                input_block_id),
-            op_index_);
+        container->addNormalWorkOrder(createWorkOrderProto(input_block_id), op_index_);
       }
       started_ = true;
     }
@@ -54,14 +62,7 @@ bool SelectOperator::getAllWorkOrders(WorkOrdersContainer *container) {
   } else {
     while (num_workorders_generated_ < input_relation_block_ids_.size()) {
       container->addNormalWorkOrder(
-          new SelectWorkOrder(
-              input_relation_.getID(),
-              output_destination_index_,
-              predicate_index_,
-              selection_index_,
-              *simple_selection_,
-              simple_projection_,
-              input_relation_block_ids_[num_workorders_generated_]),
+          createWorkOrderProto(input_relation_block_ids_[num_workorders_generated_]),
           op_index_);
       ++num_workorders_generated_;
     }
@@ -69,31 +70,19 @@ bool SelectOperator::getAllWorkOrders(WorkOrdersContainer *container) {
   }
 }
 
-void SelectWorkOrder::execute(QueryContext *query_context,
-                              CatalogDatabase *database,
-                              StorageManager *storage_manager) {
-  DCHECK(query_context != nullptr);
-  DCHECK(database != nullptr);
-  DCHECK(storage_manager != nullptr);
-
+void SelectWorkOrder::execute() {
   BlockReference block(
-      storage_manager->getBlock(input_block_id_,
-                                *database->getRelationById(input_relation_id_)));
-
-  InsertDestination *output_destination =
-      query_context->getInsertDestination(output_destination_index_);
-  DCHECK(output_destination != nullptr);
-
-  const Predicate *predicate = query_context->getPredicate(predicate_index_);
+      storage_manager_->getBlock(input_block_id_, input_relation_schema_));
 
   if (simple_projection_) {
     block->selectSimple(simple_selection_,
-                        predicate,
-                        output_destination);
+                        predicate_,
+                        output_destination_);
   } else {
-    block->select(query_context->getScalarGroup(selection_index_),
-                  predicate,
-                  output_destination);
+    DCHECK(selection_ != nullptr);
+    block->select(*selection_,
+                  predicate_,
+                  output_destination_);
   }
 }
 

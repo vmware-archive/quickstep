@@ -58,6 +58,7 @@ InsertDestination::InsertDestination(StorageManager *storage_manager,
 }
 
 InsertDestination* InsertDestination::ReconstructFromProto(const serialization::InsertDestination &proto,
+                                                           const tmb::client_id foreman_client_id,
                                                            CatalogRelation *relation,
                                                            StorageManager *storage_manager,
                                                            tmb::MessageBus *bus) {
@@ -75,7 +76,7 @@ InsertDestination* InsertDestination::ReconstructFromProto(const serialization::
                                                     relation,
                                                     layout,
                                                     proto.relational_op_index(),
-                                                    proto.foreman_client_id(),
+                                                    foreman_client_id,
                                                     bus);
     }
     case serialization::InsertDestinationType::BLOCK_POOL: {
@@ -84,7 +85,7 @@ InsertDestination* InsertDestination::ReconstructFromProto(const serialization::
                                          relation,
                                          layout,
                                          proto.relational_op_index(),
-                                         proto.foreman_client_id(),
+                                         foreman_client_id,
                                          bus);
 
       if (proto.need_to_add_blocks_from_relation()) {
@@ -99,7 +100,7 @@ InsertDestination* InsertDestination::ReconstructFromProto(const serialization::
                                               relation,
                                               layout,
                                               proto.relational_op_index(),
-                                              proto.foreman_client_id(),
+                                              foreman_client_id,
                                               bus);
 
       if (proto.need_to_add_blocks_from_relation()) {

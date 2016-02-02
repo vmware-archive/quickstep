@@ -29,9 +29,10 @@
 #include "query_execution/QueryExecutionUtil.hpp"
 #include "query_execution/WorkerDirectory.hpp"
 #include "query_execution/WorkerMessage.hpp"
-#include "relational_operators/RebuildWorkOrder.hpp"
 #include "relational_operators/RelationalOperator.hpp"
 #include "relational_operators/WorkOrder.hpp"
+#include "relational_operators/WorkOrder.pb.h"
+#include "relational_operators/WorkOrderFactory.hpp"
 #include "storage/InsertDestination.hpp"
 #include "storage/StorageBlock.hpp"
 #include "storage/StorageBlockInfo.hpp"
@@ -46,6 +47,7 @@
 using std::move;
 using std::pair;
 using std::size_t;
+using std::unique_ptr;
 using std::vector;
 
 namespace quickstep {
@@ -334,7 +336,7 @@ WorkerMessage* Foreman::getNextWorkerMessage(
     const dag_node_index start_operator_index, const int numa_node) {
   // Default policy: Operator with lowest index first.
   std::unique_ptr<WorkerMessage> worker_message;
-  WorkOrder *work_order = nullptr;
+  unique_ptr<serialization::WorkOrder> work_order_proto;
   size_t num_operators_checked = 0;
   for (dag_node_index index = start_operator_index;
        num_operators_checked < query_dag_->size();
@@ -344,19 +346,34 @@ WorkerMessage* Foreman::getNextWorkerMessage(
     }
     if (numa_node != -1) {
       // First try to get a normal WorkOrder from the specified NUMA node.
-      work_order = workorders_container_->getNormalWorkOrderForNUMANode(index, numa_node);
-      if (work_order != nullptr) {
+      work_order_proto.reset(workorders_container_->getNormalWorkOrderForNUMANode(index, numa_node));
+      if (work_order_proto) {
         // A WorkOrder found on the given NUMA node.
         ++queued_workorders_per_op_[index];
+        WorkOrder *work_order =
+            WorkOrderFactory::ReconstructFromProto(*work_order_proto,
+                                                   foreman_client_id_,
+                                                   catalog_database_,
+                                                   query_context_,
+                                                   storage_manager_,
+                                                   bus_);
+
         worker_message.reset(generateWorkerMessage(
             work_order, index, WorkerMessage::kWorkOrder));
         return worker_message.release();
       } else {
         // Normal workorder not found on this node. Look for a rebuild workorder
         // on this NUMA node.
-        work_order = workorders_container_->getRebuildWorkOrderForNUMANode(index,
-                                                                 numa_node);
-        if (work_order != nullptr) {
+        work_order_proto.reset(workorders_container_->getRebuildWorkOrderForNUMANode(index, numa_node));
+        if (work_order_proto) {
+          WorkOrder *work_order =
+              WorkOrderFactory::ReconstructFromProto(*work_order_proto,
+                                                     foreman_client_id_,
+                                                     catalog_database_,
+                                                     query_context_,
+                                                     storage_manager_,
+                                                     bus_);
+
           worker_message.reset(generateWorkerMessage(
               work_order, index, WorkerMessage::kRebuildWorkOrder));
           return worker_message.release();
@@ -365,16 +382,32 @@ WorkerMessage* Foreman::getNextWorkerMessage(
     }
     // Either no workorder found on the given NUMA node, or numa_node is -1.
     // Try to get a normal WorkOrder from other NUMA nodes.
-    work_order = workorders_container_->getNormalWorkOrder(index);
-    if (work_order != nullptr) {
+    work_order_proto.reset(workorders_container_->getNormalWorkOrder(index));
+    if (work_order_proto) {
       ++queued_workorders_per_op_[index];
+      WorkOrder *work_order =
+          WorkOrderFactory::ReconstructFromProto(*work_order_proto,
+                                                 foreman_client_id_,
+                                                 catalog_database_,
+                                                 query_context_,
+                                                 storage_manager_,
+                                                 bus_);
+
       worker_message.reset(generateWorkerMessage(
           work_order, index, WorkerMessage::kWorkOrder));
       return worker_message.release();
     } else {
       // Normal WorkOrder not found, look for a RebuildWorkOrder.
-      work_order = workorders_container_->getRebuildWorkOrder(index);
-      if (work_order != nullptr) {
+      work_order_proto.reset(workorders_container_->getRebuildWorkOrder(index));
+      if (work_order_proto) {
+        WorkOrder *work_order =
+            WorkOrderFactory::ReconstructFromProto(*work_order_proto,
+                                                   foreman_client_id_,
+                                                   catalog_database_,
+                                                   query_context_,
+                                                   storage_manager_,
+                                                   bus_);
+
         worker_message.reset(generateWorkerMessage(
             work_order, index, WorkerMessage::kRebuildWorkOrder));
         return worker_message.release();
@@ -509,10 +542,7 @@ bool Foreman::initiateRebuild(const dag_node_index index) {
 void Foreman::getRebuildWorkOrders(const dag_node_index index, WorkOrdersContainer *container) {
   const RelationalOperator &op = query_dag_->getNodePayload(index);
   const QueryContext::insert_destination_id insert_destination_index = op.getInsertDestinationID();
-
-  if (insert_destination_index == QueryContext::kInvalidInsertDestinationId) {
-    return;
-  }
+  DCHECK_NE(insert_destination_index, QueryContext::kInvalidInsertDestinationId);
 
   vector<MutableBlockReference> partially_filled_block_refs;
 
@@ -520,18 +550,21 @@ void Foreman::getRebuildWorkOrders(const dag_node_index index, WorkOrdersContain
   InsertDestination *insert_destination = query_context_->getInsertDestination(insert_destination_index);
   DCHECK(insert_destination != nullptr);
 
+  unique_ptr<serialization::WorkOrder> work_order_proto;
+
   insert_destination->getPartiallyFilledBlocks(&partially_filled_block_refs);
 
   for (vector<MutableBlockReference>::size_type i = 0;
        i < partially_filled_block_refs.size();
        ++i) {
-    container->addRebuildWorkOrder(
-        new RebuildWorkOrder(move(partially_filled_block_refs[i]),
-                            index,
-                            op.getOutputRelationID(),
-                            foreman_client_id_,
-                            bus_),
-        index);
+    serialization::WorkOrder *proto = new serialization::WorkOrder;
+    proto->set_work_order_type(serialization::REBUILD);
+
+    proto->SetExtension(serialization::RebuildWorkOrder::block_id, partially_filled_block_refs[i]->getID());
+    proto->SetExtension(serialization::RebuildWorkOrder::operator_index, index);
+    proto->SetExtension(serialization::RebuildWorkOrder::relation_id, op.getOutputRelationID());
+
+    container->addRebuildWorkOrder(proto, index);
   }
 }
 

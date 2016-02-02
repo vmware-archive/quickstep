@@ -30,9 +30,11 @@
 #include "query_execution/WorkOrdersContainer.hpp"
 #include "query_execution/WorkerDirectory.hpp"
 #include "query_execution/WorkerMessage.hpp"
+#include "query_execution/tests/MockWorkOrder.hpp"
 #include "query_optimizer/QueryPlan.hpp"
 #include "relational_operators/RelationalOperator.hpp"
 #include "relational_operators/WorkOrder.hpp"
+#include "relational_operators/WorkOrder.pb.h"
 #include "storage/InsertDestination.hpp"
 #include "storage/InsertDestination.pb.h"
 #include "storage/StorageBlock.hpp"
@@ -58,27 +60,6 @@ using std::vector;
 using tmb::client_id;
 
 namespace quickstep {
-
-class MockWorkOrder : public WorkOrder {
- public:
-  explicit MockWorkOrder(const int op_index)
-      : op_index_(op_index) {}
-
-  void execute(QueryContext *query_context,
-               CatalogDatabase *catalog_database,
-               StorageManager *storage_manager) override {
-    VLOG(3) << "WorkOrder[" << op_index_ << "] executing.";
-  }
-
-  inline QueryPlan::DAGNodeIndex getOpIndex() const {
-    return op_index_;
-  }
-
- private:
-  const QueryPlan::DAGNodeIndex op_index_;
-
-  DISALLOW_COPY_AND_ASSIGN(MockWorkOrder);
-};
 
 class MockOperator: public RelationalOperator {
  public:
@@ -149,13 +130,13 @@ class MockOperator: public RelationalOperator {
       if (has_streaming_input_) {
         if ((num_calls_feedblock_ > 0 || num_calls_feedblocks_ > 0) && (num_workorders_generated_ < max_workorders_)) {
           MOCK_OP_LOG(3) << "[stream] generate WorkOrder";
-          container->addNormalWorkOrder(new MockWorkOrder(op_index_), op_index_);
+          container->addNormalWorkOrder(createWorkOrderProto(), op_index_);
           ++num_workorders_generated_;
         }
       } else {
         if (blocking_dependencies_met_ && (num_workorders_generated_ < max_workorders_)) {
           MOCK_OP_LOG(3) << "[static] generate WorkOrder";
-          container->addNormalWorkOrder(new MockWorkOrder(op_index_), op_index_);
+          container->addNormalWorkOrder(createWorkOrderProto(), op_index_);
           ++num_workorders_generated_;
         }
       }
@@ -191,6 +172,15 @@ class MockOperator: public RelationalOperator {
   }
 
  private:
+  serialization::WorkOrder* createWorkOrderProto() const {
+    serialization::WorkOrder *proto = new serialization::WorkOrder;;
+    proto->set_work_order_type(serialization::MOCK);
+
+    proto->SetExtension(serialization::MockWorkOrder::operator_index, op_index_);
+
+    return proto;
+  }
+
   const bool produce_workorders_;
   const bool has_streaming_input_;
   const int max_workorders_;
@@ -218,10 +208,22 @@ class ForemanTest : public ::testing::Test {
   // as a separate class, so we can't access Foreman's private members in
   // TEST_F.
   virtual void SetUp() {
+    db_.reset(new CatalogDatabase(nullptr /* catalog */, "database"));
+    storage_manager_.reset(new StorageManager("./"));
+
     query_plan_.reset(new QueryPlan());
 
     bus_.Initialize();
-    foreman_.reset(new Foreman(&bus_));
+
+    foreman_.reset(new Foreman(db_.get(), storage_manager_.get(), &bus_));
+
+    serialization::QueryContext query_context_proto;
+    query_context_.reset(
+        new QueryContext(query_context_proto,
+                         foreman_->getBusClientID(),
+                         db_.get(),
+                         storage_manager_.get(),
+                         &bus_));
 
     // This thread acts both as Foreman as well as Worker. Foreman connects to
     // the bus in its constructor.
@@ -260,17 +262,17 @@ class ForemanTest : public ::testing::Test {
     return foreman_->execution_finished_[index];
   }
 
-  inline bool popWorkOrderIfAvailable(MockWorkOrder **workorder) {
+  inline bool popWorkOrderIfAvailable(unique_ptr<MockWorkOrder> *workorder) {
     AnnotatedMessage msg;
     if (bus_.ReceiveIfAvailable(worker_client_id_, &msg)) {
       WorkerMessage message(*static_cast<const WorkerMessage*>(msg.tagged_message.message()));
-      *workorder = static_cast<MockWorkOrder*>(message.getWorkOrder());
+      workorder->reset(static_cast<MockWorkOrder*>(message.getWorkOrder()));
       return true;
     }
     return false;
   }
 
-  inline bool popRebuildWorkOrderIfAvailable(MockWorkOrder **workorder) {
+  inline bool popRebuildWorkOrderIfAvailable(unique_ptr<MockWorkOrder> *workorder) {
     return popWorkOrderIfAvailable(workorder);
   }
 
@@ -309,7 +311,11 @@ class ForemanTest : public ::testing::Test {
     return bus_.CountQueuedMessagesForClient(worker_client_id_);
   }
 
+  unique_ptr<CatalogDatabase> db_;
+  unique_ptr<StorageManager> storage_manager_;
+
   unique_ptr<QueryPlan> query_plan_;
+  unique_ptr<QueryContext> query_context_;
 
   unique_ptr<Foreman> foreman_;
   MessageBusImpl bus_;
@@ -326,6 +332,7 @@ TEST_F(ForemanTest, SingleNodeDAGNoWorkOrdersTest) {
   // This test creates a DAG of a single node. No workorders are generated.
   query_plan_->addRelationalOperator(new MockOperator(false, false));
   foreman_->setQueryPlan(query_plan_->getQueryPlanDAGMutable());
+  foreman_->setQueryContext(query_context_.get());
 
   const MockOperator &op = static_cast<const MockOperator&>(query_plan_->getQueryPlanDAG().getNodePayload(0));
 
@@ -350,6 +357,7 @@ TEST_F(ForemanTest, SingleNodeDAGStaticWorkOrdersTest) {
   // This test creates a DAG of a single node. Static workorders are generated.
   const QueryPlan::DAGNodeIndex id = query_plan_->addRelationalOperator(new MockOperator(true, false, 1));
   foreman_->setQueryPlan(query_plan_->getQueryPlanDAGMutable());
+  foreman_->setQueryContext(query_context_.get());
 
   const MockOperator &op = static_cast<const MockOperator&>(query_plan_->getQueryPlanDAG().getNodePayload(id));
 
@@ -369,14 +377,11 @@ TEST_F(ForemanTest, SingleNodeDAGStaticWorkOrdersTest) {
   EXPECT_EQ(1, op.getNumWorkOrders());
 
   // Worker receives a WorkOrder.
-  MockWorkOrder *work_order;
+  unique_ptr<MockWorkOrder> work_order;
   ASSERT_TRUE(popWorkOrderIfAvailable(&work_order));
   EXPECT_EQ(id, work_order->getOpIndex());
 
-  // Passing all NULL parameters to a MockWorkOrder for testing purposes.
-  // Note that this is not OK for real WorkOrders.
-  work_order->execute(nullptr, nullptr, nullptr);
-  delete work_order;
+  work_order->execute();
 
   EXPECT_EQ(1, getNumWorkOrdersInExecution(id));
   EXPECT_EQ(0, getNumOperatorsFinished());
@@ -402,6 +407,7 @@ TEST_F(ForemanTest, SingleNodeDAGDynamicWorkOrdersTest) {
   // scaffolding of mocking. If we use gMock, we can do much better.
   const QueryPlan::DAGNodeIndex id = query_plan_->addRelationalOperator(new MockOperator(true, false, 4, 3));
   foreman_->setQueryPlan(query_plan_->getQueryPlanDAGMutable());
+  foreman_->setQueryContext(query_context_.get());
 
   const MockOperator &op = static_cast<const MockOperator&>(query_plan_->getQueryPlanDAG().getNodePayload(id));
 
@@ -420,14 +426,11 @@ TEST_F(ForemanTest, SingleNodeDAGDynamicWorkOrdersTest) {
     EXPECT_EQ(i + 1, op.getNumWorkOrders());
 
     // Worker receives a WorkOrder.
-    MockWorkOrder *work_order;
+    unique_ptr<MockWorkOrder> work_order;
     ASSERT_TRUE(popWorkOrderIfAvailable(&work_order));
     EXPECT_EQ(id, work_order->getOpIndex());
 
-    // Passing all NULL parameters to a MockWorkOrder for testing purposes.
-    // Note that this is not OK for real WorkOrders.
-    work_order->execute(nullptr, nullptr, nullptr);
-    delete work_order;
+    work_order->execute();
 
     EXPECT_EQ(1, getNumWorkOrdersInExecution(id));
     EXPECT_EQ(0, getNumOperatorsFinished());
@@ -468,10 +471,10 @@ TEST_F(ForemanTest, TwoNodesDAGBlockingLinkTest) {
   const MockOperator &op2 = static_cast<const MockOperator&>(query_plan_->getQueryPlanDAG().getNodePayload(id2));
 
   foreman_->setQueryPlan(query_plan_->getQueryPlanDAGMutable());
+  foreman_->setQueryContext(query_context_.get());
 
   // Make sure queues are empty initially.
   EXPECT_EQ(0, getWorkerInputQueueSize());
-
   EXPECT_FALSE(startForeman());
 
   // op1 doesn't have any dependencies
@@ -492,15 +495,12 @@ TEST_F(ForemanTest, TwoNodesDAGBlockingLinkTest) {
   EXPECT_EQ(0, op2.getNumWorkOrders());
 
   // Worker receives a WorkOrder.
-  MockWorkOrder *work_order;
+  unique_ptr<MockWorkOrder> work_order;
   ASSERT_TRUE(popWorkOrderIfAvailable(&work_order));
   // This workorder's source should be op1.
   EXPECT_EQ(id1, work_order->getOpIndex());
 
-  // Passing all NULL parameters to a MockWorkOrder for testing purposes.
-  // Note that this is not OK for real WorkOrders.
-  work_order->execute(nullptr, nullptr, nullptr);
-  delete work_order;
+  work_order->execute();
 
   EXPECT_EQ(0, getWorkerInputQueueSize());
   // Foreman hasn't yet got workorder completion response for the workorder.
@@ -552,10 +552,7 @@ TEST_F(ForemanTest, TwoNodesDAGBlockingLinkTest) {
   // The workorder should have come from op2.
   EXPECT_EQ(id2, work_order->getOpIndex());
 
-  // Passing all NULL parameters to a MockWorkOrder for testing purposes.
-  // Note that this is not OK for real WorkOrders.
-  work_order->execute(nullptr, nullptr, nullptr);
-  delete work_order;
+  work_order->execute();
 
   EXPECT_EQ(0, getWorkerInputQueueSize());
 
@@ -585,6 +582,7 @@ TEST_F(ForemanTest, TwoNodesDAGPipeLinkTest) {
   const MockOperator &op2 = static_cast<const MockOperator&>(query_plan_->getQueryPlanDAG().getNodePayload(id2));
 
   foreman_->setQueryPlan(query_plan_->getQueryPlanDAGMutable());
+  foreman_->setQueryContext(query_context_.get());
 
   // Make sure queues are empty initially.
   EXPECT_EQ(0, getWorkerInputQueueSize());
@@ -611,15 +609,12 @@ TEST_F(ForemanTest, TwoNodesDAGPipeLinkTest) {
   EXPECT_EQ(1, getWorkerInputQueueSize());
 
   // Worker receives a WorkOrder.
-  MockWorkOrder *work_order;
+  unique_ptr<MockWorkOrder> work_order;
   ASSERT_TRUE(popWorkOrderIfAvailable(&work_order));
   // This workorder's source be op1.
   EXPECT_EQ(id1, work_order->getOpIndex());
 
-  // Passing all NULL parameters to a MockWorkOrder for testing purposes.
-  // Note that this is not OK for real WorkOrders.
-  work_order->execute(nullptr, nullptr, nullptr);
-  delete work_order;
+  work_order->execute();
 
   // Send a message to Foreman upon block getting full (output of op1).
   EXPECT_FALSE(placeOutputBlockMessage(id1));
@@ -658,8 +653,7 @@ TEST_F(ForemanTest, TwoNodesDAGPipeLinkTest) {
   ASSERT_TRUE(popWorkOrderIfAvailable(&work_order));
   // The workorder should have been generated by op2.
   EXPECT_EQ(id2, work_order->getOpIndex());
-  work_order->execute(nullptr, nullptr, nullptr);
-  delete work_order;
+  work_order->execute();
 
   // Place a message of a workorder completion of op2 on Foreman's input queue.
   EXPECT_FALSE(placeWorkOrderCompleteMessage(id2));
@@ -676,10 +670,7 @@ TEST_F(ForemanTest, TwoNodesDAGPipeLinkTest) {
   // The workorder should have been generated by op2.
   EXPECT_EQ(id2, work_order->getOpIndex());
 
-  // Passing all NULL parameters to a MockWorkOrder for testing purposes.
-  // Note that this is not OK for real WorkOrders.
-  work_order->execute(nullptr, nullptr, nullptr);
-  delete work_order;
+  work_order->execute();
 
   // Send a message to Foreman upon workorder (generated by op2) completion.
   EXPECT_TRUE(placeWorkOrderCompleteMessage(id2));
@@ -704,11 +695,9 @@ TEST_F(ForemanTest, TwoNodesDAGPartiallyFilledBlocksTest) {
   // Create a non-blocking link.
   query_plan_->addDirectDependency(id2, id1, false);
 
-  unique_ptr<CatalogDatabase> db(new CatalogDatabase(nullptr /* catalog */, "database"));
-
-  // Create a relation, owned by db.
+  // Create a relation, owned by db_.
   CatalogRelation *relation = new CatalogRelation(nullptr /* catalog_database */, "test_relation");
-  const relation_id output_relation_id = db->addRelation(relation);
+  const relation_id output_relation_id = db_->addRelation(relation);
 
   // Setup the InsertDestination proto in the query context proto.
   serialization::QueryContext query_context_proto;
@@ -721,7 +710,6 @@ TEST_F(ForemanTest, TwoNodesDAGPartiallyFilledBlocksTest) {
   insert_destination_proto->set_relation_id(output_relation_id);
   insert_destination_proto->set_need_to_add_blocks_from_relation(false);
   insert_destination_proto->set_relational_op_index(id1);
-  insert_destination_proto->set_foreman_client_id(foreman_->getBusClientID());
 
   MockOperator *op1_mutable =
       static_cast<MockOperator*>(query_plan_->getQueryPlanDAGMutable()->getNodePayloadMutable(id1));
@@ -732,19 +720,26 @@ TEST_F(ForemanTest, TwoNodesDAGPartiallyFilledBlocksTest) {
   const MockOperator &op2 = static_cast<const MockOperator&>(query_plan_->getQueryPlanDAG().getNodePayload(id2));
 
   // Set up the QueryContext.
-  unique_ptr<StorageManager> storage_manager(new StorageManager("./"));
-  unique_ptr<QueryContext> query_context(
-      new QueryContext(query_context_proto, db.get(), storage_manager.get(), &bus_));
+  query_context_.reset(
+      new QueryContext(query_context_proto,
+                       foreman_->getBusClientID(),
+                       db_.get(),
+                       storage_manager_.get(),
+                       &bus_));
 
   // NOTE(zuyu): An operator generally has no ideas about partially filled blocks, but Foreman does.
   // Mock to add partially filled blocks in the InsertDestination.
-  InsertDestination *insert_destination = query_context->getInsertDestination(insert_destination_index);
+  BlockPoolInsertDestination *insert_destination =
+      static_cast<BlockPoolInsertDestination*>(
+          query_context_->getInsertDestination(insert_destination_index));
   DCHECK(insert_destination != nullptr);
-  MutableBlockReference block_ref;
-  static_cast<BlockPoolInsertDestination*>(insert_destination)->available_block_refs_.push_back(move(block_ref));
+  MutableBlockReference block_ref(insert_destination->getBlockForInsertion());
+  const block_id block = block_ref->getID();
+
+  insert_destination->available_block_refs_.push_back(move(block_ref));
 
   foreman_->setQueryPlan(query_plan_->getQueryPlanDAGMutable());
-  foreman_->setQueryContext(query_context.get());
+  foreman_->setQueryContext(query_context_.get());
 
   // Make sure queues are empty initially.
   EXPECT_EQ(0, getWorkerInputQueueSize());
@@ -762,15 +757,12 @@ TEST_F(ForemanTest, TwoNodesDAGPartiallyFilledBlocksTest) {
   EXPECT_EQ(0, op2.getNumWorkOrders());
 
   // Worker receives a WorkOrder.
-  MockWorkOrder *work_order;
+  unique_ptr<MockWorkOrder> work_order;
   ASSERT_TRUE(popWorkOrderIfAvailable(&work_order));
   // The workorder should have been generated by op1.
   EXPECT_EQ(id1, work_order->getOpIndex());
 
-  // Passing all NULL parameters to a MockWorkOrder for testing purposes.
-  // Note that this is not OK for real WorkOrders.
-  work_order->execute(nullptr, nullptr, nullptr);
-  delete work_order;
+  work_order->execute();
 
   EXPECT_EQ(0, getWorkerInputQueueSize());
 
@@ -789,11 +781,13 @@ TEST_F(ForemanTest, TwoNodesDAGPartiallyFilledBlocksTest) {
   EXPECT_EQ(1, op2.getNumWorkOrders());
 
   // Worker receives a rebuild WorkOrder.
-  MockWorkOrder *rebuild_op1;
-  ASSERT_TRUE(popRebuildWorkOrderIfAvailable(&rebuild_op1));
+  unique_ptr<MockWorkOrder> rebuild_work_order;
+  ASSERT_TRUE(popRebuildWorkOrderIfAvailable(&rebuild_work_order));
   // We skip the check for relation ID of the rebuild WorkOrder, as the partially
   // filled block reference is a mock reference with garbage contents.
-  delete rebuild_op1;
+
+  // Dereference the block.
+  rebuild_work_order.reset();
 
   EXPECT_FALSE(placeRebuildWorkOrderCompleteMessage(id1));
 
@@ -809,10 +803,7 @@ TEST_F(ForemanTest, TwoNodesDAGPartiallyFilledBlocksTest) {
   // The workorder should have been generated by op2.
   EXPECT_EQ(id2, work_order->getOpIndex());
 
-  // Passing all NULL parameters to a MockWorkOrder for testing purposes.
-  // Note that this is not OK for real WorkOrders.
-  work_order->execute(nullptr, nullptr, nullptr);
-  delete work_order;
+  work_order->execute();
 
   EXPECT_EQ(0, getWorkerInputQueueSize());
 
@@ -824,6 +815,8 @@ TEST_F(ForemanTest, TwoNodesDAGPartiallyFilledBlocksTest) {
   EXPECT_TRUE(getOperatorFinishedStatus(id2));
 
   EXPECT_EQ(0, getWorkerInputQueueSize());
+
+  storage_manager_->deleteBlockOrBlobFile(block);
 }
 
 TEST_F(ForemanTest, MultipleNodesNoOutputTest) {
@@ -860,6 +853,7 @@ TEST_F(ForemanTest, MultipleNodesNoOutputTest) {
   }
 
   foreman_->setQueryPlan(query_plan_->getQueryPlanDAGMutable());
+  foreman_->setQueryContext(query_context_.get());
 
   // Make sure queues are empty initially.
   EXPECT_EQ(0, getWorkerInputQueueSize());
@@ -878,15 +872,12 @@ TEST_F(ForemanTest, MultipleNodesNoOutputTest) {
   }
 
   // Worker receives a WorkOrder.
-  MockWorkOrder *work_order;
+  unique_ptr<MockWorkOrder> work_order;
   ASSERT_TRUE(popWorkOrderIfAvailable(&work_order));
   // The workorder should have been generated by operators[0].
   EXPECT_EQ(ids[0], work_order->getOpIndex());
 
-  // Passing all NULL parameters to a MockWorkOrder for testing purposes.
-  // Note that this is not OK for real WorkOrders.
-  work_order->execute(nullptr, nullptr, nullptr);
-  delete work_order;
+  work_order->execute();
 
   // Send a message to Foreman upon workorder (generated by operators[0])
   // completion.
@@ -911,6 +902,7 @@ TEST_F(ForemanTest, OutOfOrderWorkOrderCompletionTest) {
   query_plan_->addDirectDependency(id2, id1, false);
 
   foreman_->setQueryPlan(query_plan_->getQueryPlanDAGMutable());
+  foreman_->setQueryContext(query_context_.get());
   // There should be two workorders on Worker's private queue, for this test.
   foreman_->setMaxMessagesPerWorker(2);
 
@@ -923,15 +915,12 @@ TEST_F(ForemanTest, OutOfOrderWorkOrderCompletionTest) {
   EXPECT_EQ(1, getWorkerInputQueueSize());
 
   // Pop a workorder from Foreman's output queue.
-  MockWorkOrder *work_order;
+  unique_ptr<MockWorkOrder> work_order;
   ASSERT_TRUE(popWorkOrderIfAvailable(&work_order));
   // This workorder's source be op1.
   EXPECT_EQ(id1, work_order->getOpIndex());
 
-  // Passing all NULL parameters to a MockWorkOrder for testing purposes.
-  // Note that this is not OK for real WorkOrders.
-  work_order->execute(nullptr, nullptr, nullptr);
-  delete work_order;
+  work_order->execute();
 
   // Send a message to Foreman upon a block (output of op1) getting full.
   EXPECT_FALSE(placeOutputBlockMessage(id1));
@@ -949,10 +938,7 @@ TEST_F(ForemanTest, OutOfOrderWorkOrderCompletionTest) {
   // This workorder's source should be op2.
   EXPECT_EQ(id2, work_order->getOpIndex());
 
-  // Passing all NULL parameters to a MockWorkOrder for testing purposes.
-  // Note that this is not OK for real WorkOrders.
-  work_order->execute(nullptr, nullptr, nullptr);
-  delete work_order;
+  work_order->execute();
 
   // As mentioned earlier, op2 finishes before op1.
   EXPECT_FALSE(placeWorkOrderCompleteMessage(id2));
