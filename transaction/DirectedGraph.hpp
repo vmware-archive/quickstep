@@ -25,7 +25,7 @@ public:
   bool hasEdge(NodeId fromNode, NodeId toNode) const;
   
   std::size_t count() const;
-    
+  
   std::vector<NodeId> getAdjacentNodes(NodeId id) const;
 
 private:
@@ -42,6 +42,8 @@ private:
   private:
     std::unique_ptr<T> data_;
     std::unordered_set<NodeId> outgoing_edges_;
+    
+    //std::unordered_set<NodeId> incoming_edges_;
   };
   
   DISALLOW_COPY_AND_ASSIGN(DirectedGraph);

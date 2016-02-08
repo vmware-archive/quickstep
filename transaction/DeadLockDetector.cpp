@@ -5,7 +5,6 @@ namespace quickstep {
 DeadLockDetector::DeadLockDetector()
   : wait_for_graph_(std::make_unique<DAG<TransactionId, ResourceId>>())
   , tid_node_mapping_(std::make_unique<TransactionIdNodeMap>())
-  , rid_node_mapping_(std::make_unique<ResourceIdNodeMap>())
     //, counter_(0)
     //, check_cycle_(check_cycle)
 {}
@@ -54,16 +53,6 @@ DeadLockDetector::DepGraph::size_type_nodes DeadLockDetector::getNodeId(Transact
   return wait_for_graph_->getNodePayload(node_id);
 }
 
-DeadLockDetector::DepGraph::size_type_nodes DeadLockDetector::getNodeId(const ResourceId &rid) {
-  DepGraph::size_type_nodes node_id;
-  if (rid_node_mapping_->count(rid) == 0) {
-    node_id = addNode(rid);
-  }
-  else {
-    node_id = (*rid_node_mapping_)[rid];
-  }
-  return wait_for_graph_->getNodePayload(node_id);
-}
 
 DeadLockDetector::DepGraph::size_type_nodes DeadLockDetector::addNode(TransactionId tid) {
   TransactionId *tid_payload = new TransactionId(tid);
@@ -71,7 +60,5 @@ DeadLockDetector::DepGraph::size_type_nodes DeadLockDetector::addNode(Transactio
   return node_id;
 }
 
-DeadLockDetector::DepGraph::size_type_nodes DeadLockDetector::addNode(const ResourceId &rid) {
-  FATAL_ERROR("Not implemented");
-}
+
 }

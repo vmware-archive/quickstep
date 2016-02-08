@@ -1,17 +1,27 @@
+#include "transaction/CycleDetector.hpp"
+
+#include <memory>
+#include <unordered_map>
+#include <vector>
+
 #include "transaction/DirectedGraph.hpp"
 #include "transaction/StronglyConnectedComponents.hpp"
 #include "transaction/Transaction.hpp"
 
 #include "gtest/gtest.h"
 
-namespace quickstep {
 
-class StronglyConnectedComponentsTest : public testing::Test {
+
+namespace quickstep { 
+
+class CycleDetectorTest : public testing::Test {
 public:
   using NID = DirectedGraph<TransactionId>::NodeId;
-
-  StronglyConnectedComponentsTest() {
+  
+  CycleDetectorTest() {
     wait_for_graph = std::make_unique<DirectedGraph<TransactionId>>();
+    
+
     tid1 = new TransactionId(1);
     tid2 = new TransactionId(2);
     tid3 = new TransactionId(3);
@@ -72,12 +82,13 @@ public:
 
     wait_for_graph->addEdge(nid12, nid10);
 
-    scc = std::make_unique<StronglyConnectedComponents<TransactionId>>(wait_for_graph.get());
-    scc->findStronglyConnectedComponents();
+    cycle_detector = std::make_unique<CycleDetector<TransactionId>>(wait_for_graph.get());
+    
   }
 
   std::unique_ptr<DirectedGraph<TransactionId>> wait_for_graph;
-  std::unique_ptr<StronglyConnectedComponents<TransactionId>> scc;
+  std::unique_ptr<CycleDetector<TransactionId>> cycle_detector;
+  
 
   TransactionId *tid1;
   TransactionId *tid2;
@@ -119,60 +130,16 @@ public:
   std::uint64_t nid11_component;
   std::uint64_t nid12_component;
 
-  std::uint64_t total_components;
+  std::unordered_map<std::uint64_t, std::vector<NID>> comp_mapping;
+
 };
   
-TEST_F(StronglyConnectedComponentsTest, TotalNumberOfComponents) {
- 
-  total_components = scc->getTotalComponents();
-  
-  EXPECT_EQ(4, total_components);
-}
-  
-TEST_F(StronglyConnectedComponentsTest, GetComponentId) {
-  nid1_component = scc->getComponentId(nid1);
-  nid2_component = scc->getComponentId(nid2);
-  nid3_component = scc->getComponentId(nid3);
-  nid4_component = scc->getComponentId(nid4);
-  nid5_component = scc->getComponentId(nid5);
-  nid6_component = scc->getComponentId(nid6);
-  nid7_component = scc->getComponentId(nid7);
-  nid8_component = scc->getComponentId(nid8);
-  nid9_component = scc->getComponentId(nid9);
-  nid10_component = scc->getComponentId(nid10);
-  nid11_component = scc->getComponentId(nid11);
-  nid12_component = scc->getComponentId(nid12);
-
-  EXPECT_EQ(3, nid1_component);
-
-  EXPECT_EQ(2, nid2_component);
-  EXPECT_EQ(2, nid4_component);
-  EXPECT_EQ(2, nid5_component);
-  
-  EXPECT_EQ(1, nid3_component);
-  EXPECT_EQ(1, nid6_component);
-
-  EXPECT_EQ(0, nid7_component);
-  EXPECT_EQ(0, nid8_component);
-  EXPECT_EQ(0, nid9_component);
-  EXPECT_EQ(0, nid10_component);
-  EXPECT_EQ(0, nid11_component);
-  EXPECT_EQ(0, nid12_component);
+TEST_F(CycleDetectorTest, BreakCycle) {
+  std::vector<NID> victims = cycle_detector->breakCycle();
+  for (auto x : victims) {
+    std::cout << x << std::endl;
+  }
   
 }
-
-TEST_F(StronglyConnectedComponentsTest, GetComponentsMapping) {
-  std::unordered_map<std::uint64_t, std::vector<NID>> mapping = scc->getComponentMapping();
-
-  std::vector<NID> component_no_0 = mapping[0];
-  std::vector<NID> component_no_1 = mapping[1];
-  std::vector<NID> component_no_2 = mapping[2];
-  std::vector<NID> component_no_3 = mapping[3];
-
-  EXPECT_EQ(6, component_no_0.size());
-  EXPECT_EQ(2, component_no_1.size());
-  EXPECT_EQ(3, component_no_2.size());
-  EXPECT_EQ(1, component_no_3.size());
   
-}
 }

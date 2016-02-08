@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <stack>
+#include <unordered_map>
 
 #include "transaction/DirectedGraph.hpp"
 #include "utility/Macros.hpp"
@@ -19,6 +20,9 @@ public:
   std::uint64_t getComponentId(typename DirectedGraph<T>::NodeId node_id) const;
 
   std::uint64_t getTotalComponents() const;
+
+  std::unordered_map<std::uint64_t, std::vector<typename DirectedGraph<T>::NodeId>> getComponentMapping() const;
+  
 private:
   DISALLOW_COPY_AND_ASSIGN(StronglyConnectedComponents);
 
@@ -44,8 +48,9 @@ StronglyConnectedComponents<T>::StronglyConnectedComponents(DirectedGraph<T> *di
   , component_ids_(directed_graph_->count())
   , low_ids_(directed_graph_->count())
   , preorder_counter_(0)
-  , no_of_components_(0) {}
-
+  , no_of_components_(0) {
+}
+  
 template <typename T>
 void StronglyConnectedComponents<T>::findStronglyConnectedComponents() {
   for (typename DirectedGraph<T>::NodeId v = 0; v < directed_graph_->count(); ++v) {
@@ -93,6 +98,15 @@ std::uint64_t StronglyConnectedComponents<T>::getComponentId(typename DirectedGr
 template <typename T>
 std::uint64_t StronglyConnectedComponents<T>::getTotalComponents() const {
   return no_of_components_;
+}
+
+template <typename T>
+std::unordered_map<std::uint64_t, std::vector<typename DirectedGraph<T>::NodeId>> StronglyConnectedComponents<T>::getComponentMapping() const {
+  std::unordered_map<std::uint64_t, std::vector<typename DirectedGraph<T>::NodeId>> component_mapping;
+  for (std::uint64_t i = 0; i < component_ids_.size(); ++i) {
+    component_mapping[component_ids_[i]].push_back(i);
+  }
+  return component_mapping;
 }
 }
 

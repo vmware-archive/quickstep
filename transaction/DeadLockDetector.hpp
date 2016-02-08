@@ -49,7 +49,6 @@ private:
   
   std::unique_ptr<DepGraph> wait_for_graph_;
   std::unique_ptr<TransactionIdNodeMap> tid_node_mapping_;
-  std::unique_ptr<ResourceIdNodeMap> rid_node_mapping_;
   //std::uint64_t counter_;
   //const std::uint64_t check_cycle_;
 };
