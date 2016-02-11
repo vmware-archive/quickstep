@@ -5,8 +5,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "utility/DAG.hpp"
+#include "transaction/DirectedGraph.hpp"
 #include "transaction/Lock.hpp"
+#include "transaction/LockTable.hpp"
 #include "transaction/ResourceId.hpp"
 #include "transaction/Transaction.hpp"
 
@@ -14,24 +15,20 @@ namespace quickstep {
 
 class DeadLockDetector {
 public:
-  using DepGraph = DAG<TransactionId, ResourceId>;
-  using TransactionIdNodeMap = std::unordered_map<TransactionId, DepGraph::size_type_nodes>;
-  using ResourceIdNodeMap = std::unordered_map<ResourceId,
-					       DepGraph::size_type_nodes,
-					       ResourceId::ResourceIdHasher>;
+  using DepGraph = DirectedGraph<TransactionId>;
+  using TransactionIdNodeMap = std::unordered_map<TransactionId, DepGraph::NodeId>;
+ 
 
-  DeadLockDetector();
+  DeadLockDetector(LockTable *lock_table);
 
   void addPendingInfo(TransactionId pending,
-		      TransactionId owner,
-		      const ResourceId &rid);
+		      TransactionId owner);
 
   void deleteAllPendingInfo(TransactionId pending,
 			    TransactionId owner);
 
   void deletePendingInfo(TransactionId pending,
-			 TransactionId owner,
-			 const ResourceId &rid);
+			 TransactionId owner);
 
   // is pending waiting for owner
   bool isDependent(TransactionId pending, TransactionId owner);
@@ -40,15 +37,19 @@ public:
 
   std::vector<TransactionId> getAllDependees(TransactionId pending);
 
+  // Killing victims means there will be no cycle.
+  std::vector<TransactionId> getAllVictims();
+
 private:
-  DepGraph::size_type_nodes getNodeId(TransactionId tid);
-  DepGraph::size_type_nodes getNodeId(const ResourceId &rid);
+  DepGraph::NodeId getNodeId(TransactionId tid);
   
-  DepGraph::size_type_nodes addNode(TransactionId tid);
-  DepGraph::size_type_nodes addNode(const ResourceId &rid);
+  
+  DepGraph::NodeId addNode(TransactionId tid);
+  
   
   std::unique_ptr<DepGraph> wait_for_graph_;
   std::unique_ptr<TransactionIdNodeMap> tid_node_mapping_;
+  LockTable *lock_table_;
   //std::uint64_t counter_;
   //const std::uint64_t check_cycle_;
 };

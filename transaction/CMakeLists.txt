@@ -10,6 +10,10 @@ add_library(quickstep_transaction_DeadLockDetector
             DeadLockDetector.cpp
             DeadLockDetector.hpp)
 
+add_library(quickstep_transaction_DeadLockThread
+	    DeadLockThread.cpp
+	    DeadLockThread.hpp)
+	  
 add_library(quickstep_transaction_DirectedGraph
 	    ../empty_src.cpp
 	    DirectedGraph.hpp)
@@ -21,6 +25,10 @@ add_library(quickstep_transaction_Lock
 add_library(quickstep_transaction_LockManager
             LockManager.cpp
             LockManager.hpp)
+
+add_library(quickstep_transaction_LockRequest
+	    LockRequest.cpp
+	    LockRequest.hpp)
 
 add_library(quickstep_transaction_LockTable
             LockTable.cpp
@@ -47,10 +55,14 @@ target_link_libraries(quickstep_transaction_CycleDetector
 	              quickstep_transaction_StronglyConnectedComponents)
 	  
 target_link_libraries(quickstep_transaction_DeadLockDetector
-                      quickstep_utility_DAG
                       quickstep_transaction_Lock
+		      quickstep_transaction_LockTable
                       quickstep_transaction_ResourceId
                       quickstep_transaction_Transaction)
+
+target_link_libraries(quickstep_transaction_DeadLockThread
+                      quickstep_threading_Thread
+                      quickstep_transaction_DeadLockDetector)
 
 target_link_libraries(quickstep_transaction_DirectedGraph
                       quickstep_utility_Macros)
@@ -68,6 +80,11 @@ target_link_libraries(quickstep_transaction_LockManager
                       quickstep_transaction_Transaction
                       quickstep_transaction_TransactionTable)
 
+target_link_libraries(quickstep_transaction_LockRequest
+		      quickstep_transaction_AccessMode
+		      quickstep_transaction_ResourceId
+		      quickstep_transaction_Transaction)
+		    
 target_link_libraries(quickstep_transaction_LockTable
                       quickstep_transaction_AccessMode
                       quickstep_transaction_Lock
@@ -114,6 +131,13 @@ target_link_libraries(DeadLockDetector_unittest
                       gtest
                       gtest_main
                       quickstep_transaction_DeadLockDetector)
+
+add_executable(DeadLockThread_unittest
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/DeadLockThread_unittest.cpp")
+
+target_link_libraries(DeadLockThread_unittest
+                      quickstep_transaction_DeadLockThread)
+
 
 add_executable(DirectedGraph_unittest
   "${CMAKE_CURRENT_SOURCE_DIR}/tests/DirectedGraph_unittest.cpp")

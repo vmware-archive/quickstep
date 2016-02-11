@@ -23,6 +23,8 @@ public:
   void addEdge(NodeId fromNode, NodeId toNode);
   
   bool hasEdge(NodeId fromNode, NodeId toNode) const;
+
+  T getDataFromNode(NodeId node) const;
   
   std::size_t count() const;
   
@@ -38,6 +40,8 @@ private:
     bool hasOutgoingEdge(NodeId toNode) const;
 
     std::vector<NodeId> getOutgoingEdges() const;
+
+    T getData() const;
     
   private:
     std::unique_ptr<T> data_;
@@ -66,18 +70,23 @@ typename DirectedGraph<T>::NodeId DirectedGraph<T>::addNode(T *data) {
 }
 
 template <typename T>
-void DirectedGraph<T>::addEdge(NodeId fromNode, NodeId toNode) {
-  nodes_[fromNode].addOutgoingEdge(toNode);
+void DirectedGraph<T>::addEdge(NodeId from_node, NodeId to_node) {
+  nodes_[from_node].addOutgoingEdge(to_node);
 }
 
 template <typename T>
-bool DirectedGraph<T>::hasEdge(NodeId fromNode, NodeId toNode) const {
-  return nodes_[fromNode].hasOutgoingEdge(toNode);
+bool DirectedGraph<T>::hasEdge(NodeId from_node, NodeId to_node) const {
+  return nodes_[from_node].hasOutgoingEdge(to_node);
 }
 
 template <typename T>
 std::size_t DirectedGraph<T>::count() const {
   return nodes_.size();
+}
+
+template <typename T>
+T DirectedGraph<T>::getDataFromNode(NodeId node) const {
+  return nodes_[node].getData();
 }
 
 template <typename T>
@@ -91,13 +100,13 @@ DirectedGraph<T>::DirectedGraphNode::DirectedGraphNode(T *data)
 }
 
 template <typename T>
-void DirectedGraph<T>::DirectedGraphNode::addOutgoingEdge(NodeId toNode) {
-  outgoing_edges_.insert(toNode);
+void DirectedGraph<T>::DirectedGraphNode::addOutgoingEdge(NodeId to_node) {
+  outgoing_edges_.insert(to_node);
 }
 
 template <typename T>
-bool DirectedGraph<T>::DirectedGraphNode::hasOutgoingEdge(NodeId toNode) const {
-  return outgoing_edges_.count(toNode) == 1;
+bool DirectedGraph<T>::DirectedGraphNode::hasOutgoingEdge(NodeId to_node) const {
+  return outgoing_edges_.count(to_node) == 1;
 }
 
 template <typename T>
@@ -105,6 +114,11 @@ std::vector<typename DirectedGraph<T>::NodeId> DirectedGraph<T>::DirectedGraphNo
   std::vector<NodeId> result;
   std::copy(outgoing_edges_.begin(), outgoing_edges_.end(), std::back_inserter(result));
   return result;
+}
+
+template <typename T>
+T DirectedGraph<T>::DirectedGraphNode::getData() const {
+  return *(data_.get());
 }
 }
 

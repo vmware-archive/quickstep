@@ -143,21 +143,21 @@ TEST_F(StronglyConnectedComponentsTest, GetComponentId) {
   nid11_component = scc->getComponentId(nid11);
   nid12_component = scc->getComponentId(nid12);
 
-  EXPECT_EQ(3, nid1_component);
+  EXPECT_EQ(3u, nid1_component);
 
-  EXPECT_EQ(2, nid2_component);
-  EXPECT_EQ(2, nid4_component);
-  EXPECT_EQ(2, nid5_component);
+  EXPECT_EQ(2u, nid2_component);
+  EXPECT_EQ(2u, nid4_component);
+  EXPECT_EQ(2u, nid5_component);
   
-  EXPECT_EQ(1, nid3_component);
-  EXPECT_EQ(1, nid6_component);
+  EXPECT_EQ(1u, nid3_component);
+  EXPECT_EQ(1u, nid6_component);
 
-  EXPECT_EQ(0, nid7_component);
-  EXPECT_EQ(0, nid8_component);
-  EXPECT_EQ(0, nid9_component);
-  EXPECT_EQ(0, nid10_component);
-  EXPECT_EQ(0, nid11_component);
-  EXPECT_EQ(0, nid12_component);
+  EXPECT_EQ(0u, nid7_component);
+  EXPECT_EQ(0u, nid8_component);
+  EXPECT_EQ(0u, nid9_component);
+  EXPECT_EQ(0u, nid10_component);
+  EXPECT_EQ(0u, nid11_component);
+  EXPECT_EQ(0u, nid12_component);
   
 }
 

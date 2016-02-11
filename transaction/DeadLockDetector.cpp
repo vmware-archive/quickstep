@@ -1,63 +1,101 @@
 #include "transaction/DeadLockDetector.hpp"
 
+#include "transaction/CycleDetector.hpp"
+
 namespace quickstep {
 
-DeadLockDetector::DeadLockDetector()
-  : wait_for_graph_(std::make_unique<DAG<TransactionId, ResourceId>>())
+DeadLockDetector::DeadLockDetector(LockTable *lock_table)
+  : wait_for_graph_(nullptr)
   , tid_node_mapping_(std::make_unique<TransactionIdNodeMap>())
-    //, counter_(0)
-    //, check_cycle_(check_cycle)
-{}
+  , lock_table_(lock_table) { 
+}
 
 void DeadLockDetector::addPendingInfo(TransactionId pending,
-				      TransactionId owner,
-				      const ResourceId &rid) {
-  DepGraph::size_type_nodes pending_node_id = getNodeId(pending);
-  DepGraph::size_type_nodes owner_node_id = getNodeId(owner);
+				      TransactionId owner) {
+  DepGraph::NodeId pending_node_id = getNodeId(pending);
+  DepGraph::NodeId owner_node_id = getNodeId(owner);
 
   // TODO(Hakan): Check first whether link is already created
-  wait_for_graph_->createLink(owner_node_id, pending_node_id, rid);
-}
-
-void DeadLockDetector::deletePendingInfo(TransactionId pending,
-					 TransactionId owner,
-					 const ResourceId &rid) {
-  FATAL_ERROR("Not implemented");
-}
-
-void DeadLockDetector::deleteAllPendingInfo(TransactionId pending, TransactionId owner) {
-  FATAL_ERROR("Not implemented");
+  wait_for_graph_->addEdge(pending_node_id, owner_node_id);
 }
 
 bool DeadLockDetector::isDependent(TransactionId pending, TransactionId owner) {
   FATAL_ERROR("Not implemented");
-  return true;
 }
 
-std::vector<TransactionId> getAllDependents(TransactionId owner) {
+std::vector<TransactionId> DeadLockDetector::getAllDependents(TransactionId owner) {
   FATAL_ERROR("Not implemented");
 }
 
-std::vector<TransactionId> getAllDependees(TransactionId pending) {
-  FATAL_ERROR("Not implemented");
+std::vector<TransactionId> DeadLockDetector::getAllDependees(TransactionId pending) {
+  DepGraph::NodeId pending_node_id = getNodeId(pending);
+  std::vector<DepGraph::NodeId> nodes = wait_for_graph_->getAdjacentNodes(pending_node_id);
+  std::vector<TransactionId> transactions;
+  transactions.reserve(nodes.size());
+  for (DepGraph::NodeId node_id : nodes) {
+    TransactionId tid = wait_for_graph_->getDataFromNode(node_id);
+    transactions.push_back(tid);
+  }
+  return transactions;
+  
 }
 
-DeadLockDetector::DepGraph::size_type_nodes DeadLockDetector::getNodeId(TransactionId tid) {
-  DepGraph::size_type_nodes node_id;
+DeadLockDetector::DepGraph::NodeId DeadLockDetector::getNodeId(TransactionId tid) {
+  DepGraph::NodeId node_id;
   if (tid_node_mapping_->count(tid) == 0) {
     node_id = addNode(tid);
   }
   else {
     node_id = (*tid_node_mapping_)[tid];
   }
-  return wait_for_graph_->getNodePayload(node_id);
+  return node_id;
 }
 
 
-DeadLockDetector::DepGraph::size_type_nodes DeadLockDetector::addNode(TransactionId tid) {
-  TransactionId *tid_payload = new TransactionId(tid);
-  DepGraph::size_type_nodes node_id = wait_for_graph_->createNode(tid_payload);
+DeadLockDetector::DepGraph::NodeId DeadLockDetector::addNode(TransactionId tid) {
+  TransactionId *tid_ptr = new TransactionId(tid);
+  DepGraph::NodeId node_id = wait_for_graph_->addNode(tid_ptr);
   return node_id;
+}
+
+std::vector<TransactionId> DeadLockDetector::getAllVictims() {
+  std::vector<TransactionId> result_victims;
+
+  wait_for_graph_ = std::make_unique<DepGraph>();
+  
+  for (LockTable::ConstIterator it = lock_table_->begin(); it != lock_table_->end(); ++it) {
+
+    const LockTable::LockOwnList &own_list = it->second.first;
+    const LockTable::LockPendingList &pending_list = it->second.second;
+
+    for (LockTable::LockOwnList::const_iterator it_own_list = own_list.begin();
+	 it_own_list != own_list.end(); ++it_own_list) {
+
+      TransactionId owned_transaction = it_own_list->first;
+
+      DepGraph::NodeId owned_node = getNodeId(owned_transaction);
+      
+      for (LockTable::LockPendingList::const_iterator it_pending_list = pending_list.begin();
+	   it_pending_list != pending_list.end(); ++it_pending_list) {
+
+	TransactionId pending_transaction = it_pending_list->first;
+
+	DepGraph::NodeId pending_node = getNodeId(pending_transaction);
+	wait_for_graph_->addEdge(pending_node, owned_node);
+      }
+    }
+  }
+
+  CycleDetector<TransactionId> cycle_detector(wait_for_graph_.get());
+  std::vector<DepGraph::NodeId> victim_nodes = cycle_detector.breakCycle();
+  for (DepGraph::NodeId node_id : victim_nodes) {
+    TransactionId victim_tid = wait_for_graph_->getDataFromNode(node_id);
+    result_victims.push_back(victim_tid);
+  }
+
+  wait_for_graph_.release();
+
+  return result_victims;
 }
 
 

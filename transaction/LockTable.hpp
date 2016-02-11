@@ -4,6 +4,7 @@
 #include <list>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "transaction/AccessMode.hpp"
 #include "transaction/Lock.hpp"
@@ -30,7 +31,12 @@ public:
   using LockOwnList = std::list<LockEntry>;
   using LockPendingList = std::list<LockEntry>;
   using LockListPair = std::pair<LockOwnList, LockPendingList>;
-
+  using Iterator = std::unordered_map<ResourceId,
+				      LockListPair,
+				      ResourceId::ResourceIdHasher>::iterator;
+  using ConstIterator = std::unordered_map<ResourceId,
+					   LockListPair,
+					   ResourceId::ResourceIdHasher>::const_iterator;
   LockTable() {}
 
   LockTableResult putLock(TransactionId tid,
@@ -39,6 +45,12 @@ public:
 
   LockTableResult deleteLock(TransactionId tid,
 			     const ResourceId &rid);
+
+  Iterator begin();
+  Iterator end();
+
+  ConstIterator begin() const;
+  ConstIterator end() const;
   
 private:
   DISALLOW_COPY_AND_ASSIGN(LockTable);
