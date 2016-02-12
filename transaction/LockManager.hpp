@@ -3,6 +3,7 @@
 
 #include "threading/Mutex.hpp"
 #include "transaction/AccessMode.hpp"
+#include "transaction/DeadLockDetector.hpp"
 #include "transaction/DeadLockThread.hpp"
 #include "transaction/LockTable.hpp"
 #include "transaction/ResourceId.hpp"
@@ -21,9 +22,10 @@ public:
 		   const ResourceId &rid,
 		   AccessMode access_mode);
 
-  bool releaseAllLocks(TransactionId tid,
-		       const ResourceId &rid,
-		       AccessMode access_mode);
+  bool releaseAllLocks(TransactionId tid);
+
+  void killVictims();
+  
 private:
   bool acquireLockInternal(TransactionId tid,
 			   const ResourceId &rid,
@@ -34,8 +36,6 @@ private:
   std::unique_ptr<DeadLockThread> deadlock_detector_thread_;
   std::unique_ptr<DeadLockDetectorStatus> detector_status_;
   std::unique_ptr<std::vector<TransactionId>> victim_result_;
-  
-  Mutex mutex_;
 };
 
 }

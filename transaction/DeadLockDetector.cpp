@@ -63,28 +63,33 @@ std::vector<TransactionId> DeadLockDetector::getAllVictims() {
 
   wait_for_graph_ = std::make_unique<DepGraph>();
   
+  lock_table_->latchShared();
+  
+
   for (LockTable::ConstIterator it = lock_table_->begin(); it != lock_table_->end(); ++it) {
 
     const LockTable::LockOwnList &own_list = it->second.first;
     const LockTable::LockPendingList &pending_list = it->second.second;
-
+    
     for (LockTable::LockOwnList::const_iterator it_own_list = own_list.begin();
 	 it_own_list != own_list.end(); ++it_own_list) {
-
+      
       TransactionId owned_transaction = it_own_list->first;
-
+      
       DepGraph::NodeId owned_node = getNodeId(owned_transaction);
       
       for (LockTable::LockPendingList::const_iterator it_pending_list = pending_list.begin();
 	   it_pending_list != pending_list.end(); ++it_pending_list) {
-
+	
 	TransactionId pending_transaction = it_pending_list->first;
-
+	
 	DepGraph::NodeId pending_node = getNodeId(pending_transaction);
 	wait_for_graph_->addEdge(pending_node, owned_node);
       }
     }
   }
+
+  lock_table_->unlatchShared();
 
   CycleDetector<TransactionId> cycle_detector(wait_for_graph_.get());
   std::vector<DepGraph::NodeId> victim_nodes = cycle_detector.breakCycle();

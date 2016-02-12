@@ -26,6 +26,10 @@ add_library(quickstep_transaction_LockManager
             LockManager.cpp
             LockManager.hpp)
 
+add_library(quickstep_transaction_LockManagerThread
+	    LockManagerThread.cpp
+	    LockManagerThread.hpp)
+
 add_library(quickstep_transaction_LockRequest
 	    LockRequest.cpp
 	    LockRequest.hpp)
@@ -72,20 +76,27 @@ target_link_libraries(quickstep_transaction_Lock
                       quickstep_transaction_ResourceId)
 
 target_link_libraries(quickstep_transaction_LockManager
-                      quickstep_threading_Mutex
                       quickstep_transaction_AccessMode
 		      quickstep_transaction_DeadLockDetector
+		      quickstep_transaction_DeadLockThread
                       quickstep_transaction_LockTable
                       quickstep_transaction_ResourceId
                       quickstep_transaction_Transaction
                       quickstep_transaction_TransactionTable)
 
+target_link_libraries(quickstep_transaction_LockManagerThread
+		      quickstep_threading_Thread
+		      quickstep_transaction_LockManager
+		      quickstep_transaction_LockRequest
+		      quickstep_utility_ThreadSafeQueue)
+		    
 target_link_libraries(quickstep_transaction_LockRequest
 		      quickstep_transaction_AccessMode
 		      quickstep_transaction_ResourceId
 		      quickstep_transaction_Transaction)
 		    
 target_link_libraries(quickstep_transaction_LockTable
+		      quickstep_threading_SharedMutex
                       quickstep_transaction_AccessMode
                       quickstep_transaction_Lock
                       quickstep_transaction_ResourceId
@@ -148,6 +159,16 @@ target_link_libraries(DirectedGraph_unittest
                       quickstep_transaction_DirectedGraph
 		      quickstep_transaction_Transaction)
 
+add_executable(LockManagerThread_unittest
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/LockManagerThread_unittest.cpp")
+
+target_link_libraries(LockManagerThread_unittest
+  gtest
+  gtest
+  quickstep_transaction_LockManagerThread
+  quickstep_transaction_LockRequest
+  quickstep_transaction_ResourceId)
+		    
 add_executable(StronglyConnectedComponents_unittest
 	       "${CMAKE_CURRENT_SOURCE_DIR}/tests/StronglyConnectedComponents_unittest.cpp")
 
@@ -157,3 +178,5 @@ target_link_libraries(StronglyConnectedComponents_unittest
 	              quickstep_transaction_DirectedGraph
 	              quickstep_transaction_StronglyConnectedComponents)
 
+
+		    

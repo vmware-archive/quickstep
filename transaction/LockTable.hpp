@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "threading/SharedMutex.hpp"
 #include "transaction/AccessMode.hpp"
 #include "transaction/Lock.hpp"
 #include "transaction/ResourceId.hpp"
@@ -46,16 +47,28 @@ public:
   LockTableResult deleteLock(TransactionId tid,
 			     const ResourceId &rid);
 
+  void movePendingToOwned(const ResourceId &rid);
+
   Iterator begin();
   Iterator end();
 
   ConstIterator begin() const;
   ConstIterator end() const;
+
+  void latchShared();
+
+  void unlatchShared();
+
+  void latchExclusive();
+
+  void unlatchExclusive();
   
 private:
   DISALLOW_COPY_AND_ASSIGN(LockTable);
 
   std::unordered_map<ResourceId, LockListPair, ResourceId::ResourceIdHasher> internal_map_;
+
+  SharedMutex mutex_;
 };  
 }
 

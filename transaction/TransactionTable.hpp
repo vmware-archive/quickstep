@@ -4,6 +4,7 @@
 #include <list>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "transaction/Lock.hpp"
 #include "transaction/ResourceId.hpp"
@@ -20,7 +21,9 @@ enum class TransactionTableResult {
   kDEL_FROM_OWNED,
   kDEL_FROM_PENDING,
   kDEL_ERROR,
-  kPUT_ERROR
+  kPUT_ERROR,
+  kTRANSACTION_DELETE_OK,
+  kTRANSACTION_DELETE_ERROR
 };
 
 class TransactionTable {
@@ -50,6 +53,11 @@ public:
   TransactionTableResult deletePendingEntry(TransactionId tid,
 					    const ResourceId &rid,
 					    AccessMode access_mode);
+
+  std::vector<ResourceId> getResourceIdList(TransactionId tid);
+
+  TransactionTableResult deleteTransaction(TransactionId tid);
+  
 private:
   DISALLOW_COPY_AND_ASSIGN(TransactionTable);
 

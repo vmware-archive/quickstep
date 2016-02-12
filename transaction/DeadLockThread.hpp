@@ -14,6 +14,7 @@ enum class DeadLockDetectorStatus {
   kDONE = 1
 };
 
+
 class DeadLockThread : public Thread {
 public:
   DeadLockThread(LockTable *lock_table,

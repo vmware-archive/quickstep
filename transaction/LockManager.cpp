@@ -25,6 +25,8 @@ LockManager::~LockManager() {
 bool LockManager::acquireLock(TransactionId tid,
 			      const ResourceId &rid,
 			      AccessMode access_mode) {
+  lock_table_->latchExclusive();
+  
   std::stack<std::pair<ResourceId, AccessMode>> stack;
   ResourceId current_rid = rid;
   AccessMode current_access_mode = access_mode;
@@ -50,18 +52,36 @@ bool LockManager::acquireLock(TransactionId tid,
 				      rid_to_pick,
 				      access_mode_to_pick);
     if (!result) {
+      lock_table_->unlatchExclusive();
       return false;
     }
     stack.pop();
   }
-  
+  lock_table_->unlatchExclusive();
   return true;
 }
 
-bool LockManager::releaseAllLocks(TransactionId tid,
-				  const ResourceId &rid,
-				  AccessMode access_mode) {
-  FATAL_ERROR("Not yet implemented");
+bool LockManager::releaseAllLocks(TransactionId tid) {
+  std::vector<ResourceId> related_rids = transaction_table_->getResourceIdList(tid);
+  TransactionTableResult transaction_deleted = transaction_table_->deleteTransaction(tid);
+  if (transaction_deleted == TransactionTableResult::kTRANSACTION_DELETE_ERROR) {
+    FATAL_ERROR("In LockManager.releaseAllLocks, transaction could not be deleted!");
+  }
+
+  lock_table_->latchExclusive();
+  
+  for (std::vector<ResourceId>::const_iterator it = related_rids.begin();
+       it != related_rids.end();
+       ++it) {
+    LockTableResult lock_deleted = lock_table_->deleteLock(tid, *it);
+    if (lock_deleted == LockTableResult::kDEL_ERROR) {
+      FATAL_ERROR("In LockManager.releaseAllLock "
+		  "lock could not be deleted from LockTable");
+    }
+  }
+
+  lock_table_->unlatchExclusive();
+  return true;
 }
 
 // If not blocked return true
@@ -69,7 +89,6 @@ bool LockManager::releaseAllLocks(TransactionId tid,
 bool LockManager::acquireLockInternal(TransactionId tid,
 				      const ResourceId &rid,
 				      AccessMode access_mode) {
-  MutexLock lock(mutex_);
   LockTableResult l_result = lock_table_->putLock(tid, rid, access_mode);
   if (l_result == LockTableResult::kPUT_ERROR) {
     FATAL_ERROR("Unexpected result in LockManager.acquireLockInternal");
@@ -99,6 +118,24 @@ bool LockManager::acquireLockInternal(TransactionId tid,
     return false;
   }
   return false;
+}
+
+void LockManager::killVictims() {
+  //TODO(Hakan): Find a method to latch this function (it cannot because it calls releaseLocks)
+  
+  if (*detector_status_ == DeadLockDetectorStatus::kDONE) {
+    for (std::vector<TransactionId>::const_iterator iter = victim_result_->begin();
+	 iter != victim_result_->end();
+	 ++iter) {
+      TransactionId tid = *iter;
+      releaseAllLocks(tid);
+      std::cout << "Killed transaction " + std::to_string(tid) + "\n";
+    }
+  }
+
+  victim_result_->clear();
+  *detector_status_ = DeadLockDetectorStatus::kNOT_READY;
+  
 }
 
 }

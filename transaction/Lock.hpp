@@ -11,8 +11,6 @@ public:
   Lock(ResourceId rid, AccessMode access_mode);
 
   bool operator==(const Lock &other) const;
-  
-  bool isCompatible(const Lock &other) const;
 
   ResourceId getResourceId() const;
 
