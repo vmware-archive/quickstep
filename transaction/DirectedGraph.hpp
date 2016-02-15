@@ -90,7 +90,8 @@ T DirectedGraph<T>::getDataFromNode(NodeId node) const {
 }
 
 template <typename T>
-std::vector<typename DirectedGraph<T>::NodeId> DirectedGraph<T>::getAdjacentNodes(NodeId id) const {
+std::vector<typename DirectedGraph<T>::NodeId>
+DirectedGraph<T>::getAdjacentNodes(NodeId id) const {
   return nodes_[id].getOutgoingEdges();
 }
 

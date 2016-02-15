@@ -33,15 +33,15 @@ private:
 };
 
 void putRequest(TransactionId tid, ThreadSafeQueue<LockRequest> *input_queue) {
-  RandomResourceId random_rid(5);
+  RandomResourceId random_rid(2);
   while (true) {
     ResourceId rid = random_rid();
     AccessMode mode = AccessMode::AccessModeType::kX_LOCK;
     input_queue->push(LockRequest(tid, rid, mode, RequestType::kACQUIRE_LOCK));
-    std::string message = "Transaction " + std::to_string(tid) + " requested "
-      + rid.toString() + "\n";
-    std::cout << message;
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    //std::string message = "Transaction " + std::to_string(tid) + " requested "
+    //  + rid.toString() + "\n";
+    //std::cout << message;
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
   }
 };
 

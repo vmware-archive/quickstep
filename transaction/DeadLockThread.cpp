@@ -17,6 +17,7 @@ void DeadLockThread::run() {
     dead_lock_detector_ = std::make_unique<DeadLockDetector>(lock_table_);
     std::cout << "DeadLockDetector detection starts.\n";
     std::vector<TransactionId> victims = dead_lock_detector_->getAllVictims();
+    std::cout << "Victim size: " + std::to_string(victims.size()) + "\n"; 
     *detector_status_ = DeadLockDetectorStatus::kDONE;
     *victim_result_ = std::move(victims);
     std::cout << "DeadLockDetector detection ends.\n";

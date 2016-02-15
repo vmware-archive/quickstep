@@ -5,6 +5,7 @@
 
 
 namespace quickstep {
+
 LockManager::LockManager()
   : lock_table_(std::make_unique<LockTable>())
   , transaction_table_(std::make_unique<TransactionTable>())
@@ -25,15 +26,19 @@ LockManager::~LockManager() {
 bool LockManager::acquireLock(TransactionId tid,
 			      const ResourceId &rid,
 			      AccessMode access_mode) {
+  //std::cout << "LM a\n";
   lock_table_->latchExclusive();
+  //std::cout << "LM b\n";
   
   std::stack<std::pair<ResourceId, AccessMode>> stack;
   ResourceId current_rid = rid;
   AccessMode current_access_mode = access_mode;
   stack.push(std::make_pair(current_rid, current_access_mode));
-  
+
+  //std::cout << "LM c\n";
   while (current_rid.hasParent()) {
-    current_rid = rid.getParentResourceId();
+    //std::cout << current_rid.toString() + "\n";
+    current_rid = current_rid.getParentResourceId();
     current_access_mode =
       (current_access_mode.isShareLock() ||
        current_access_mode.isIntentionShareLock())
@@ -42,12 +47,12 @@ bool LockManager::acquireLock(TransactionId tid,
     
     stack.push(std::make_pair(current_rid, current_access_mode));
   }
-  
+  //std::cout << "LM d\n";
   while (!stack.empty()) {
     std::pair<ResourceId, AccessMode> pair_to_pick = stack.top();
     ResourceId rid_to_pick = pair_to_pick.first;
     AccessMode access_mode_to_pick = pair_to_pick.second;
-    
+    //std::cout << "LM c\n";
     bool result = acquireLockInternal(tid,
 				      rid_to_pick,
 				      access_mode_to_pick);
@@ -74,6 +79,8 @@ bool LockManager::releaseAllLocks(TransactionId tid) {
        it != related_rids.end();
        ++it) {
     LockTableResult lock_deleted = lock_table_->deleteLock(tid, *it);
+    std::cout << "Transaction " + std::to_string(tid)
+      + " released lock:" + it->toString() + "\n";
     if (lock_deleted == LockTableResult::kDEL_ERROR) {
       FATAL_ERROR("In LockManager.releaseAllLock "
 		  "lock could not be deleted from LockTable");

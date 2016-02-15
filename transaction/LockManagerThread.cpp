@@ -13,13 +13,16 @@ LockManagerThread::LockManagerThread(ThreadSafeQueue<LockRequest> *incoming_requ
 }
 
 void LockManagerThread::run() {
-  constexpr std::uint64_t max_try_incoming = 100;
-  constexpr std::uint64_t max_try_inner = 60; 
+  constexpr std::uint64_t max_try_incoming = 100000;
+  constexpr std::uint64_t max_try_inner = 60000; 
   while (true) {
-    std::cout << "LMT: Loop starts\n";
+    //std::cout << "LMT: Loop starts\n";
     for (std::uint64_t tries = 0; tries < max_try_incoming; ++tries) {
+      //std::cout << "Tries: " + std::to_string(tries) + "\n";
       if (!incoming_requests_->empty()) {
+	//std::cout << "a\n";
 	LockRequest request = incoming_requests_->popOne();
+	//std::cout << "b\n";
 	if (request.getRequestType() == RequestType::kRELEASE_LOCKS) {
 	  bool result = lock_manager_->releaseAllLocks(request.getTransactionId());
 	  if (!result) {
@@ -27,9 +30,11 @@ void LockManagerThread::run() {
 	  }
 	}
 	else {
+	  //std::cout << "c\n";
 	  bool result = lock_manager_->acquireLock(request.getTransactionId(),
 						 request.getResourceId(),
 						 request.getAccessMode());
+	  //std::cout << "d\n";
 	  if (!result) {
 	    std::cout << "Transaction " + std::to_string(request.getTransactionId())
 	      + " waiting " + request.getResourceId().toString() + "\n";
@@ -46,6 +51,7 @@ void LockManagerThread::run() {
       }
     }
     for (std::uint64_t tries = 0; tries < max_try_inner; ++tries) {
+      //std::cout << "Pending tries: " + std::to_string(tries) + "\n";
       if (!inner_pending_requests_.empty()) {
 	LockRequest request = inner_pending_requests_.front();
 	
