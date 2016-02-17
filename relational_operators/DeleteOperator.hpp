@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@
 #include "catalog/CatalogRelation.hpp"
 #include "catalog/CatalogTypedefs.hpp"
 #include "query_execution/QueryContext.hpp"
-#include "query_execution/QueryExecutionTypedefs.hpp"
 #include "relational_operators/RelationalOperator.hpp"
 #include "relational_operators/WorkOrder.hpp"
 #include "storage/StorageBlockInfo.hpp"
@@ -38,9 +37,12 @@ namespace tmb { class MessageBus; }
 
 namespace quickstep {
 
-class CatalogDatabase;
+class CatalogRelationSchema;
+class Predicate;
 class StorageManager;
 class WorkOrdersContainer;
+
+namespace serialization { class WorkOrder; }
 
 /** \addtogroup RelationalOperators
  *  @{
@@ -60,19 +62,13 @@ class DeleteOperator : public RelationalOperator {
    *        tuples will be deleted).
    * @param relation_is_stored If relation is a stored relation and is fully
    *        available to the operator before it can start generating workorders.
-   * @param foreman_client_id The TMB client ID of the Foreman thread.
-   * @param bus A pointer to the TMB.
    **/
   DeleteOperator(const CatalogRelation &relation,
                  const QueryContext::predicate_id predicate_index,
-                 const bool relation_is_stored,
-                 const tmb::client_id foreman_client_id,
-                 tmb::MessageBus *bus)
+                 const bool relation_is_stored)
      :  relation_(relation),
         predicate_index_(predicate_index),
         relation_is_stored_(relation_is_stored),
-        foreman_client_id_(foreman_client_id),
-        bus_(bus),
         started_(false),
         relation_block_ids_(relation_is_stored ? relation.getBlocksSnapshot()
                                                : std::vector<block_id>()),
@@ -99,14 +95,19 @@ class DeleteOperator : public RelationalOperator {
   }
 
  private:
+  /**
+   * @brief Create Work Order proto.
+   *
+   * @param block The block id used in the Work Order.
+   *
+   * @return The created WorkOrder proto.
+   **/
+  serialization::WorkOrder* createWorkOrderProto(const block_id block) const;
+
   const CatalogRelation &relation_;
   const QueryContext::predicate_id predicate_index_;
 
   const bool relation_is_stored_;
-
-  const tmb::client_id foreman_client_id_;
-  // TODO(zuyu): Remove 'bus_' once WorkOrder serialization is done.
-  tmb::MessageBus *bus_;
 
   bool started_;
 
@@ -124,43 +125,47 @@ class DeleteWorkOrder : public WorkOrder {
   /**
    * @brief Constructor.
    *
-   * @param rel_id The id of the relation to perform the DELETE over.
-   * @param predicate_index The index of Predicate in QueryContext. All tuples
-   *        matching pred will be deleted (If kInvalidPredicateId, then all
-   *        tuples will be deleted).
+   * @param input_relation_schema The relation schema to perform the DELETE
+   *        over.
    * @param input_block_id The block Id.
    * @param delete_operator_index The index of the Delete Operator in the query
    *        plan DAG.
    * @param foreman_client_id The TMB client ID of the Foreman thread.
+   * @param predicate All tuples matching \c predicate will be deleted (If NULL,
+   *        then all tuples will be deleted).
+   * @param storage_manager The \c StorageManager to use.
    * @param bus A pointer to the TMB.
    **/
-  DeleteWorkOrder(const relation_id rel_id,
-                  const QueryContext::predicate_id predicate_index,
+  DeleteWorkOrder(const CatalogRelationSchema &input_relation_schema,
                   const block_id input_block_id,
                   const std::size_t delete_operator_index,
                   const tmb::client_id foreman_client_id,
-                  MessageBus *bus)
-      : rel_id_(rel_id),
-        predicate_index_(predicate_index),
+                  const Predicate *predicate,
+                  StorageManager *storage_manager,
+                  tmb::MessageBus *bus)
+      : input_relation_schema_(input_relation_schema),
         input_block_id_(input_block_id),
         delete_operator_index_(delete_operator_index),
         foreman_client_id_(foreman_client_id),
+        predicate_(predicate),
+        storage_manager_(storage_manager),
         bus_(bus) {}
 
   ~DeleteWorkOrder() override {}
 
-  void execute(QueryContext *query_context,
-               CatalogDatabase *catalog_database,
-               StorageManager *storage_manager) override;
+  void execute() override;
 
  private:
-  const relation_id rel_id_;
-  const QueryContext::predicate_id predicate_index_;
+  const CatalogRelationSchema &input_relation_schema_;
   const block_id input_block_id_;
-
   const std::size_t delete_operator_index_;
+
   const tmb::client_id foreman_client_id_;
-  MessageBus *bus_;
+
+  const Predicate *predicate_;
+
+  StorageManager *storage_manager_;
+  tmb::MessageBus *bus_;
 
   DISALLOW_COPY_AND_ASSIGN(DeleteWorkOrder);
 };

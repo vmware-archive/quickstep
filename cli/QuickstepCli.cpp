@@ -181,8 +181,6 @@ int main(int argc, char* argv[]) {
   const client_id main_thread_client_id = bus.Connect();
   bus.RegisterClientAsSender(main_thread_client_id, kPoisonMessage);
 
-  Foreman foreman(&bus);
-
   // Setup the paths used by StorageManager.
   string fixed_storage_path(quickstep::FLAGS_storage_path);
   if (!fixed_storage_path.empty()
@@ -197,12 +195,16 @@ int main(int argc, char* argv[]) {
   std::unique_ptr<QueryProcessor> query_processor;
   try {
     // TODO(zuyu): Remove passing 'bus' once WorkOrder serialization is done.
-    query_processor.reset(new QueryProcessor(catalog_path, fixed_storage_path, foreman.getBusClientID(), &bus));
+    query_processor.reset(new QueryProcessor(catalog_path, fixed_storage_path));
   } catch (const std::exception &e) {
     LOG(FATAL) << "FATAL ERROR DURING STARTUP: " << e.what();
   } catch (...) {
     LOG(FATAL) << "NON-STANDARD EXCEPTION DURING STARTUP";
   }
+
+  Foreman foreman(query_processor->getDefaultDatabase(),
+                  query_processor->getStorageManager(),
+                  &bus);
 
   // Parse the CPU affinities for workers and the preloader thread, if enabled
   // to warm up the buffer pool.
@@ -232,9 +234,6 @@ int main(int argc, char* argv[]) {
   PtrVector<Worker> workers;
   vector<client_id> worker_client_ids;
 
-  // TODO(zuyu): Construct QueryContext in Shiftboss to avoid Worker's access.
-  std::unique_ptr<QueryContext> query_context;
-
   // Initialize the worker threads.
   DCHECK_EQ(static_cast<std::size_t>(real_num_workers),
             worker_cpu_affinities.size());
@@ -249,10 +248,7 @@ int main(int argc, char* argv[]) {
     worker_numa_nodes.push_back(numa_node_id);
 
     workers.push_back(new Worker(worker_idx,
-                                 query_context,
                                  &bus,
-                                 query_processor->getDefaultDatabase(),
-                                 query_processor->getStorageManager(),
                                  worker_cpu_affinities[worker_idx]));
     worker_client_ids.push_back(workers.back().getBusClientID());
   }
@@ -306,10 +302,14 @@ int main(int argc, char* argv[]) {
 
         try {
           start = std::chrono::steady_clock::now();
-          query_context.reset(new QueryContext(query_handle->getQueryContextProto(),
-                                               query_processor->getDefaultDatabase(),
-                                               query_processor->getStorageManager(),
-                                               &bus));
+
+          // TODO(zuyu): Construct QueryContext in Shiftboss.
+          std::unique_ptr<QueryContext> query_context(
+              new QueryContext(query_handle->getQueryContextProto(),
+                               foreman.getBusClientID(),
+                               query_processor->getDefaultDatabase(),
+                               query_processor->getStorageManager(),
+                               &bus));
           foreman.setQueryContext(query_context.get());
           foreman.start();
           foreman.join();

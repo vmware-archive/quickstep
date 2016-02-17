@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -19,31 +19,36 @@
 
 #include <vector>
 
-#include "catalog/CatalogDatabase.hpp"
 #include "catalog/CatalogRelation.hpp"
-#include "query_execution/QueryContext.hpp"
 #include "query_execution/WorkOrdersContainer.hpp"
+#include "relational_operators/WorkOrder.pb.h"
 #include "storage/InsertDestination.hpp"
 #include "storage/StorageBlock.hpp"
 #include "storage/StorageManager.hpp"
 #include "storage/TupleIdSequence.hpp"
 #include "utility/SortConfiguration.hpp"
 
-#include "glog/logging.h"
-
 namespace quickstep {
+
+serialization::WorkOrder* SortRunGenerationOperator::createWorkOrderProto(const block_id block) const {
+  serialization::WorkOrder *proto = new serialization::WorkOrder;
+  proto->set_work_order_type(serialization::SORT_RUN_GENERATION);
+
+  proto->SetExtension(serialization::SortRunGenerationWorkOrder::sort_config_id, sort_config_index_);
+  proto->SetExtension(serialization::SortRunGenerationWorkOrder::relation_id, input_relation_.getID());
+  proto->SetExtension(serialization::SortRunGenerationWorkOrder::insert_destination_index,
+                      output_destination_index_);
+  proto->SetExtension(serialization::SortRunGenerationWorkOrder::block_id, block);
+
+  return proto;
+}
 
 bool SortRunGenerationOperator::getAllWorkOrders(WorkOrdersContainer *container) {
   if (input_relation_is_stored_) {
     // Input blocks are from a base relation.
     if (!started_) {
       for (const block_id input_block_id : input_relation_block_ids_) {
-        container->addNormalWorkOrder(
-            new SortRunGenerationWorkOrder(input_relation_.getID(),
-                                           output_destination_index_,
-                                           sort_config_index_,
-                                           input_block_id),
-            op_index_);
+        container->addNormalWorkOrder(createWorkOrderProto(input_block_id), op_index_);
       }
       started_ = true;
     }
@@ -52,11 +57,7 @@ bool SortRunGenerationOperator::getAllWorkOrders(WorkOrdersContainer *container)
     // Input blocks are pipelined.
     while (num_workorders_generated_ < input_relation_block_ids_.size()) {
       container->addNormalWorkOrder(
-          new SortRunGenerationWorkOrder(
-              input_relation_.getID(),
-              output_destination_index_,
-              sort_config_index_,
-              input_relation_block_ids_[num_workorders_generated_]),
+          createWorkOrderProto(input_relation_block_ids_[num_workorders_generated_]),
           op_index_);
       ++num_workorders_generated_;
     }
@@ -64,32 +65,18 @@ bool SortRunGenerationOperator::getAllWorkOrders(WorkOrdersContainer *container)
   }
 }
 
-void SortRunGenerationWorkOrder::execute(QueryContext *query_context,
-                                         CatalogDatabase *database,
-                                         StorageManager *storage_manager) {
-  DCHECK(query_context != nullptr);
-  DCHECK(database != nullptr);
-  DCHECK(storage_manager != nullptr);
-
+void SortRunGenerationWorkOrder::execute() {
   BlockReference block(
-      storage_manager->getBlock(input_block_id_,
-                                *database->getRelationById(input_relation_id_)));
+      storage_manager_->getBlock(input_block_id_, input_relation_schema_));
+
   OrderedTupleIdSequence sorted_sequence;
 
-  InsertDestination *output_destination =
-      query_context->getInsertDestination(output_destination_index_);
-  DCHECK(output_destination != nullptr);
-
-  const SortConfiguration *sort_config = query_context->getSortConfig(sort_config_index_);
-  DCHECK(sort_config != nullptr);
-  DCHECK(sort_config->isValid());
-
-  // Sort and write the tuples in sorted order into output_destination.
-  block->sort(sort_config->getOrderByList(),
-              sort_config->getOrdering(),
-              sort_config->getNullOrdering(),
+  // Sort and write the tuples in sorted order into 'output_destination_'.
+  block->sort(sort_config_.getOrderByList(),
+              sort_config_.getOrdering(),
+              sort_config_.getNullOrdering(),
               &sorted_sequence,
-              output_destination);
+              output_destination_);
 }
 
 }  // namespace quickstep

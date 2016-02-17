@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -22,19 +22,16 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/CatalogDatabase.hpp"
 #include "query_execution/QueryExecutionTypedefs.hpp"
 #include "query_execution/WorkOrdersContainer.hpp"
 #include "relational_operators/SortMergeRunOperator.pb.h"
 #include "relational_operators/SortMergeRunOperatorHelpers.hpp"
+#include "relational_operators/WorkOrder.pb.h"
 #include "threading/ThreadIDBasedMap.hpp"
-#include "utility/SortConfiguration.hpp"
 
 #include "glog/logging.h"
 
 namespace quickstep {
-
-class InsertDestination;
 
 using merge_run_operator::Run;
 using merge_run_operator::RunMerger;
@@ -64,21 +61,35 @@ bool SortMergeRunOperator::getAllWorkOrders(WorkOrdersContainer *container) {
   return generateWorkOrders(container);
 }
 
-WorkOrder *SortMergeRunOperator::createWorkOrder(
-    merge_run_operator::MergeTree::MergeJob *job) {
+serialization::WorkOrder *SortMergeRunOperator::createWorkOrderProto(
+    merge_run_operator::MergeTree::MergeJob *job) const {
+  DCHECK(job != nullptr);
   DCHECK(!job->runs.empty());
-  // Create a work order from the merge job from merge tree.
-  return new SortMergeRunWorkOrder(
-      sort_config_index_,
-      std::move(job->runs),
-      top_k_,
-      job->level,
-      job->level > 0 ? run_relation_.getID() : input_relation_.getID(),
-      job->is_final_level ? output_destination_index_
-                          : run_block_destination_index_,
-      op_index_,
-      foreman_client_id_,
-      bus_);
+
+  // Create a work order proto from the merge job from merge tree.
+  serialization::WorkOrder *proto = new serialization::WorkOrder;
+  proto->set_work_order_type(serialization::SORT_MERGE_RUN);
+
+  proto->SetExtension(serialization::SortMergeRunWorkOrder::operator_index, op_index_);
+  proto->SetExtension(serialization::SortMergeRunWorkOrder::sort_config_id, sort_config_index_);
+
+  for (const merge_run_operator::Run &run : job->runs) {
+    serialization::Run *run_proto = proto->AddExtension(serialization::SortMergeRunWorkOrder::runs);
+    for (const block_id block : run) {
+      run_proto->add_blocks(block);
+    }
+  }
+
+  proto->SetExtension(serialization::SortMergeRunWorkOrder::top_k, top_k_);
+  proto->SetExtension(serialization::SortMergeRunWorkOrder::merge_level, job->level);
+  proto->SetExtension(serialization::SortMergeRunWorkOrder::relation_id,
+                      job->level > 0 ? run_relation_.getID()
+                                     : input_relation_.getID());
+  proto->SetExtension(serialization::SortMergeRunWorkOrder::insert_destination_index,
+                      job->is_final_level ? output_destination_index_
+                                          : run_block_destination_index_);
+
+  return proto;
 }
 
 bool SortMergeRunOperator::generateWorkOrders(WorkOrdersContainer *container) {
@@ -90,9 +101,8 @@ bool SortMergeRunOperator::generateWorkOrders(WorkOrdersContainer *container) {
   for (std::vector<MergeTree::MergeJob>::size_type job_id = 0;
        job_id != jobs.size();
        ++job_id) {
-    // Add work order for each merge job.
-    container->addNormalWorkOrder(createWorkOrder(&jobs[job_id]),
-                                  op_index_);
+    // Add work order proto for each merge job.
+    container->addNormalWorkOrder(createWorkOrderProto(&jobs[job_id]), op_index_);
   }
 
   return done_generating;
@@ -215,33 +225,15 @@ void SortMergeRunOperator::receiveFeedbackMessage(
                              run_output.getBlocksMutable());
 }
 
-void SortMergeRunWorkOrder::execute(QueryContext *query_context,
-                                    CatalogDatabase *catalog_database,
-                                    StorageManager *storage_manager) {
-  DCHECK(query_context != nullptr);
-  DCHECK(catalog_database != nullptr);
-  DCHECK(storage_manager != nullptr);
-
-  CatalogRelation *run_relation
-      = catalog_database->getRelationByIdMutable(run_relation_id_);
-  DCHECK(run_relation != nullptr);
-
-  InsertDestination *output_destination =
-      query_context->getInsertDestination(output_destination_index_);
-  DCHECK(output_destination != nullptr);
-
-  const SortConfiguration *sort_config = query_context->getSortConfig(sort_config_index_);
-  DCHECK(sort_config != nullptr);
-  DCHECK(sort_config->isValid());
-
+void SortMergeRunWorkOrder::execute() {
   // Merge input runs.
-  merge_run_operator::RunMerger run_merger(*sort_config,
+  merge_run_operator::RunMerger run_merger(sort_config_,
                                            std::move(input_runs_),
                                            top_k_,
-                                           *run_relation,
-                                           output_destination,
+                                           run_relation_schema_,
+                                           output_destination_,
                                            merge_level_,
-                                           storage_manager);
+                                           storage_manager_);
   run_merger.doMerge();
 
   // Serialize completion message with output run.

@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -18,6 +18,9 @@
 #ifndef QUICKSTEP_RELATIONAL_OPERATORS_DROP_TABLE_OPERATOR_HPP_
 #define QUICKSTEP_RELATIONAL_OPERATORS_DROP_TABLE_OPERATOR_HPP_
 
+#include <utility>
+#include <vector>
+
 #include "catalog/CatalogTypedefs.hpp"
 #include "relational_operators/RelationalOperator.hpp"
 #include "relational_operators/WorkOrder.hpp"
@@ -27,8 +30,6 @@
 namespace quickstep {
 
 class CatalogDatabase;
-class CatalogRelation;
-class QueryContext;
 class StorageManager;
 class WorkOrdersContainer;
 
@@ -44,13 +45,16 @@ class DropTableOperator : public RelationalOperator {
   /**
    * @brief Constructor.
    *
-   * @param rel_id The id of the relation to drop.
+   * @param relation The relation to drop.
+   * @param database The database which relation belongs to.
    * @param only_drop_blocks If true, only drop the blocks belonging to
    *        relation, but leave relation in the database.
    **/
-  explicit DropTableOperator(const CatalogRelation &relation,
-                             const bool only_drop_blocks = false)
+  DropTableOperator(const CatalogRelation &relation,
+                    CatalogDatabase *database,
+                    const bool only_drop_blocks = false)
       : relation_(relation),
+        database_(database),
         only_drop_blocks_(only_drop_blocks),
         work_generated_(false) {}
 
@@ -60,6 +64,9 @@ class DropTableOperator : public RelationalOperator {
 
  private:
   const CatalogRelation &relation_;
+
+  CatalogDatabase *database_;
+
   const bool only_drop_blocks_;
   bool work_generated_;
 
@@ -74,23 +81,22 @@ class DropTableWorkOrder : public WorkOrder {
   /**
    * @brief Constructor.
    *
-   * @param relation The relation to drop.
-   * @param only_drop_blocks If true, only drop the blocks belonging to
-   *        relation, but leave relation in the database.
+   * @param blocks The blocks to drop.
+   * @param storage_manager The StorageManager to use.
    **/
-  explicit DropTableWorkOrder(const relation_id rel_id,
-                              const bool only_drop_blocks)
-      : rel_id_(rel_id), only_drop_blocks_(only_drop_blocks) {}
+  DropTableWorkOrder(std::vector<block_id> &&blocks,
+                     StorageManager *storage_manager)
+      : blocks_(std::move(blocks)),
+        storage_manager_(storage_manager) {}
 
   ~DropTableWorkOrder() override {}
 
-  void execute(QueryContext *query_context,
-               CatalogDatabase *catalog_database,
-               StorageManager *storage_manager) override;
+  void execute() override;
 
  private:
-  const relation_id rel_id_;
-  const bool only_drop_blocks_;
+  const std::vector<block_id> blocks_;
+
+  StorageManager *storage_manager_;
 
   DISALLOW_COPY_AND_ASSIGN(DropTableWorkOrder);
 };

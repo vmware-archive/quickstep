@@ -1,5 +1,5 @@
 /**
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,51 +16,39 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <utility>
+#include <memory>
 #include <vector>
 
 #include "gtest/gtest.h"
 
+#include "catalog/CatalogTypedefs.hpp"
 #include "query_execution/WorkOrdersContainer.hpp"
-#include "relational_operators/WorkOrder.hpp"
-#include "utility/PtrVector.hpp"
+#include "relational_operators/WorkOrder.pb.h"
 #include "utility/Macros.hpp"
+
+using std::size_t;
+using std::unique_ptr;
+using std::vector;
 
 namespace quickstep {
 
-class CatalogDatabase;
-class QueryContext;
-class StorageManager;
+namespace {
 
-class MockNUMAWorkOrder : public WorkOrder {
- public:
-  MockNUMAWorkOrder(const int id, const std::vector<int> &numa_nodes)
-      : id_(id) {
-    for (int numa_node : numa_nodes) {
-      preferred_numa_nodes_.push_back(numa_node);
-    }
+serialization::WorkOrder* createWorkOrderProto(const int id,
+                                               const vector<numa_node_id> &numa_nodes) {
+  serialization::WorkOrder *proto = new serialization::WorkOrder;
+  proto->set_work_order_type(serialization::MOCK);
+
+  for (const numa_node_id numa_node : numa_nodes) {
+    proto->add_preferred_numa_nodes(numa_node);
   }
 
-  const int getID() const {
-    return id_;
-  }
+  proto->SetExtension(serialization::MockWorkOrder::id, id);
 
-  void execute(QueryContext *query_context,
-               CatalogDatabase *catalog_database,
-               StorageManager *storage_manager) override {}
+  return proto;
+}
 
- private:
-  const int id_;
-
-  DISALLOW_COPY_AND_ASSIGN(MockNUMAWorkOrder);
-};
-
-// Note: In the tests, we create a local WorkOrder object (on stack) and use its
-// address as a pointer while inserting to the container.
-// The real usage of the API works as follows - we create a WorkOrder using "new"
-// (on heap) and pass the pointer to the container. When a WorkOrder is
-// retrieved from the container, its pointer is removed from the container and
-// the caller is responsible to delete the actual WorkOrder object.
+}  // namespace
 
 TEST(WorkOrdersContainerTest, ZeroNUMANodesTest) {
   // A container for one operator and no NUMA nodes.
@@ -87,8 +75,8 @@ TEST(WorkOrdersContainerTest, ZeroNUMANodesAddWorkOrderTest) {
   EXPECT_FALSE(w.hasRebuildWorkOrder(0));
 
   // Create a NUMA agnostic normal WorkOrder.
-  MockNUMAWorkOrder work_order(0, numa_node_ids);
-  w.addNormalWorkOrder(&work_order, 0);
+  const int work_order_id = 0;
+  w.addNormalWorkOrder(createWorkOrderProto(work_order_id, numa_node_ids), 0);
 
   // Expect the normal WorkOrder count to be 1.
   EXPECT_EQ(1u, w.getNumNormalWorkOrders(0));
@@ -97,8 +85,8 @@ TEST(WorkOrdersContainerTest, ZeroNUMANodesAddWorkOrderTest) {
   EXPECT_FALSE(w.hasRebuildWorkOrder(0));
 
   // Create a NUMA agnostic rebuild WorkOrder.
-  MockNUMAWorkOrder work_order1(1, numa_node_ids);
-  w.addRebuildWorkOrder(&work_order1, 0);
+  const int rebuild_work_order_id = 0;
+  w.addRebuildWorkOrder(createWorkOrderProto(rebuild_work_order_id, numa_node_ids), 0);
 
   // Expect the normal WorkOrder count to be 1.
   EXPECT_EQ(1u, w.getNumNormalWorkOrders(0));
@@ -107,14 +95,13 @@ TEST(WorkOrdersContainerTest, ZeroNUMANodesAddWorkOrderTest) {
   EXPECT_TRUE(w.hasRebuildWorkOrder(0));
 
   // Check if we retrieve the same WorkOrders.
-  WorkOrder *returned_work_order = w.getNormalWorkOrder(0);
-  ASSERT_TRUE(returned_work_order != nullptr);
-  EXPECT_EQ(work_order.getID(), static_cast<MockNUMAWorkOrder*>(returned_work_order)->getID());
+  unique_ptr<serialization::WorkOrder> work_order_proto(w.getNormalWorkOrder(0));
+  ASSERT_TRUE(work_order_proto != nullptr);
+  EXPECT_EQ(work_order_id, work_order_proto->GetExtension(serialization::MockWorkOrder::id));
 
-  WorkOrder *returned_rebuild_work_order = w.getRebuildWorkOrder(0);
-  ASSERT_TRUE(returned_rebuild_work_order != nullptr);
-  EXPECT_EQ(work_order1.getID(),
-            static_cast<MockNUMAWorkOrder *>(returned_rebuild_work_order)->getID());
+  unique_ptr<serialization::WorkOrder> rebuild_work_order_proto(w.getRebuildWorkOrder(0));
+  ASSERT_TRUE(rebuild_work_order_proto != nullptr);
+  EXPECT_EQ(rebuild_work_order_id, rebuild_work_order_proto->GetExtension(serialization::MockWorkOrder::id));
 
   // Container should be empty now.
   EXPECT_EQ(0u, w.getNumNormalWorkOrders(0));
@@ -137,21 +124,15 @@ TEST(WorkOrdersContainerTest, ZeroNUMANodesMultipleWorkOrdersTest) {
   EXPECT_FALSE(w.hasNormalWorkOrder(0));
   EXPECT_FALSE(w.hasRebuildWorkOrder(0));
 
-  PtrVector<MockNUMAWorkOrder> normal_workorders;
-  PtrVector<MockNUMAWorkOrder> rebuild_workorders;
-  const std::size_t kNumWorkOrders = 100;
+  const size_t kNumWorkOrders = 100;
 
   // Push the mock WorkOrders in the vectors and the container.
-  for (std::size_t i = 0; i < kNumWorkOrders; ++i) {
+  for (size_t i = 0; i < kNumWorkOrders; ++i) {
     EXPECT_EQ(i, w.getNumNormalWorkOrders(0));
     EXPECT_EQ(i, w.getNumRebuildWorkOrders(0));
 
-    normal_workorders.push_back(new MockNUMAWorkOrder(i, numa_node_ids));
-    rebuild_workorders.push_back(
-        new MockNUMAWorkOrder(kNumWorkOrders + i, numa_node_ids));
-
-    w.addNormalWorkOrder(&(normal_workorders.back()), 0);
-    w.addRebuildWorkOrder(&(rebuild_workorders.back()), 0);
+    w.addNormalWorkOrder(createWorkOrderProto(i, numa_node_ids), 0);
+    w.addRebuildWorkOrder(createWorkOrderProto(kNumWorkOrders + i, numa_node_ids), 0);
   }
 
   // Expect the normal WorkOrder count to be kNumWorkOrders.
@@ -161,16 +142,16 @@ TEST(WorkOrdersContainerTest, ZeroNUMANodesMultipleWorkOrdersTest) {
   EXPECT_TRUE(w.hasRebuildWorkOrder(0));
 
   // Retrieve the WorkOrders and check the order of retrieval.
-  for (std::size_t i = 0; i < kNumWorkOrders; ++i) {
+  for (size_t i = 0; i < kNumWorkOrders; ++i) {
     EXPECT_EQ(kNumWorkOrders - i, w.getNumNormalWorkOrders(0));
     EXPECT_EQ(kNumWorkOrders - i, w.getNumRebuildWorkOrders(0));
-    WorkOrder *returned_work_order = w.getNormalWorkOrder(0);
-    ASSERT_TRUE(returned_work_order != nullptr);
-    EXPECT_EQ(static_cast<int>(i), static_cast<MockNUMAWorkOrder *>(returned_work_order)->getID());
-    WorkOrder *returned_rebuild_work_order = w.getRebuildWorkOrder(0);
-    ASSERT_TRUE(returned_work_order != nullptr);
-    EXPECT_EQ(static_cast<int>(kNumWorkOrders + i),
-              static_cast<MockNUMAWorkOrder *>(returned_rebuild_work_order)->getID());
+    unique_ptr<serialization::WorkOrder> work_order_proto(w.getNormalWorkOrder(0));
+    ASSERT_TRUE(work_order_proto != nullptr);
+    EXPECT_EQ(i, work_order_proto->GetExtension(serialization::MockWorkOrder::id));
+
+    unique_ptr<serialization::WorkOrder> rebuild_work_order_proto(w.getRebuildWorkOrder(0));
+    ASSERT_TRUE(rebuild_work_order_proto != nullptr);
+    EXPECT_EQ(kNumWorkOrders + i, rebuild_work_order_proto->GetExtension(serialization::MockWorkOrder::id));
   }
 
   // Container should be empty now.
@@ -194,43 +175,30 @@ TEST(WorkOrdersContainerTest, MultipleNUMANodesTest) {
       1 +
       *std::max_element(numa_node_ids.begin(), numa_node_ids.end());
 
-  const std::size_t kNUMANodesUsed = numa_node_ids.size();
+  const int kNUMANodesUsed = static_cast<int>(numa_node_ids.size());
 
   // A container for one operator and kNUMANodes.
   WorkOrdersContainer w(1, kNUMANodes);
 
-  for (std::size_t i = 0; i < kNUMANodesUsed; ++i) {
-    std::vector<int> curr_numa_node;
-    curr_numa_node.push_back(numa_node_ids[i]);
-  }
-
-  PtrVector<MockNUMAWorkOrder> normal_workorders;
-  PtrVector<MockNUMAWorkOrder> rebuild_workorders;
-
-  for (std::size_t i = 0; i < kNUMANodesUsed; ++i) {
+  for (int i = 0; i < kNUMANodesUsed; ++i) {
     // Create a vector consisting of the current NUMA node as its element.
-    std::vector<int> curr_numa_node;
-    curr_numa_node.push_back(numa_node_ids[i]);
+    const std::vector<int> curr_numa_node(1, numa_node_ids[i]);
 
     // Create normal and rebuild WorkOrders belonging to exactly one NUMA node.
-    normal_workorders.push_back(new MockNUMAWorkOrder(i, curr_numa_node));
-    rebuild_workorders.push_back(
-        new MockNUMAWorkOrder(kNUMANodes + i, curr_numa_node));
-
-    w.addNormalWorkOrder(&(normal_workorders.back()), 0);
-    w.addRebuildWorkOrder(&(rebuild_workorders.back()), 0);
+    w.addNormalWorkOrder(createWorkOrderProto(i, curr_numa_node), 0);
+    w.addRebuildWorkOrder(createWorkOrderProto(kNUMANodes + i, curr_numa_node), 0);
 
     // For each NUMA node, check the count of WorkOrders.
-    for (std::size_t j = 0; j < i; ++j) {
+    for (int j = 0; j < i; ++j) {
       EXPECT_EQ(1u, w.getNumNormalWorkOrdersForNUMANode(0, numa_node_ids[j]));
       EXPECT_EQ(1u, w.getNumRebuildWorkOrdersForNUMANode(0, numa_node_ids[j]));
     }
   }
 
   // Retrieve the WorkOrders.
-  for (std::size_t i = 0; i < kNUMANodesUsed; ++i) {
+  for (int i = 0; i < kNUMANodesUsed; ++i) {
     // For each NUMA node, check the count of WorkOrders.
-    for (std::size_t j = 0; j < kNUMANodesUsed; ++j) {
+    for (int j = 0; j < kNUMANodesUsed; ++j) {
       if (j >= i) {
         // We haven't retrieved the workorders for this NUMA node yet.
         EXPECT_EQ(1u, w.getNumNormalWorkOrdersForNUMANode(0, numa_node_ids[j]));
@@ -243,16 +211,15 @@ TEST(WorkOrdersContainerTest, MultipleNUMANodesTest) {
     }
 
     // Retrieve the workorders for this NUMA node.
-    WorkOrder *returned_work_order = w.getNormalWorkOrderForNUMANode(0, numa_node_ids[i]);
-    ASSERT_TRUE(returned_work_order != nullptr);
-    EXPECT_EQ(normal_workorders[i].getID(),
-              static_cast<MockNUMAWorkOrder *>(returned_work_order)->getID());
+    unique_ptr<serialization::WorkOrder> work_order_proto(w.getNormalWorkOrderForNUMANode(0, numa_node_ids[i]));
+    ASSERT_TRUE(work_order_proto != nullptr);
+    EXPECT_EQ(i, work_order_proto->GetExtension(serialization::MockWorkOrder::id));
 
-    WorkOrder *returned_rebuild_work_order =
-        w.getRebuildWorkOrderForNUMANode(0, numa_node_ids[i]);
-    ASSERT_TRUE(returned_rebuild_work_order != nullptr);
-    EXPECT_EQ(rebuild_workorders[i].getID(),
-              static_cast<MockNUMAWorkOrder *>(returned_rebuild_work_order)->getID());
+    unique_ptr<serialization::WorkOrder> rebuild_work_order_proto(
+        w.getRebuildWorkOrderForNUMANode(0, numa_node_ids[i]));
+    ASSERT_TRUE(rebuild_work_order_proto != nullptr);
+    EXPECT_EQ(kNUMANodes + i,
+              rebuild_work_order_proto->GetExtension(serialization::MockWorkOrder::id));
   }
 
   // No workorder should be left for this operator on any NUMA node.
@@ -274,23 +241,27 @@ TEST(WorkOrdersContainerTest, AllTypesWorkOrdersTest) {
   std::vector<int> numa_nodes;
 
   // Create a WorkOrder with no NUMA node.
-  MockNUMAWorkOrder no_numa_work_order(0, numa_nodes);
-  EXPECT_TRUE(no_numa_work_order.getPreferredNUMANodes().empty());
+  const int no_numa_work_order_id = 0;
+  serialization::WorkOrder* no_numa_work_order_proto = createWorkOrderProto(no_numa_work_order_id, numa_nodes);
+  EXPECT_EQ(0u, no_numa_work_order_proto->preferred_numa_nodes_size());
 
   // Add one NUMA node.
   numa_nodes.push_back(0);
 
   // Create a WorkOrder with exactly one NUMA node.
-  MockNUMAWorkOrder one_numa_work_order(1, numa_nodes);
-  EXPECT_EQ(0, one_numa_work_order.getPreferredNUMANodes().front());
+  const int one_numa_work_order_id = 1;
+  serialization::WorkOrder* one_numa_work_order_proto = createWorkOrderProto(one_numa_work_order_id, numa_nodes);
+  EXPECT_EQ(numa_nodes[0], one_numa_work_order_proto->preferred_numa_nodes().Get(0));
 
   // Add another NUMA node.
   numa_nodes.push_back(3);
 
   // Create a WorkOrder with more than one NUMA node.
-  MockNUMAWorkOrder multiple_numa_work_order(2, numa_nodes);
+  const int multiple_numa_work_order_id = 2;
+  serialization::WorkOrder* multiple_numa_work_order_proto =
+      createWorkOrderProto(multiple_numa_work_order_id, numa_nodes);
   for (std::size_t i = 0; i < numa_nodes.size(); ++i) {
-    EXPECT_EQ(numa_nodes[i], multiple_numa_work_order.getPreferredNUMANodes().at(i));
+    EXPECT_EQ(numa_nodes[i], multiple_numa_work_order_proto->preferred_numa_nodes().Get(i));
   }
 
   const std::size_t kNUMANodes =
@@ -300,7 +271,7 @@ TEST(WorkOrdersContainerTest, AllTypesWorkOrdersTest) {
   // Create the container.
   WorkOrdersContainer w(1, kNUMANodes);
 
-  w.addNormalWorkOrder(&multiple_numa_work_order, 0);
+  w.addNormalWorkOrder(multiple_numa_work_order_proto, 0);
 
   for (std::size_t i = 0; i < kNUMANodesUsed; ++i) {
     // Check the count of per NUMA node workorders.
@@ -312,7 +283,7 @@ TEST(WorkOrdersContainerTest, AllTypesWorkOrdersTest) {
   EXPECT_EQ(0u, w.getNumRebuildWorkOrders(0));
 
   // Add the WorkOrder with no NUMA node.
-  w.addNormalWorkOrder(&no_numa_work_order, 0);
+  w.addNormalWorkOrder(no_numa_work_order_proto, 0);
 
   for (std::size_t i = 0; i < kNUMANodesUsed; ++i) {
     // Check the count of per NUMA node workorders.
@@ -324,7 +295,7 @@ TEST(WorkOrdersContainerTest, AllTypesWorkOrdersTest) {
   EXPECT_EQ(0u, w.getNumRebuildWorkOrders(0));
 
   // Add the WorkOrder with exactly one NUMA node.
-  w.addNormalWorkOrder(&one_numa_work_order, 0);
+  w.addNormalWorkOrder(one_numa_work_order_proto, 0);
 
   EXPECT_EQ(2u, w.getNumNormalWorkOrdersForNUMANode(0, numa_nodes[0]));
   EXPECT_EQ(1u, w.getNumNormalWorkOrdersForNUMANode(0, numa_nodes[1]));
@@ -334,13 +305,13 @@ TEST(WorkOrdersContainerTest, AllTypesWorkOrdersTest) {
   EXPECT_EQ(0u, w.getNumRebuildWorkOrders(0));
 
   // Retrieve the workorders for NUMA node = numa_nodes[0]
-  MockNUMAWorkOrder *observed_work_order = static_cast<MockNUMAWorkOrder *>(
+  unique_ptr<serialization::WorkOrder> observed_work_order_proto(
       w.getNormalWorkOrderForNUMANode(0, numa_nodes[0]));
-  ASSERT_TRUE(observed_work_order != nullptr);
+  ASSERT_TRUE(observed_work_order_proto != nullptr);
 
-  EXPECT_EQ(one_numa_work_order.getPreferredNUMANodes().front(),
-            observed_work_order->getPreferredNUMANodes().front());
-  EXPECT_EQ(one_numa_work_order.getID(), observed_work_order->getID());
+  EXPECT_EQ(numa_nodes[0],
+            observed_work_order_proto->preferred_numa_nodes().Get(0));
+  EXPECT_EQ(one_numa_work_order_id, observed_work_order_proto->GetExtension(serialization::MockWorkOrder::id));
 
   EXPECT_EQ(1u, w.getNumNormalWorkOrdersForNUMANode(0, numa_nodes[0]));
   EXPECT_EQ(1u, w.getNumNormalWorkOrdersForNUMANode(0, numa_nodes[1]));
@@ -350,10 +321,10 @@ TEST(WorkOrdersContainerTest, AllTypesWorkOrdersTest) {
   EXPECT_EQ(0u, w.getNumRebuildWorkOrders(0));
 
   // Retrieve the non NUMA workorder.
-  WorkOrder *observed_non_numa_work_order = w.getNormalWorkOrder(0);
-  ASSERT_TRUE(observed_non_numa_work_order != nullptr);
-  EXPECT_EQ(no_numa_work_order.getID(),
-            static_cast<MockNUMAWorkOrder *>(observed_non_numa_work_order)->getID());
+  unique_ptr<serialization::WorkOrder> observed_non_numa_work_order_proto(w.getNormalWorkOrder(0));
+  ASSERT_TRUE(observed_non_numa_work_order_proto != nullptr);
+  EXPECT_EQ(no_numa_work_order_id,
+            observed_non_numa_work_order_proto->GetExtension(serialization::MockWorkOrder::id));
 
   EXPECT_EQ(1u, w.getNumNormalWorkOrdersForNUMANode(0, numa_nodes[0]));
   EXPECT_EQ(1u, w.getNumNormalWorkOrdersForNUMANode(0, numa_nodes[1]));
@@ -363,13 +334,13 @@ TEST(WorkOrdersContainerTest, AllTypesWorkOrdersTest) {
   EXPECT_EQ(0u, w.getNumRebuildWorkOrders(0));
 
   // Retrieve the workorder with multiple NUMA nodes.
-  MockNUMAWorkOrder *observed_work_order_multiple_numa_nodes =
-      static_cast<MockNUMAWorkOrder *>(w.getNormalWorkOrder(0));
-  ASSERT_TRUE(observed_work_order_multiple_numa_nodes != nullptr);
-  EXPECT_EQ(multiple_numa_work_order.getID(), observed_work_order_multiple_numa_nodes->getID());
+  unique_ptr<serialization::WorkOrder> observed_work_order_multiple_numa_nodes_proto(w.getNormalWorkOrder(0));
+  ASSERT_TRUE(observed_work_order_multiple_numa_nodes_proto != nullptr);
+  EXPECT_EQ(multiple_numa_work_order_id,
+            observed_work_order_multiple_numa_nodes_proto->GetExtension(serialization::MockWorkOrder::id));
 
-  std::vector<int> observed_numa_nodes(
-      observed_work_order_multiple_numa_nodes->getPreferredNUMANodes());
+  const google::protobuf::RepeatedField<google::protobuf::int32> &observed_numa_nodes =
+      observed_work_order_multiple_numa_nodes_proto->preferred_numa_nodes();
   // Look up the expected numa nodes in the observed_numa_nodes vector.
   EXPECT_TRUE(std::find(observed_numa_nodes.begin(), observed_numa_nodes.end(),
                         numa_nodes[0]) != observed_numa_nodes.end());
@@ -394,39 +365,39 @@ TEST(WorkOrdersContainerTest, MultipleOperatorsNormalWorkOrderTest) {
   const std::size_t kNumOperators = 100;
 
   // For each operator create normal workorders with no NUMA node.
-  PtrVector<MockNUMAWorkOrder> normal_workorders_no_numa;
+  vector<serialization::WorkOrder*> normal_workorders_no_numa;
   std::vector<int> normal_workorders_no_numa_ids;
-  // Set of workorder IDs = {0, ... kNumOperators - 1}
+  // Set of workorder IDs = { 0, ..., kNumOperators - 1 }
   for (std::size_t i = 0; i < kNumOperators; ++i) {
     normal_workorders_no_numa_ids.push_back(i);
-    normal_workorders_no_numa.push_back(new MockNUMAWorkOrder(
-        normal_workorders_no_numa_ids.back(), numa_node_ids));
+    normal_workorders_no_numa.push_back(
+        createWorkOrderProto(normal_workorders_no_numa_ids.back(), numa_node_ids));
   }
 
   // Insert one NUMA node.
   numa_node_ids.push_back(0);
 
   // For each operator create normal workorders with one NUMA node.
-  PtrVector<MockNUMAWorkOrder> normal_workorders_one_numa;
+  vector<serialization::WorkOrder*> normal_workorders_one_numa;
   std::vector<int> normal_workorders_one_numa_ids;
-  // Set of workorder IDs = {kNumOperators, .. , 2*kNumOperators - 1}
+  // Set of workorder IDs = { kNumOperators, ..., 2 * kNumOperators - 1 }
   for (std::size_t i = 0; i < kNumOperators; ++i) {
     normal_workorders_one_numa_ids.push_back(kNumOperators + i);
-    normal_workorders_one_numa.push_back(new MockNUMAWorkOrder(
-        normal_workorders_one_numa_ids.back(), numa_node_ids));
+    normal_workorders_one_numa.push_back(
+        createWorkOrderProto(normal_workorders_one_numa_ids.back(), numa_node_ids));
   }
 
   // Insert another NUMA node.
   numa_node_ids.push_back(1);
 
   // For each operator create normal workorders with more than one NUMA node.
-  PtrVector<MockNUMAWorkOrder> normal_workorders_multiple_numa;
+  vector<serialization::WorkOrder*> normal_workorders_multiple_numa;
   std::vector<int> normal_workorders_multiple_numa_ids;
-  // Set of workorder IDs = {2*kNumOperators, .. , 3*kNumOperators - 1}
+  // Set of workorder IDs = { 2 * kNumOperators, ..., 3 * kNumOperators - 1 }
   for (std::size_t i = 0; i < kNumOperators; ++i) {
-    normal_workorders_multiple_numa_ids.push_back(2*kNumOperators + i);
-    normal_workorders_multiple_numa.push_back(new MockNUMAWorkOrder(
-        normal_workorders_multiple_numa_ids.back(), numa_node_ids));
+    normal_workorders_multiple_numa_ids.push_back(2 * kNumOperators + i);
+    normal_workorders_multiple_numa.push_back(
+        createWorkOrderProto(normal_workorders_multiple_numa_ids.back(), numa_node_ids));
   }
 
   // TODO(harshad) : Design a test in which the number of NUMA nodes is
@@ -483,14 +454,14 @@ TEST(WorkOrdersContainerTest, MultipleOperatorsNormalWorkOrderTest) {
       }
     }
     // Insert the workorder with multiple NUMA nodes.
-    w.addNormalWorkOrder(&(normal_workorders_multiple_numa[curr_operator_id]),
-                        curr_operator_id);
+    w.addNormalWorkOrder(normal_workorders_multiple_numa[curr_operator_id],
+                         curr_operator_id);
     // Insert the workorder with no NUMA node.
-    w.addNormalWorkOrder(&(normal_workorders_no_numa[curr_operator_id]),
-                        curr_operator_id);
+    w.addNormalWorkOrder(normal_workorders_no_numa[curr_operator_id],
+                         curr_operator_id);
     // Insert the workorder with one NUMA node.
-    w.addNormalWorkOrder(&(normal_workorders_one_numa[curr_operator_id]),
-                        curr_operator_id);
+    w.addNormalWorkOrder(normal_workorders_one_numa[curr_operator_id],
+                         curr_operator_id);
   }
 
   // Randomize the operator IDs again and retrieve the WorkOrders.
@@ -539,41 +510,26 @@ TEST(WorkOrdersContainerTest, MultipleOperatorsNormalWorkOrderTest) {
     // (which is different than the node id above).
     const std::size_t multiple_numa_node_id = numa_node_ids.back();
 
-    // Retrieve a single NUMA node workorder.
-    MockNUMAWorkOrder *observed_work_order_single_numa =
-        static_cast<MockNUMAWorkOrder *>(w.getNormalWorkOrderForNUMANode(
-            curr_operator_id, single_numa_node_id));
-    ASSERT_TRUE(observed_work_order_single_numa != nullptr);
+    // Retrieve a single NUMA node workorder, and verify if its ID is correct.
+    unique_ptr<serialization::WorkOrder> observed_work_order_proto_single_numa(
+        w.getNormalWorkOrderForNUMANode(curr_operator_id, single_numa_node_id));
+    ASSERT_TRUE(observed_work_order_proto_single_numa != nullptr);
+    EXPECT_EQ(normal_workorders_one_numa_ids[curr_operator_id],
+              observed_work_order_proto_single_numa->GetExtension(serialization::MockWorkOrder::id));
 
-    // Verify if the workorder ID is correct.
-    const int expected_workorder_id_single_numa =
-        normal_workorders_one_numa_ids[curr_operator_id];
-    EXPECT_EQ(expected_workorder_id_single_numa,
-              observed_work_order_single_numa->getID());
+    // Retrieve a multiple NUMA node workorder, and verify if its ID is correct.
+    unique_ptr<serialization::WorkOrder> observed_work_order_proto_multiple_numa(
+        w.getNormalWorkOrderForNUMANode(curr_operator_id, multiple_numa_node_id));
+    ASSERT_TRUE(observed_work_order_proto_multiple_numa != nullptr);
+    EXPECT_EQ(normal_workorders_multiple_numa_ids[curr_operator_id],
+              observed_work_order_proto_multiple_numa->GetExtension(serialization::MockWorkOrder::id));
 
-    // Retrieve a multiple NUMA node workorder.
-    MockNUMAWorkOrder *observed_work_order_multiple_numa =
-        static_cast<MockNUMAWorkOrder *>(w.getNormalWorkOrderForNUMANode(
-            curr_operator_id, multiple_numa_node_id));
-    ASSERT_TRUE(observed_work_order_multiple_numa != nullptr);
-
-    // Verify if the workorder ID is correct.
-    const int expected_workorder_id_multiple_numa =
-        normal_workorders_multiple_numa_ids[curr_operator_id];
-
-    EXPECT_EQ(expected_workorder_id_multiple_numa,
-              observed_work_order_multiple_numa->getID());
-
-    // Retrieve a no NUMA node workorder.
-    MockNUMAWorkOrder *observed_work_order_no_numa =
-        static_cast<MockNUMAWorkOrder *>(w.getNormalWorkOrder(curr_operator_id));
-    ASSERT_TRUE(observed_work_order_no_numa != nullptr);
-
-    // Verify if the workorder ID is correct.
-    const int expected_workorder_id_no_numa =
-        normal_workorders_no_numa_ids[curr_operator_id];
-
-    EXPECT_EQ(expected_workorder_id_no_numa, observed_work_order_no_numa->getID());
+    // Retrieve a no NUMA node workorder, and verify if its ID is correct.
+    unique_ptr<serialization::WorkOrder> observed_work_order_proto_no_numa(
+        w.getNormalWorkOrder(curr_operator_id));
+    ASSERT_TRUE(observed_work_order_proto_no_numa != nullptr);
+    EXPECT_EQ(normal_workorders_no_numa_ids[curr_operator_id],
+              observed_work_order_proto_no_numa->GetExtension(serialization::MockWorkOrder::id));
   }
 }
 
@@ -587,39 +543,39 @@ TEST(WorkOrdersContainerTest, MultipleOperatorsRebuildWorkOrderTest) {
   const std::size_t kNumOperators = 100;
 
   // For each operator create rebuild workorders with no NUMA node.
-  PtrVector<MockNUMAWorkOrder> rebuild_workorders_no_numa;
+  vector<serialization::WorkOrder*> rebuild_workorders_no_numa;
   std::vector<int> rebuild_workorders_no_numa_ids;
-  // Set of workorder IDs = {0, ... kNumOperators - 1}
+  // Set of workorder IDs = { 0, ..., kNumOperators - 1 }
   for (std::size_t i = 0; i < kNumOperators; ++i) {
     rebuild_workorders_no_numa_ids.push_back(i);
-    rebuild_workorders_no_numa.push_back(new MockNUMAWorkOrder(
-        rebuild_workorders_no_numa_ids.back(), numa_node_ids));
+    rebuild_workorders_no_numa.push_back(
+        createWorkOrderProto(rebuild_workorders_no_numa_ids.back(), numa_node_ids));
   }
 
   // Insert one NUMA node.
   numa_node_ids.push_back(0);
 
   // For each operator create rebuild workorders with one NUMA node.
-  PtrVector<MockNUMAWorkOrder> rebuild_workorders_one_numa;
+  vector<serialization::WorkOrder*> rebuild_workorders_one_numa;
   std::vector<int> rebuild_workorders_one_numa_ids;
-  // Set of workorder IDs = {kNumOperators, .. , 2*kNumOperators - 1}
+  // Set of workorder IDs = { kNumOperators, ..., 2 * kNumOperators - 1 }
   for (std::size_t i = 0; i < kNumOperators; ++i) {
     rebuild_workorders_one_numa_ids.push_back(kNumOperators + i);
-    rebuild_workorders_one_numa.push_back(new MockNUMAWorkOrder(
-        rebuild_workorders_one_numa_ids.back(), numa_node_ids));
+    rebuild_workorders_one_numa.push_back(
+        createWorkOrderProto(rebuild_workorders_one_numa_ids.back(), numa_node_ids));
   }
 
   // Insert another NUMA node.
   numa_node_ids.push_back(1);
 
   // For each operator create rebuild workorders with more than one NUMA node.
-  PtrVector<MockNUMAWorkOrder> rebuild_workorders_multiple_numa;
+  vector<serialization::WorkOrder*> rebuild_workorders_multiple_numa;
   std::vector<int> rebuild_workorders_multiple_numa_ids;
-  // Set of workorder IDs = {2*kNumOperators, .. , 3*kNumOperators - 1}
+  // Set of workorder IDs = { 2 * kNumOperators, ..., 3 * kNumOperators - 1 }
   for (std::size_t i = 0; i < kNumOperators; ++i) {
-    rebuild_workorders_multiple_numa_ids.push_back(2*kNumOperators + i);
-    rebuild_workorders_multiple_numa.push_back(new MockNUMAWorkOrder(
-        rebuild_workorders_multiple_numa_ids.back(), numa_node_ids));
+    rebuild_workorders_multiple_numa_ids.push_back(2 * kNumOperators + i);
+    rebuild_workorders_multiple_numa.push_back(
+        createWorkOrderProto(rebuild_workorders_multiple_numa_ids.back(), numa_node_ids));
   }
 
   // TODO(harshad) : Design a test in which the number of NUMA nodes is
@@ -677,14 +633,14 @@ TEST(WorkOrdersContainerTest, MultipleOperatorsRebuildWorkOrderTest) {
       }
     }
     // Insert the workorder with multiple NUMA nodes.
-    w.addRebuildWorkOrder(&(rebuild_workorders_multiple_numa[curr_operator_id]),
-                         curr_operator_id);
+    w.addRebuildWorkOrder(rebuild_workorders_multiple_numa[curr_operator_id],
+                          curr_operator_id);
     // Insert the workorder with no NUMA node.
-    w.addRebuildWorkOrder(&(rebuild_workorders_no_numa[curr_operator_id]),
-                         curr_operator_id);
+    w.addRebuildWorkOrder(rebuild_workorders_no_numa[curr_operator_id],
+                          curr_operator_id);
     // Insert the workorder with one NUMA node.
-    w.addRebuildWorkOrder(&(rebuild_workorders_one_numa[curr_operator_id]),
-                         curr_operator_id);
+    w.addRebuildWorkOrder(rebuild_workorders_one_numa[curr_operator_id],
+                          curr_operator_id);
   }
 
   // Randomize the operator IDs again and retrieve the WorkOrders.
@@ -733,40 +689,25 @@ TEST(WorkOrdersContainerTest, MultipleOperatorsRebuildWorkOrderTest) {
     // (which is different than the node id above).
     const std::size_t multiple_numa_node_id = numa_node_ids.back();
 
-    // Retrieve a single NUMA node workorder.
-    MockNUMAWorkOrder *observed_work_order_single_numa =
-        static_cast<MockNUMAWorkOrder *>(w.getRebuildWorkOrderForNUMANode(
-            curr_operator_id, single_numa_node_id));
-    ASSERT_TRUE(observed_work_order_single_numa != nullptr);
+    // Retrieve a single NUMA node workorder, and verify if its ID is correct.
+    unique_ptr<serialization::WorkOrder> observed_work_order_proto_single_numa(
+        w.getRebuildWorkOrderForNUMANode(curr_operator_id, single_numa_node_id));
+    ASSERT_TRUE(observed_work_order_proto_single_numa != nullptr);
+    EXPECT_EQ(rebuild_workorders_one_numa_ids[curr_operator_id],
+              observed_work_order_proto_single_numa->GetExtension(serialization::MockWorkOrder::id));
 
-    // Verify if the workorder ID is correct.
-    const int expected_workorder_id_single_numa =
-        rebuild_workorders_one_numa_ids[curr_operator_id];
-    EXPECT_EQ(expected_workorder_id_single_numa,
-              observed_work_order_single_numa->getID());
+    // Retrieve a multiple NUMA node workorder, and verify if its ID is correct.
+    unique_ptr<serialization::WorkOrder> observed_work_order_proto_multiple_numa(
+        w.getRebuildWorkOrderForNUMANode(curr_operator_id, multiple_numa_node_id));
+    ASSERT_TRUE(observed_work_order_proto_multiple_numa != nullptr);
+    EXPECT_EQ(rebuild_workorders_multiple_numa_ids[curr_operator_id],
+              observed_work_order_proto_multiple_numa->GetExtension(serialization::MockWorkOrder::id));
 
-    // Retrieve a multiple NUMA node workorder.
-    MockNUMAWorkOrder *observed_work_order_multiple_numa =
-        static_cast<MockNUMAWorkOrder *>(w.getRebuildWorkOrderForNUMANode(
-            curr_operator_id, multiple_numa_node_id));
-    ASSERT_TRUE(observed_work_order_multiple_numa != nullptr);
-
-    // Verify if the workorder ID is correct.
-    const int expected_workorder_id_multiple_numa =
-        rebuild_workorders_multiple_numa_ids[curr_operator_id];
-
-    EXPECT_EQ(expected_workorder_id_multiple_numa,
-              observed_work_order_multiple_numa->getID());
-
-    // Retrieve a no NUMA node workorder.
-    MockNUMAWorkOrder *observed_work_order_no_numa =
-        static_cast<MockNUMAWorkOrder *>(w.getRebuildWorkOrder(curr_operator_id));
-
-    // Verify if the workorder ID is correct.
-    const int expected_workorder_id_no_numa =
-        rebuild_workorders_no_numa_ids[curr_operator_id];
-
-    EXPECT_EQ(expected_workorder_id_no_numa, observed_work_order_no_numa->getID());
+    // Retrieve a no NUMA node workorder, and verify if its ID is correct.
+    unique_ptr<serialization::WorkOrder> observed_work_order_proto_no_numa(
+        w.getRebuildWorkOrder(curr_operator_id));
+    EXPECT_EQ(rebuild_workorders_no_numa_ids[curr_operator_id],
+              observed_work_order_proto_no_numa->GetExtension(serialization::MockWorkOrder::id));
   }
 }
 
@@ -784,14 +725,11 @@ TEST(WorkOrdersContainerTest, RetrievalOrderTest) {
   std::vector<int> single_numa_node_workorder_ids;
   std::vector<int> multiple_numa_node_workorder_ids;
 
-  PtrVector<MockNUMAWorkOrder> single_numa_node_workorders;
-  PtrVector<MockNUMAWorkOrder> multiple_numa_node_workorders;
-
   // Insert WorkOrders with exactly one NUMA node and store the WorkOrder IDs.
   for (std::size_t work_order_num = 0;
        work_order_num < kNumWorkOrdersPerType;
        ++work_order_num) {
-    w.addNormalWorkOrder(new MockNUMAWorkOrder(work_order_num, numa_node_ids), 0);
+    w.addNormalWorkOrder(createWorkOrderProto(work_order_num, numa_node_ids), 0);
     single_numa_node_workorder_ids.push_back(work_order_num);
   }
 
@@ -802,7 +740,7 @@ TEST(WorkOrdersContainerTest, RetrievalOrderTest) {
        work_order_num < kNumWorkOrdersPerType;
        ++work_order_num) {
     w.addNormalWorkOrder(
-        new MockNUMAWorkOrder(work_order_num + kNumWorkOrdersPerType, numa_node_ids),
+        createWorkOrderProto(work_order_num + kNumWorkOrdersPerType, numa_node_ids),
         0);
     multiple_numa_node_workorder_ids.push_back(kNumWorkOrdersPerType + work_order_num);
   }
@@ -822,18 +760,20 @@ TEST(WorkOrdersContainerTest, RetrievalOrderTest) {
   std::vector<int>::iterator multiple_numa_it =
       multiple_numa_node_workorder_ids.begin();
 
-  for (bool prefer_single_NUMA_node : retrieval_order) {
+  for (const bool prefer_single_NUMA_node : retrieval_order) {
     // Retrieve the WorkOrder.
-    MockNUMAWorkOrder *observed_work_order = static_cast<MockNUMAWorkOrder *>(
+    unique_ptr<serialization::WorkOrder> observed_work_order(
         w.getNormalWorkOrder(0, prefer_single_NUMA_node));
     ASSERT_TRUE(observed_work_order != nullptr);
     if (prefer_single_NUMA_node) {
-      EXPECT_EQ(*single_numa_it, observed_work_order->getID());
-      EXPECT_EQ(1u, observed_work_order->getPreferredNUMANodes().size());
+      EXPECT_EQ(*single_numa_it,
+                observed_work_order->GetExtension(serialization::MockWorkOrder::id));
+      EXPECT_EQ(1u, observed_work_order->preferred_numa_nodes_size());
       ++single_numa_it;
     } else {
-      EXPECT_EQ(*multiple_numa_it, observed_work_order->getID());
-      EXPECT_EQ(2u, observed_work_order->getPreferredNUMANodes().size());
+      EXPECT_EQ(*multiple_numa_it,
+                observed_work_order->GetExtension(serialization::MockWorkOrder::id));
+      EXPECT_EQ(2u, observed_work_order->preferred_numa_nodes_size());
       ++multiple_numa_it;
     }
   }

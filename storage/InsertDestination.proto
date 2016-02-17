@@ -36,5 +36,4 @@ message InsertDestination {
   optional StorageBlockLayoutDescription layout = 4;
 
   required uint64 relational_op_index = 5;
-  required uint32 foreman_client_id = 6;
 }

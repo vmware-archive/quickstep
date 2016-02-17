@@ -43,6 +43,8 @@
 #include "relational_operators/AggregationOperator.hpp"
 #include "relational_operators/FinalizeAggregationOperator.hpp"
 #include "relational_operators/WorkOrder.hpp"
+#include "relational_operators/WorkOrder.pb.h"
+#include "relational_operators/WorkOrderFactory.hpp"
 #include "storage/AggregationOperationState.pb.h"
 #include "storage/HashTable.pb.h"
 #include "storage/InsertDestination.hpp"
@@ -103,6 +105,8 @@ class AggregationOperatorTest : public ::testing::Test {
   static const bool kWithPredicate = true;
   static const bool kWithoutPredicate = false;
   static const int kPlaceholder = 0xbeef;
+
+  static const tmb::client_id kForemanClientId = tmb::kClientIdNone;
 
   virtual void SetUp() {
     storage_manager_.reset(new StorageManager(kStoragePath));
@@ -248,13 +252,17 @@ class AggregationOperatorTest : public ::testing::Test {
     insert_destination_proto->set_relation_id(result_table_->getID());
     insert_destination_proto->set_need_to_add_blocks_from_relation(false);
     insert_destination_proto->set_relational_op_index(kOpIndex);
-    insert_destination_proto->set_foreman_client_id(tmb::kClientIdNone);
 
     finalize_op_.reset(
         new FinalizeAggregationOperator(aggr_state_index, *result_table_, insert_destination_index));
 
     // Set up the QueryContext.
-    query_context_.reset(new QueryContext(query_context_proto, db_.get(), storage_manager_.get(), nullptr /* TMB */));
+    query_context_.reset(
+        new QueryContext(query_context_proto,
+                         kForemanClientId,
+                         db_.get(),
+                         storage_manager_.get(),
+                         nullptr /* TMB */));
 
     // Note: We treat these two operators as different query plan DAGs. The
     // index for each operator should be set, so that the WorkOrdersContainer
@@ -326,13 +334,17 @@ class AggregationOperatorTest : public ::testing::Test {
     insert_destination_proto->set_relation_id(result_table_->getID());
     insert_destination_proto->set_need_to_add_blocks_from_relation(false);
     insert_destination_proto->set_relational_op_index(kOpIndex);
-    insert_destination_proto->set_foreman_client_id(tmb::kClientIdNone);
 
     finalize_op_.reset(
         new FinalizeAggregationOperator(aggr_state_index, *result_table_, insert_destination_index));
 
     // Set up the QueryContext.
-    query_context_.reset(new QueryContext(query_context_proto, db_.get(), storage_manager_.get(), nullptr /* TMB */));
+    query_context_.reset(
+        new QueryContext(query_context_proto,
+                         kForemanClientId,
+                         db_.get(),
+                         storage_manager_.get(),
+                         nullptr /* TMB */));
 
     // Note: We treat these two operators as different query plan DAGs. The
     // index for each operator should be set, so that the WorkOrdersContainer
@@ -347,9 +359,15 @@ class AggregationOperatorTest : public ::testing::Test {
     op_->getAllWorkOrders(&op_container);
 
     while (op_container.hasNormalWorkOrder(op_index)) {
-      WorkOrder *work_order = op_container.getNormalWorkOrder(op_index);
-      work_order->execute(query_context_.get(), db_.get(), storage_manager_.get());
-      delete work_order;
+      unique_ptr<serialization::WorkOrder> work_order_proto(op_container.getNormalWorkOrder(op_index));
+      unique_ptr<WorkOrder> work_order(
+          WorkOrderFactory::ReconstructFromProto(*work_order_proto,
+                                                 kForemanClientId,
+                                                 db_.get(),
+                                                 query_context_.get(),
+                                                 storage_manager_.get(),
+                                                 nullptr /* TMB */));
+      work_order->execute();
     }
 
     finalize_op_->informAllBlockingDependenciesMet();
@@ -359,9 +377,16 @@ class AggregationOperatorTest : public ::testing::Test {
     finalize_op_->getAllWorkOrders(&finalize_op_container);
 
     while (finalize_op_container.hasNormalWorkOrder(finalize_op_index)) {
-      WorkOrder *work_order = finalize_op_container.getNormalWorkOrder(finalize_op_index);
-      work_order->execute(query_context_.get(), db_.get(), storage_manager_.get());
-      delete work_order;
+      unique_ptr<serialization::WorkOrder> work_order_proto(
+          finalize_op_container.getNormalWorkOrder(finalize_op_index));
+      unique_ptr<WorkOrder> work_order(
+          WorkOrderFactory::ReconstructFromProto(*work_order_proto,
+                                                 kForemanClientId,
+                                                 db_.get(),
+                                                 query_context_.get(),
+                                                 storage_manager_.get(),
+                                                 nullptr /* TMB */));
+      work_order->execute();
     }
   }
 

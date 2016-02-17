@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -21,7 +21,9 @@
 
 #include "catalog/CatalogDatabase.hpp"
 #include "catalog/CatalogRelation.hpp"
+#include "catalog/CatalogTypedefs.hpp"
 #include "query_execution/WorkOrdersContainer.hpp"
+#include "relational_operators/WorkOrder.pb.h"
 #include "storage/StorageBlockInfo.hpp"
 #include "storage/StorageManager.hpp"
 
@@ -32,32 +34,37 @@ namespace quickstep {
 bool DropTableOperator::getAllWorkOrders(WorkOrdersContainer *container) {
   if (blocking_dependencies_met_ && !work_generated_) {
     work_generated_ = true;
-    container->addNormalWorkOrder(
-        new DropTableWorkOrder(relation_.getID(), only_drop_blocks_),
-        op_index_);
+
+    const relation_id rel_id = relation_.getID();
+    CatalogRelation *relation = database_->getRelationByIdMutable(rel_id);
+    DCHECK(relation != nullptr);
+
+    std::vector<block_id> relation_blocks(relation->getBlocksSnapshot());
+
+    // Create WorkOrder proto that only drops blocks, if any.
+    serialization::WorkOrder *proto = new serialization::WorkOrder;
+    proto->set_work_order_type(serialization::DROP_TABLE);
+
+    for (const block_id relation_block : relation_blocks) {
+      proto->AddExtension(serialization::DropTableWorkOrder::block_ids, relation_block);
+    }
+
+    container->addNormalWorkOrder(proto, op_index_);
+
+    // Drop table accordingly.
+    // TODO(zuyu): move the following code outside of this function.
+    if (only_drop_blocks_) {
+      relation->clearBlocks();
+    } else {
+      database_->dropRelationById(rel_id);
+    }
   }
   return work_generated_;
 }
 
-void DropTableWorkOrder::execute(QueryContext *query_context,
-                                 CatalogDatabase *database,
-                                 StorageManager *storage_manager) {
-  DCHECK(database != nullptr);
-  DCHECK(storage_manager != nullptr);
-
-  CatalogRelation *relation = database->getRelationByIdMutable(rel_id_);
-  DCHECK(relation != nullptr);
-
-  std::vector<block_id> relation_blocks(relation->getBlocksSnapshot());
-
-  for (const block_id relation_block_id : relation_blocks) {
-    storage_manager->deleteBlockOrBlobFile(relation_block_id);
-  }
-
-  if (only_drop_blocks_) {
-    relation->clearBlocks();
-  } else {
-    database->dropRelationById(rel_id_);
+void DropTableWorkOrder::execute() {
+  for (const block_id relation_block_id : blocks_) {
+    storage_manager_->deleteBlockOrBlobFile(relation_block_id);
   }
 }
 

@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -22,11 +22,11 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/CatalogDatabase.hpp"
+#include "catalog/CatalogRelationSchema.hpp"
 #include "expressions/predicate/Predicate.hpp"
 #include "expressions/scalar/Scalar.hpp"
-#include "query_execution/QueryContext.hpp"
 #include "query_execution/WorkOrdersContainer.hpp"
+#include "relational_operators/WorkOrder.pb.h"
 #include "storage/InsertDestination.hpp"
 #include "storage/StorageBlock.hpp"
 #include "storage/StorageBlockInfo.hpp"
@@ -62,6 +62,23 @@ void NestedLoopsJoinOperator::feedInputBlock(const block_id input_block_id, cons
   }
 }
 
+serialization::WorkOrder* NestedLoopsJoinOperator::createWorkOrderProto(const block_id left_block,
+                                                                        const block_id right_block) const {
+  serialization::WorkOrder *proto = new serialization::WorkOrder;
+  proto->set_work_order_type(serialization::NESTED_LOOP_JOIN);
+
+  proto->SetExtension(serialization::NestedLoopsJoinWorkOrder::left_relation_id, left_input_relation_.getID());
+  proto->SetExtension(serialization::NestedLoopsJoinWorkOrder::right_relation_id, right_input_relation_.getID());
+  proto->SetExtension(serialization::NestedLoopsJoinWorkOrder::left_block_id, left_block);
+  proto->SetExtension(serialization::NestedLoopsJoinWorkOrder::right_block_id, right_block);
+  proto->SetExtension(serialization::NestedLoopsJoinWorkOrder::insert_destination_index,
+                      output_destination_index_);
+  proto->SetExtension(serialization::NestedLoopsJoinWorkOrder::join_predicate_index, join_predicate_index_);
+  proto->SetExtension(serialization::NestedLoopsJoinWorkOrder::selection_index, selection_index_);
+
+  return proto;
+}
+
 bool NestedLoopsJoinOperator::getAllWorkOrders(WorkOrdersContainer *container) {
   if (left_relation_is_stored_ && right_relation_is_stored_) {
     // Make sure we generate workorders only once.
@@ -69,13 +86,7 @@ bool NestedLoopsJoinOperator::getAllWorkOrders(WorkOrdersContainer *container) {
       for (const block_id left_block_id : left_relation_block_ids_) {
         for (const block_id right_block_id : right_relation_block_ids_) {
           container->addNormalWorkOrder(
-              new NestedLoopsJoinWorkOrder(left_input_relation_.getID(),
-                                           right_input_relation_.getID(),
-                                           left_block_id,
-                                           right_block_id,
-                                           output_destination_index_,
-                                           join_predicate_index_,
-                                           selection_index_),
+              createWorkOrderProto(left_block_id, right_block_id),
               op_index_);
         }
       }
@@ -147,13 +158,7 @@ std::size_t NestedLoopsJoinOperator::getAllWorkOrdersHelperBothNotStored(WorkOrd
          right_index < right_max;
          ++right_index) {
       container->addNormalWorkOrder(
-          new NestedLoopsJoinWorkOrder(left_input_relation_.getID(),
-                                       right_input_relation_.getID(),
-                                       left_relation_block_ids_[left_index],
-                                       right_relation_block_ids_[right_index],
-                                       output_destination_index_,
-                                       join_predicate_index_,
-                                       selection_index_),
+          createWorkOrderProto(left_relation_block_ids_[left_index], right_relation_block_ids_[right_index]),
           op_index_);
     }
   }
@@ -170,14 +175,7 @@ bool NestedLoopsJoinOperator::getAllWorkOrdersHelperOneStored(WorkOrdersContaine
          ++right_index) {
       for (const block_id left_block_id : left_relation_block_ids_) {
         container->addNormalWorkOrder(
-            new NestedLoopsJoinWorkOrder(
-                left_input_relation_.getID(),
-                right_input_relation_.getID(),
-                left_block_id,
-                right_relation_block_ids_[right_index],
-                output_destination_index_,
-                join_predicate_index_,
-                selection_index_),
+            createWorkOrderProto(left_block_id, right_relation_block_ids_[right_index]),
             op_index_);
       }
     }
@@ -189,13 +187,7 @@ bool NestedLoopsJoinOperator::getAllWorkOrdersHelperOneStored(WorkOrdersContaine
          ++left_index) {
       for (const block_id right_block_id : right_relation_block_ids_) {
         container->addNormalWorkOrder(
-            new NestedLoopsJoinWorkOrder(left_input_relation_.getID(),
-                                         right_input_relation_.getID(),
-                                         left_relation_block_ids_[left_index],
-                                         right_block_id,
-                                         output_destination_index_,
-                                         join_predicate_index_,
-                                         selection_index_),
+            createWorkOrderProto(left_relation_block_ids_[left_index], right_block_id),
             op_index_);
       }
     }
@@ -206,10 +198,10 @@ bool NestedLoopsJoinOperator::getAllWorkOrdersHelperOneStored(WorkOrdersContaine
 
 template <bool LEFT_PACKED, bool RIGHT_PACKED>
 void NestedLoopsJoinWorkOrder::executeHelper(const TupleStorageSubBlock &left_store,
-                                             const TupleStorageSubBlock &right_store,
-                                             const vector<unique_ptr<const Scalar>> &selection,
-                                             const Predicate *join_predicate,
-                                             InsertDestination *output_destination) {
+                                             const TupleStorageSubBlock &right_store) {
+  const relation_id left_input_relation_id = left_input_relation_schema_.getID();
+  const relation_id right_input_relation_id = right_input_relation_schema_.getID();
+
   const tuple_id left_max_tid = left_store.getMaxTupleID();
   const tuple_id right_max_tid = right_store.getMaxTupleID();
 
@@ -218,7 +210,7 @@ void NestedLoopsJoinWorkOrder::executeHelper(const TupleStorageSubBlock &left_st
 
   // Check each pair of tuples in the two blocks and build up a list of
   // matches.
-  //
+
   // TODO(chasseur): Vectorize evaluation of this join predicate.
   std::vector<std::pair<tuple_id, tuple_id>> joined_tuple_ids;
   for (tuple_id left_tid = 0; left_tid <= left_max_tid; ++left_tid) {
@@ -227,12 +219,12 @@ void NestedLoopsJoinWorkOrder::executeHelper(const TupleStorageSubBlock &left_st
       for (tuple_id right_tid = 0; right_tid <= right_max_tid; ++right_tid) {
         if (RIGHT_PACKED || right_store.hasTupleWithID(right_tid)) {
           // For each tuple in the right block...
-          if (join_predicate->matchesForJoinedTuples(*left_accessor,
-                                                     left_input_relation_id_,
-                                                     left_tid,
-                                                     *right_accessor,
-                                                     right_input_relation_id_,
-                                                     right_tid)) {
+          if (join_predicate_->matchesForJoinedTuples(*left_accessor,
+                                                      left_input_relation_id,
+                                                      left_tid,
+                                                      *right_accessor,
+                                                      right_input_relation_id,
+                                                      right_tid)) {
             joined_tuple_ids.emplace_back(left_tid, right_tid);
           }
         }
@@ -256,58 +248,40 @@ void NestedLoopsJoinWorkOrder::executeHelper(const TupleStorageSubBlock &left_st
     // evaluation and data movement, but low enough that temporary memory
     // requirements don't get out of hand).
     ColumnVectorsValueAccessor temp_result;
-    for (vector<unique_ptr<const Scalar>>::const_iterator selection_cit = selection.begin();
-         selection_cit != selection.end();
+    for (vector<unique_ptr<const Scalar>>::const_iterator selection_cit = selection_.begin();
+         selection_cit != selection_.end();
          ++selection_cit) {
-      temp_result.addColumn((*selection_cit)->getAllValuesForJoin(left_input_relation_id_,
+      temp_result.addColumn((*selection_cit)->getAllValuesForJoin(left_input_relation_id,
                                                                   left_accessor.get(),
-                                                                  right_input_relation_id_,
+                                                                  right_input_relation_id,
                                                                   right_accessor.get(),
                                                                   joined_tuple_ids));
     }
 
-    output_destination->bulkInsertTuples(&temp_result);
+    output_destination_->bulkInsertTuples(&temp_result);
   }
 }
 
-void NestedLoopsJoinWorkOrder::execute(QueryContext *query_context,
-                                       CatalogDatabase *database,
-                                       StorageManager *storage_manager) {
-  DCHECK(query_context != nullptr);
-  DCHECK(database != nullptr);
-  DCHECK(storage_manager != nullptr);
-
+void NestedLoopsJoinWorkOrder::execute() {
   BlockReference left(
-      storage_manager->getBlock(left_block_id_,
-                                *database->getRelationById(left_input_relation_id_)));
+      storage_manager_->getBlock(left_block_id_, left_input_relation_schema_));
   BlockReference right(
-      storage_manager->getBlock(right_block_id_,
-                                *database->getRelationById(right_input_relation_id_)));
+      storage_manager_->getBlock(right_block_id_, right_input_relation_schema_));
 
   const TupleStorageSubBlock &left_store = left->getTupleStorageSubBlock();
   const TupleStorageSubBlock &right_store = right->getTupleStorageSubBlock();
 
-  const vector<unique_ptr<const Scalar>> &selection =
-      query_context->getScalarGroup(selection_index_);
-
-  const Predicate *join_predicate = query_context->getPredicate(join_predicate_index_);
-  DCHECK(join_predicate != nullptr);
-
-  InsertDestination *output_destination =
-      query_context->getInsertDestination(output_destination_index_);
-  DCHECK(output_destination != nullptr);
-
   if (left_store.isPacked()) {
     if (right_store.isPacked()) {
-      executeHelper<true, true>(left_store, right_store, selection, join_predicate, output_destination);
+      executeHelper<true, true>(left_store, right_store);
     } else {
-      executeHelper<true, false>(left_store, right_store, selection, join_predicate, output_destination);
+      executeHelper<true, false>(left_store, right_store);
     }
   } else {
     if (right_store.isPacked()) {
-      executeHelper<false, true>(left_store, right_store, selection, join_predicate, output_destination);
+      executeHelper<false, true>(left_store, right_store);
     } else {
-      executeHelper<false, false>(left_store, right_store, selection, join_predicate, output_destination);
+      executeHelper<false, false>(left_store, right_store);
     }
   }
 }
