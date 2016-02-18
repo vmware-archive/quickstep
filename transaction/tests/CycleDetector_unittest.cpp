@@ -16,10 +16,10 @@ namespace quickstep {
 
 class CycleDetectorTest : public testing::Test {
 public:
-  using NID = DirectedGraph<TransactionId>::NodeId;
+  using NID = DirectedGraph::NodeId;
   
   CycleDetectorTest() {
-    wait_for_graph = std::make_unique<DirectedGraph<TransactionId>>();
+    wait_for_graph = std::make_unique<DirectedGraph>();
     
 
     tid1 = new TransactionId(1);
@@ -82,12 +82,12 @@ public:
 
     wait_for_graph->addEdge(nid12, nid10);
 
-    cycle_detector = std::make_unique<CycleDetector<TransactionId>>(wait_for_graph.get());
+    cycle_detector = std::make_unique<CycleDetector>(wait_for_graph.get());
     
   }
 
-  std::unique_ptr<DirectedGraph<TransactionId>> wait_for_graph;
-  std::unique_ptr<CycleDetector<TransactionId>> cycle_detector;
+  std::unique_ptr<DirectedGraph> wait_for_graph;
+  std::unique_ptr<CycleDetector> cycle_detector;
   
 
   TransactionId *tid1;

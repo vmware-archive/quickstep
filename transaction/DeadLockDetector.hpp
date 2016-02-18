@@ -17,7 +17,7 @@ namespace quickstep {
 
 class DeadLockDetector {
 public:
-  using DepGraph = DirectedGraph<TransactionId>;
+  using DepGraph = DirectedGraph;
   using TransactionIdNodeMap = std::unordered_map<TransactionId, DepGraph::NodeId>;
  
 

@@ -56,6 +56,10 @@ endif()
 # Option to enable/disable LTO.
 option(ENABLE_LTO "Enable LTO (Link Time Optimization), if the compiler supports it." OFF)
 
+option(ENABLE_PROFILING
+       "Add necessary arguments to compile options useful for profiling, applicable only to RelWithDebInfo."
+       OFF)
+
 set(VECTOR_COPY_ELISION_MSG_LIST
     "This options controls whether extra code paths for vectorized evaluation "
     "of expressions and predicates directly on values inside storage blocks "
@@ -285,7 +289,7 @@ if (USE_LIBCXX)
 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
   set(THIRD_PARTY_CXX_FLAGS "${THIRD_PARTY_CXX_FLAGS} -stdlib=libc++")
-
+  
   # Check that a minimal program compiles and links. Clang will accept the
   # command-line flag for libc++ even if the library isn't actually installed.
   CHECK_CXX_SOURCE_COMPILES("
@@ -297,11 +301,17 @@ if (USE_LIBCXX)
       std::cout << msg;
       return 0;
     }" LIBCXX_CHECK)
-    if (NOT LIBCXX_CHECK)
-      message(FATAL_ERROR "Compiler accepts -stdlib=libc++ flag, but cannot "
-                          "compile programs when it is turned on.")
-    endif()
+  if (NOT LIBCXX_CHECK)
+    message(FATAL_ERROR "Compiler accepts -stdlib=libc++ flag, but cannot "
+      "compile programs when it is turned on.")
+  endif()
 endif()
+
+if(ENABLE_PROFILING)
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fno-omit-frame-pointer")
+endif()
+  
+  
 
 if(CMAKE_COMPILER_IS_GNUCXX)
   # Optimization flags for GCC.

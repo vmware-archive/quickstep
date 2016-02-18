@@ -96,7 +96,7 @@ std::vector<TransactionId> DeadLockDetector::getAllVictims() {
 
   lock_table_->unlatchShared();
 
-  CycleDetector<TransactionId> cycle_detector(wait_for_graph_.get());
+  CycleDetector cycle_detector(wait_for_graph_.get());
   std::vector<DepGraph::NodeId> victim_nodes = cycle_detector.breakCycle();
   for (DepGraph::NodeId node_id : victim_nodes) {
     TransactionId victim_tid = wait_for_graph_->getDataFromNode(node_id);
