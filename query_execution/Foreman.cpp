@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -17,174 +17,155 @@
 
 #include "query_execution/Foreman.hpp"
 
+#include <cstddef>
 #include <memory>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "catalog/CatalogTypedefs.hpp"
-#include "query_execution/ForemanMessage.hpp"
 #include "query_execution/QueryContext.hpp"
+#include "query_execution/QueryExecutionMessages.pb.h"
 #include "query_execution/QueryExecutionUtil.hpp"
 #include "query_execution/WorkerDirectory.hpp"
 #include "query_execution/WorkerMessage.hpp"
 #include "relational_operators/RebuildWorkOrder.hpp"
+#include "relational_operators/RelationalOperator.hpp"
 #include "relational_operators/WorkOrder.hpp"
 #include "storage/InsertDestination.hpp"
 #include "storage/StorageBlock.hpp"
+#include "storage/StorageBlockInfo.hpp"
 #include "threading/ThreadUtil.hpp"
 #include "utility/Macros.hpp"
+
+#include "glog/logging.h"
 
 #include "tmb/message_bus.h"
 #include "tmb/tagged_message.h"
 
-#include "glog/logging.h"
-
 using std::move;
 using std::pair;
+using std::size_t;
 using std::vector;
 
 namespace quickstep {
 
-bool Foreman::initialize() {
+void Foreman::initialize() {
   if (cpu_id_ >= 0) {
     // We can pin the foreman thread to a CPU if specified.
     ThreadUtil::BindToCPU(cpu_id_);
   }
-  DEBUG_ASSERT(query_dag_ != nullptr);
-
-  const dag_node_index dag_size = query_dag_->size();
   initializeState();
+
+  DEBUG_ASSERT(query_dag_ != nullptr);
+  const dag_node_index dag_size = query_dag_->size();
 
   // Collect all the workorders from all the relational operators in the DAG.
   for (dag_node_index index = 0; index < dag_size; ++index) {
-    RelationalOperator *curr_op = query_dag_->getNodePayloadMutable(index);
     if (checkAllBlockingDependenciesMet(index)) {
-      curr_op->informAllBlockingDependenciesMet();
-      processOperator(curr_op, index, false);
+      query_dag_->getNodePayloadMutable(index)->informAllBlockingDependenciesMet();
+      processOperator(index, false);
     }
   }
 
   // Dispatch the WorkOrders generated so far.
   dispatchWorkerMessages(0, 0);
-  return num_operators_finished_ == dag_size;
 }
 
-// TODO(harshad) - There is duplication in terms of functionality provided by
-// TMB and ForemanMessage class with respect to determining the message types.
-// Try to use TMB message types for infering the messsage types consistently.
-bool Foreman::processMessage(const ForemanMessage &message) {
-  const dag_node_index dag_size = query_dag_->size();
-  // Get the relational operator that caused this message to be sent.
-  dag_node_index response_op_index = message.getRelationalOpIndex();
-  const int worker_id = message.getWorkerID();
+void Foreman::processWorkOrderCompleteMessage(const dag_node_index op_index,
+                                              const size_t worker_id) {
+  --queued_workorders_per_op_[op_index];
 
-  switch (message.getType()) {
-    case ForemanMessage::kWorkOrderCompletion:
-      {
-        // Completion of a regular WorkOrder.
-        DEBUG_ASSERT(worker_id >= 0);
-        --queued_workorders_per_op_[response_op_index];
-        // As the given worker finished executing a WorkOrder, decrement its
-        // number of queued WorkOrders.
-        workers_->decrementNumQueuedWorkOrders(worker_id);
+  // As the given worker finished executing a WorkOrder, decrement its number
+  // of queued WorkOrders.
+  workers_->decrementNumQueuedWorkOrders(worker_id);
 
-        // Check if new work orders are available and fetch them if so.
-        fetchNormalWorkOrders(
-            query_dag_->getNodePayloadMutable(response_op_index),
-            response_op_index);
+  // Check if new work orders are available and fetch them if so.
+  fetchNormalWorkOrders(op_index);
 
-        if (checkRebuildRequired(response_op_index)) {
-          if (checkNormalExecutionOver(response_op_index)) {
-            if (!checkRebuildInitiated(response_op_index)) {
-              if (initiateRebuild(response_op_index)) {
-                // Rebuild initiated and completed right away.
-                markOperatorFinished(response_op_index);
-              } else {
-                // Rebuild under progress.
-              }
-            } else if (checkRebuildOver(response_op_index)) {
-              // Rebuild was under progress and now it is over.
-              markOperatorFinished(response_op_index);
-            }
-          } else {
-            // Normal execution under progress for this operator.
-          }
-        } else if (checkOperatorExecutionOver(response_op_index)) {
-          // Rebuild not required for this operator and its normal execution is
-          // complete.
-          markOperatorFinished(response_op_index);
+  if (checkRebuildRequired(op_index)) {
+    if (checkNormalExecutionOver(op_index)) {
+      if (!checkRebuildInitiated(op_index)) {
+        if (initiateRebuild(op_index)) {
+          // Rebuild initiated and completed right away.
+          markOperatorFinished(op_index);
+        } else {
+          // Rebuild under progress.
         }
-
-        for (pair<dag_node_index, bool> dependent_link :
-             query_dag_->getDependents(response_op_index)) {
-          RelationalOperator *dependent_op =
-              query_dag_->getNodePayloadMutable(dependent_link.first);
-          if (checkAllBlockingDependenciesMet(dependent_link.first)) {
-            // Process the dependent operator (of the operator whose WorkOrder
-            // was just executed) for which all the dependencies have been met.
-            processOperator(dependent_op, dependent_link.first, true);
-          }
-        }
+      } else if (checkRebuildOver(op_index)) {
+        // Rebuild was under progress and now it is over.
+        markOperatorFinished(op_index);
       }
-      break;
-    case ForemanMessage::kRebuildCompletion:
-      {
-        DEBUG_ASSERT(worker_id >= 0);
-        // Completion of a rebuild WorkOrder.
-        --rebuild_status_[response_op_index].second;
-        workers_->decrementNumQueuedWorkOrders(worker_id);
-
-        if (checkRebuildOver(response_op_index)) {
-          markOperatorFinished(response_op_index);
-          for (pair<dag_node_index, bool> dependent_link :
-               query_dag_->getDependents(response_op_index)) {
-            RelationalOperator *dependent_op =
-                query_dag_->getNodePayloadMutable(dependent_link.first);
-            if (checkAllBlockingDependenciesMet(dependent_link.first)) {
-              processOperator(dependent_op, dependent_link.first, true);
-            }
-          }
-        }
-      }
-      break;
-    case ForemanMessage::kDataPipeline:
-      {
-        // Data streaming message. Possible senders of this message include
-        // InsertDestination and some operators which modify existing blocks.
-        for (dag_node_index consumer_index :
-             output_consumers_[response_op_index]) {
-          RelationalOperator *consumer_op =
-              query_dag_->getNodePayloadMutable(consumer_index);
-          // Feed the streamed block to the consumer. Note that
-          // output_consumers_ only contain those dependents of operator with
-          // index = response_op_index which are eligible to receive streamed
-          // input.
-          consumer_op->feedInputBlock(message.getOutputBlockID(),
-                                      message.getRelationID());
-          // Because of the streamed input just fed, check if there are any new
-          // WorkOrders available and if so, fetch them.
-          fetchNormalWorkOrders(consumer_op, consumer_index);
-        }  // end for (feeding input to dependents)
-      }
-      break;
-    case ForemanMessage::kWorkOrdersAvailable: {
-      // Check if new work orders are available.
-      fetchNormalWorkOrders(
-          query_dag_->getNodePayloadMutable(response_op_index),
-          response_op_index);
-      break;
+    } else {
+      // Normal execution under progress for this operator.
     }
-    default:
-      FATAL_ERROR("Unknown ForemanMessage type");
+  } else if (checkOperatorExecutionOver(op_index)) {
+    // Rebuild not required for this operator and its normal execution is
+    // complete.
+    markOperatorFinished(op_index);
+  }
+
+  for (const pair<dag_node_index, bool> &dependent_link :
+       query_dag_->getDependents(op_index)) {
+    const dag_node_index dependent_op_index = dependent_link.first;
+    if (checkAllBlockingDependenciesMet(dependent_op_index)) {
+      // Process the dependent operator (of the operator whose WorkOrder
+      // was just executed) for which all the dependencies have been met.
+      processOperator(dependent_op_index, true);
+    }
   }
 
   // Dispatch the WorkerMessages to the workers. We prefer to start the search
-  // for the schedulable WorkOrders beginning from response_op_index. The first
+  // for the schedulable WorkOrders beginning from 'op_index'. The first
   // candidate worker to receive the next WorkOrder is the one that sent the
   // response message to Foreman.
-  dispatchWorkerMessages(((worker_id >= 0) ? worker_id : 0), response_op_index);
-  return num_operators_finished_ == dag_size;
+  dispatchWorkerMessages(worker_id, op_index);
+}
+
+void Foreman::processRebuildWorkOrderCompleteMessage(const dag_node_index op_index,
+                                                     const size_t worker_id) {
+  --rebuild_status_[op_index].second;
+  workers_->decrementNumQueuedWorkOrders(worker_id);
+
+  if (checkRebuildOver(op_index)) {
+    markOperatorFinished(op_index);
+
+    for (const pair<dag_node_index, bool> &dependent_link :
+         query_dag_->getDependents(op_index)) {
+      const dag_node_index dependent_op_index = dependent_link.first;
+      if (checkAllBlockingDependenciesMet(dependent_op_index)) {
+        processOperator(dependent_op_index, true);
+      }
+    }
+  }
+
+  // Dispatch the WorkerMessages to the workers. We prefer to start the search
+  // for the schedulable WorkOrders beginning from 'op_index'. The first
+  // candidate worker to receive the next WorkOrder is the one that sent the
+  // response message to Foreman.
+  dispatchWorkerMessages(worker_id, op_index);
+}
+
+void Foreman::processDataPipelineMessage(const dag_node_index op_index,
+                                         const block_id block,
+                                         const relation_id rel_id) {
+  for (const dag_node_index consumer_index :
+       output_consumers_[op_index]) {
+    // Feed the streamed block to the consumer. Note that 'output_consumers_'
+    // only contain those dependents of operator with index = op_index which are
+    // eligible to receive streamed input.
+    query_dag_->getNodePayloadMutable(consumer_index)->feedInputBlock(block, rel_id);
+    // Because of the streamed input just fed, check if there are any new
+    // WorkOrders available and if so, fetch them.
+    fetchNormalWorkOrders(consumer_index);
+  }
+
+  // Dispatch the WorkerMessages to the workers. We prefer to start the search
+  // for the schedulable WorkOrders beginning from 'op_index'. The first
+  // candidate worker to receive the next WorkOrder is the one that sent the
+  // response message to Foreman.
+  // TODO(zuyu): Improve the data locality for the next WorkOrder.
+  dispatchWorkerMessages(0, op_index);
 }
 
 void Foreman::processFeedbackMessage(const WorkOrder::FeedbackMessage &msg) {
@@ -195,21 +176,62 @@ void Foreman::processFeedbackMessage(const WorkOrder::FeedbackMessage &msg) {
 
 void Foreman::run() {
   // Initialize before for Foreman eventloop.
-  bool done = initialize();
+  initialize();
 
   // Event loop
-  while (!done) {
+  while (!checkQueryExecutionFinished()) {
     // Receive() causes this thread to sleep until next message is received.
     AnnotatedMessage annotated_msg = bus_->Receive(foreman_client_id_, 0, true);
-    // Message is either workorder feedback message or foreman message.
-    if (annotated_msg.tagged_message.message_type() == kWorkOrderFeedbackMessage) {
-      WorkOrder::FeedbackMessage msg(
-          const_cast<void *>(annotated_msg.tagged_message.message()),
-          annotated_msg.tagged_message.message_bytes());
-      processFeedbackMessage(msg);
-    } else {
-      done = processMessage(*static_cast<const ForemanMessage *>(
-                                annotated_msg.tagged_message.message()));
+    const TaggedMessage &tagged_message = annotated_msg.tagged_message;
+    switch (tagged_message.message_type()) {
+      case kWorkOrderCompleteMessage: {
+        serialization::WorkOrderCompletionMessage proto;
+        CHECK(proto.ParseFromArray(tagged_message.message(), tagged_message.message_bytes()));
+
+        processWorkOrderCompleteMessage(proto.operator_index(), proto.worker_id());
+        break;
+      }
+      case kRebuildWorkOrderCompleteMessage: {
+        serialization::WorkOrderCompletionMessage proto;
+        CHECK(proto.ParseFromArray(tagged_message.message(), tagged_message.message_bytes()));
+
+        processRebuildWorkOrderCompleteMessage(proto.operator_index(), proto.worker_id());
+        break;
+      }
+      case kDataPipelineMessage: {
+        // Possible message senders include InsertDestinations and some
+        // operators which modify existing blocks.
+        serialization::DataPipelineMessage proto;
+        CHECK(proto.ParseFromArray(tagged_message.message(), tagged_message.message_bytes()));
+
+        processDataPipelineMessage(proto.operator_index(), proto.block_id(), proto.relation_id());
+        break;
+      }
+      case kWorkOrdersAvailableMessage: {
+        serialization::WorkOrdersAvailableMessage proto;
+        CHECK(proto.ParseFromArray(tagged_message.message(), tagged_message.message_bytes()));
+
+        const dag_node_index op_index = proto.operator_index();
+
+        // Check if new work orders are available.
+        fetchNormalWorkOrders(op_index);
+
+        // Dispatch the WorkerMessages to the workers. We prefer to start the search
+        // for the schedulable WorkOrders beginning from 'op_index'. The first
+        // candidate worker to receive the next WorkOrder is the one that sent the
+        // response message to Foreman.
+        // TODO(zuyu): Improve the data locality for the next WorkOrder.
+        dispatchWorkerMessages(0, op_index);
+        break;
+      }
+      case kWorkOrderFeedbackMessage: {
+        WorkOrder::FeedbackMessage msg(const_cast<void *>(tagged_message.message()),
+                                       tagged_message.message_bytes());
+        processFeedbackMessage(msg);
+        break;
+      }
+      default:
+        LOG(FATAL) << "Unknown message type to Foreman";
     }
   }
 
@@ -247,8 +269,8 @@ void Foreman::dispatchWorkerMessages(
 
 WorkerMessage* Foreman::generateWorkerMessage(
     WorkOrder *workorder,
-    dag_node_index index,
-    WorkerMessage::WorkerMessageType type) {
+    const dag_node_index index,
+    const WorkerMessage::WorkerMessageType type) {
   std::unique_ptr<WorkerMessage> worker_message;
   switch (type) {
     case WorkerMessage::kWorkOrder :
@@ -288,16 +310,17 @@ void Foreman::initializeState() {
       rebuild_status_[node_index] = std::make_pair(false, 0);
     }
 
-    for (pair<dag_node_index, bool> dependent_link :
+    for (const pair<dag_node_index, bool> &dependent_link :
          query_dag_->getDependents(node_index)) {
-      if (!query_dag_->getLinkMetadata(node_index, dependent_link.first)) {
+      const dag_node_index dependent_op_index = dependent_link.first;
+      if (!query_dag_->getLinkMetadata(node_index, dependent_op_index)) {
         // The link is not a pipeline-breaker. Streaming of blocks is possible
         // between these two operators.
-        output_consumers_[node_index].push_back(dependent_link.first);
+        output_consumers_[node_index].push_back(dependent_op_index);
       } else {
         // The link is a pipeline-breaker. Streaming of blocks is not possible
         // between these two operators.
-        blocking_dependencies_[dependent_link.first].push_back(node_index);
+        blocking_dependencies_[dependent_op_index].push_back(node_index);
       }
     }
   }
@@ -362,7 +385,7 @@ WorkerMessage* Foreman::getNextWorkerMessage(
   return nullptr;
 }
 
-void Foreman::sendWorkerMessage(std::size_t worker_id,
+void Foreman::sendWorkerMessage(const std::size_t worker_id,
                                 const WorkerMessage &message) {
   message_type_id type;
   if (message.getType() == WorkerMessage::kRebuildWorkOrder) {
@@ -375,18 +398,29 @@ void Foreman::sendWorkerMessage(std::size_t worker_id,
   TaggedMessage worker_tagged_message;
   worker_tagged_message.set_message(&message, sizeof(message), type);
 
-  QueryExecutionUtil::SendTMBMessage(bus_,
-                                     foreman_client_id_,
-                                     workers_->getClientID(worker_id),
-                                     move(worker_tagged_message));
+  const tmb::MessageBus::SendStatus send_status =
+      QueryExecutionUtil::SendTMBMessage(bus_,
+                                         foreman_client_id_,
+                                         workers_->getClientID(worker_id),
+                                         move(worker_tagged_message));
+  CHECK(send_status == tmb::MessageBus::SendStatus::kOK) <<
+      "Message could not be sent from Foreman with TMB client ID "
+      << foreman_client_id_ << " to Foreman with TMB client ID "
+      << workers_->getClientID(worker_id);
 }
 
-bool Foreman::fetchNormalWorkOrders(RelationalOperator *op, dag_node_index index) {
+bool Foreman::fetchNormalWorkOrders(const dag_node_index index) {
   bool generated_new_workorders = false;
   if (!done_gen_[index]) {
+    // Do not fetch any work units until all blocking dependencies are met.
+    // The releational operator is not aware of blocking dependencies for
+    // uncorrelated scalar queries.
+    if (!checkAllBlockingDependenciesMet(index)) {
+      return false;
+    }
     const size_t num_pending_workorders_before =
         workorders_container_->getNumNormalWorkOrders(index);
-    done_gen_[index] = op->getAllWorkOrders(workorders_container_.get());
+    done_gen_[index] = query_dag_->getNodePayloadMutable(index)->getAllWorkOrders(workorders_container_.get());
 
     // TODO(shoban): It would be a good check to see if operator is making
     // useful progress, i.e., the operator either generates work orders to
@@ -402,10 +436,9 @@ bool Foreman::fetchNormalWorkOrders(RelationalOperator *op, dag_node_index index
   return generated_new_workorders;
 }
 
-void Foreman::processOperator(RelationalOperator *op,
-                              dag_node_index index,
-                              bool recursively_check_dependents) {
-  if (fetchNormalWorkOrders(op, index)) {
+void Foreman::processOperator(const dag_node_index index,
+                              const bool recursively_check_dependents) {
+  if (fetchNormalWorkOrders(index)) {
     // Fetched work orders. Return to wait for the generated work orders to
     // execute, and skip the execution-finished checks.
     return;
@@ -432,35 +465,35 @@ void Foreman::processOperator(RelationalOperator *op,
     }
     // If we reach here, that means the operator has been marked as finished.
     if (recursively_check_dependents) {
-      for (pair<dag_node_index, bool> dependent_link :
+      for (const pair<dag_node_index, bool> &dependent_link :
            query_dag_->getDependents(index)) {
-        if (checkAllBlockingDependenciesMet(dependent_link.first)) {
-          processOperator(
-              query_dag_->getNodePayloadMutable(dependent_link.first),
-              dependent_link.first, true);
+        const dag_node_index dependent_op_index = dependent_link.first;
+        if (checkAllBlockingDependenciesMet(dependent_op_index)) {
+          processOperator(dependent_op_index, true);
         }
       }
     }
   }
 }
 
-void Foreman::markOperatorFinished(dag_node_index index) {
+void Foreman::markOperatorFinished(const dag_node_index index) {
   execution_finished_[index] = true;
   ++num_operators_finished_;
   const relation_id output_rel = query_dag_->getNodePayload(index).getOutputRelationID();
-  for (pair<dag_node_index, bool> dependent_link : query_dag_->getDependents(index)) {
-    RelationalOperator *dependent_op = query_dag_->getNodePayloadMutable(dependent_link.first);
+  for (const pair<dag_node_index, bool> &dependent_link : query_dag_->getDependents(index)) {
+    const dag_node_index dependent_op_index = dependent_link.first;
+    RelationalOperator *dependent_op = query_dag_->getNodePayloadMutable(dependent_op_index);
     // Signal dependent operator that current operator is done feeding input blocks.
     if (output_rel >= 0) {
       dependent_op->doneFeedingInputBlocks(output_rel);
     }
-    if (checkAllBlockingDependenciesMet(dependent_link.first)) {
+    if (checkAllBlockingDependenciesMet(dependent_op_index)) {
       dependent_op->informAllBlockingDependenciesMet();
     }
   }
 }
 
-bool Foreman::initiateRebuild(dag_node_index index) {
+bool Foreman::initiateRebuild(const dag_node_index index) {
   DEBUG_ASSERT(!workorders_container_->hasRebuildWorkOrder(index));
   DEBUG_ASSERT(checkRebuildRequired(index));
   DEBUG_ASSERT(!checkRebuildInitiated(index));
@@ -473,7 +506,7 @@ bool Foreman::initiateRebuild(dag_node_index index) {
   return (rebuild_status_[index].second == 0);
 }
 
-void Foreman::getRebuildWorkOrders(dag_node_index index, WorkOrdersContainer *container) {
+void Foreman::getRebuildWorkOrders(const dag_node_index index, WorkOrdersContainer *container) {
   const RelationalOperator &op = query_dag_->getNodePayload(index);
   const QueryContext::insert_destination_id insert_destination_index = op.getInsertDestinationID();
 

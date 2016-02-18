@@ -159,6 +159,7 @@ class RunTest : public ::testing::Test {
     bus_.Initialize();
     thread_client_id_ = bus_.Connect();
     bus_.RegisterClientAsSender(thread_client_id_, kDataPipelineMessage);
+    bus_.RegisterClientAsReceiver(thread_client_id_, kDataPipelineMessage);
 
     thread_id_map_ = ClientIDMap::Instance();
     // Usually the worker thread makes the following call. In this test setup,
@@ -376,6 +377,7 @@ class RunMergerTest : public ::testing::Test {
     bus_.Initialize();
     thread_client_id_ = bus_.Connect();
     bus_.RegisterClientAsSender(thread_client_id_, kDataPipelineMessage);
+    bus_.RegisterClientAsReceiver(thread_client_id_, kDataPipelineMessage);
 
     thread_id_map_ = ClientIDMap::Instance();
     // Usually the worker thread makes the following call. In this test setup,
@@ -1200,6 +1202,7 @@ class SortMergeRunOperatorTest : public ::testing::Test {
 
     foreman_client_id_ = bus_.Connect();
     bus_.RegisterClientAsReceiver(foreman_client_id_, kWorkOrderFeedbackMessage);
+    bus_.RegisterClientAsReceiver(foreman_client_id_, kDataPipelineMessage);
 
     storage_manager_.reset(new StorageManager(kStoragePath));
 
@@ -1404,13 +1407,14 @@ class SortMergeRunOperatorTest : public ::testing::Test {
     std::size_t num_receieved = 0;
     do {
       if (bus_.ReceiveIfAvailable(foreman_client_id_, &msg)) {
-        EXPECT_EQ(kWorkOrderFeedbackMessage, msg.tagged_message.message_type());
-        WorkOrder::FeedbackMessage feedback_msg(
-            const_cast<void *>(msg.tagged_message.message()),
-            msg.tagged_message.message_bytes());
-        EXPECT_EQ(kOpIndex, feedback_msg.header().rel_op_index);
-        merge_op_->receiveFeedbackMessage(feedback_msg);
-        num_receieved++;
+        if (msg.tagged_message.message_type() == kWorkOrderFeedbackMessage) {
+          WorkOrder::FeedbackMessage feedback_msg(
+              const_cast<void *>(msg.tagged_message.message()),
+              msg.tagged_message.message_bytes());
+          EXPECT_EQ(kOpIndex, feedback_msg.header().rel_op_index);
+          merge_op_->receiveFeedbackMessage(feedback_msg);
+          num_receieved++;
+        }
       }
     } while (num_receieved < expected);
   }
@@ -1487,7 +1491,7 @@ class SortMergeRunOperatorTest : public ::testing::Test {
     const QueryContext::sort_config_id sort_config_index = createSortConfigProto(attrs, ordering, null_ordering);
 
     merge_op_.reset(new SortMergeRunOperator(*input_table_,
-                                             result_table_->getID(),
+                                             *result_table_,
                                              insert_destination_index_,
                                              *run_table_,
                                              run_destination_index_,
@@ -1528,7 +1532,7 @@ class SortMergeRunOperatorTest : public ::testing::Test {
     const QueryContext::sort_config_id sort_config_index = createSortConfigProto(attrs, ordering, null_ordering);
 
     merge_op_.reset(new SortMergeRunOperator(*input_table_,
-                                             result_table_->getID(),
+                                             *result_table_,
                                              insert_destination_index_,
                                              *run_table_,
                                              run_destination_index_,
