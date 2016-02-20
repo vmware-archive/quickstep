@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -30,9 +30,10 @@
 
 namespace quickstep {
 
-class CatalogDatabase;
-class StorageManager;
+class AggregationOperationState;
 class WorkOrdersContainer;
+
+namespace serialization { class WorkOrder; }
 
 /** \addtogroup RelationalOperators
  *  @{
@@ -78,6 +79,15 @@ class AggregationOperator : public RelationalOperator {
   }
 
  private:
+  /**
+   * @brief Create Work Order proto.
+   *
+   * @param block The block id used in the Work Order.
+   *
+   * @return The created WorkOrder proto.
+   **/
+  serialization::WorkOrder* createWorkOrderProto(const block_id block) const;
+
   const bool input_relation_is_stored_;
   std::vector<block_id> input_relation_block_ids_;
   const QueryContext::aggregation_state_id aggr_state_index_;
@@ -97,23 +107,20 @@ class AggregationWorkOrder : public WorkOrder {
    * @brief Constructor
    *
    * @param input_block_id The block id.
-   * @param aggr_state_index The index of the AggregationState in QueryContext.
+   * @param state The aggregation operation state.
    **/
-  AggregationWorkOrder(
-      const block_id input_block_id,
-      const QueryContext::aggregation_state_id aggr_state_index)
+  AggregationWorkOrder(const block_id input_block_id,
+                       AggregationOperationState *state)
       : input_block_id_(input_block_id),
-        aggr_state_index_(aggr_state_index) {}
+        state_(state) {}
 
   ~AggregationWorkOrder() override {}
 
-  void execute(QueryContext *query_context,
-               CatalogDatabase *catalog_database,
-               StorageManager *storage_manager) override;
+  void execute() override;
 
  private:
   const block_id input_block_id_;
-  const QueryContext::aggregation_state_id aggr_state_index_;
+  AggregationOperationState *state_;
 
   DISALLOW_COPY_AND_ASSIGN(AggregationWorkOrder);
 };

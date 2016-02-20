@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #ifndef QUICKSTEP_RELATIONAL_OPERATORS_BUILD_HASH_OPERATOR_HPP_
 #define QUICKSTEP_RELATIONAL_OPERATORS_BUILD_HASH_OPERATOR_HPP_
 
+#include <utility>
 #include <vector>
 
 #include "catalog/CatalogRelation.hpp"
@@ -25,14 +26,17 @@
 #include "query_execution/QueryContext.hpp"
 #include "relational_operators/RelationalOperator.hpp"
 #include "relational_operators/WorkOrder.hpp"
+#include "storage/HashTable.hpp"
 #include "storage/StorageBlockInfo.hpp"
 #include "utility/Macros.hpp"
 
 namespace quickstep {
 
-class CatalogDatabase;
+class CatalogRelationSchema;
 class StorageManager;
 class WorkOrdersContainer;
+
+namespace serialization { class WorkOrder; }
 
 /** \addtogroup RelationalOperators
  *  @{
@@ -90,6 +94,15 @@ class BuildHashOperator : public RelationalOperator {
   }
 
  private:
+  /**
+   * @brief Create Work Order proto.
+   *
+   * @param block The block id used in the Work Order.
+   *
+   * @return The created WorkOrder proto.
+   **/
+  serialization::WorkOrder* createWorkOrderProto(const block_id block) const;
+
   const CatalogRelation &input_relation_;
   const bool input_relation_is_stored_;
   const std::vector<attribute_id> join_key_attributes_;
@@ -112,36 +125,38 @@ class BuildHashWorkOrder : public WorkOrder {
   /**
    * @brief Constructor.
    *
-   * @param rel_id The id of the relation to build hash table on.
-   * @param join_key_attributes The IDs of equijoin attributes in
-   *        input_relation.
-   * @param any_join_key_attributes_nullable If any attribute is nullable.
+   * @param relation_schema The relation schema to build hash table on.
    * @param build_block_id The block id.
-   * @param hash_table_index The index of the JoinHashTable in QueryContext.
+   * @param any_join_key_attributes_nullable If any attribute is nullable.
+   * @param join_key_attributes The IDs of equijoin attributes in
+   *        'relation_schema'.
+   * @param hash_table The The hash table for joins.
+   * @param storage_manager The StorageManager to use.
    **/
-  BuildHashWorkOrder(const relation_id rel_id,
-                     const std::vector<attribute_id> &join_key_attributes,
-                     const bool any_join_key_attributes_nullable,
+  BuildHashWorkOrder(const CatalogRelationSchema &relation_schema,
                      const block_id build_block_id,
-                     const QueryContext::join_hash_table_id hash_table_index)
-      : rel_id_(rel_id),
-        join_key_attributes_(join_key_attributes),
-        any_join_key_attributes_nullable_(any_join_key_attributes_nullable),
+                     const bool any_join_key_attributes_nullable,
+                     std::vector<attribute_id> &&join_key_attributes,
+                     JoinHashTable *hash_table,
+                     StorageManager *storage_manager)
+      : relation_schema_(relation_schema),
         build_block_id_(build_block_id),
-        hash_table_index_(hash_table_index) {}
+        any_join_key_attributes_nullable_(any_join_key_attributes_nullable),
+        join_key_attributes_(std::move(join_key_attributes)),
+        hash_table_(hash_table),
+        storage_manager_(storage_manager) {}
 
   ~BuildHashWorkOrder() override {}
 
-  void execute(QueryContext *query_context,
-               CatalogDatabase *catalog_database,
-               StorageManager *storage_manager) override;
+  void execute() override;
 
  private:
-  const relation_id rel_id_;
-  const std::vector<attribute_id> join_key_attributes_;
-  const bool any_join_key_attributes_nullable_;
+  const CatalogRelationSchema &relation_schema_;
   const block_id build_block_id_;
-  const QueryContext::join_hash_table_id hash_table_index_;
+  const bool any_join_key_attributes_nullable_;
+  const std::vector<attribute_id> join_key_attributes_;
+  JoinHashTable *hash_table_;
+  StorageManager *storage_manager_;
 
   DISALLOW_COPY_AND_ASSIGN(BuildHashWorkOrder);
 };

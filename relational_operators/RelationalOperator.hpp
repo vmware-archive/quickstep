@@ -33,6 +33,8 @@ namespace quickstep {
 
 class WorkOrdersContainer;
 
+namespace serialization { class WorkOrder; }
+
 /** \addtogroup RelationalOperators
  *  @{
  */

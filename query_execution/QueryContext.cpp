@@ -37,6 +37,8 @@
 
 #include "glog/logging.h"
 
+#include "tmb/id_typedefs.h"
+
 using std::move;
 using std::unique_ptr;
 using std::vector;
@@ -44,6 +46,7 @@ using std::vector;
 namespace quickstep {
 
 QueryContext::QueryContext(const serialization::QueryContext &proto,
+                           const tmb::client_id foreman_client_id,
                            CatalogDatabase *database,
                            StorageManager *storage_manager,
                            tmb::MessageBus *bus) {
@@ -68,6 +71,7 @@ QueryContext::QueryContext(const serialization::QueryContext &proto,
     const serialization::InsertDestination &insert_destination_proto = proto.insert_destinations(i);
     insert_destinations_.emplace_back(
         InsertDestination::ReconstructFromProto(insert_destination_proto,
+                                                foreman_client_id,
                                                 database->getRelationByIdMutable(
                                                     insert_destination_proto.relation_id()),
                                                 storage_manager,

@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -26,8 +26,7 @@
 
 namespace quickstep {
 
-class CatalogDatabase;
-class StorageManager;
+class InsertDestination;
 class WorkOrdersContainer;
 
 /** \addtogroup RelationalOperators
@@ -86,24 +85,26 @@ class FinalizeAggregationWorkOrder : public WorkOrder {
    * @brief Constructor.
    *
    * @param aggr_state_index The index of the AggregationState in QueryContext.
-   * @param output_destination_index The index of the InsertDestination in the
-   *        QueryContext to insert aggregation results.
+   * @param output_destination Where to insert aggregation results.
+   * @param query_context The QueryContext to use.
    */
   FinalizeAggregationWorkOrder(
       const QueryContext::aggregation_state_id aggr_state_index,
-      const QueryContext::insert_destination_id output_destination_index)
+      InsertDestination *output_destination,
+      QueryContext *query_context)
       : aggr_state_index_(aggr_state_index),
-        output_destination_index_(output_destination_index) {}
+        output_destination_(output_destination),
+        query_context_(query_context) {}
 
   ~FinalizeAggregationWorkOrder() override {}
 
-  void execute(QueryContext *query_context,
-               CatalogDatabase *catalog_database,
-               StorageManager *storage_manager) override;
+  void execute() override;
 
  private:
   const QueryContext::aggregation_state_id aggr_state_index_;
-  const QueryContext::insert_destination_id output_destination_index_;
+
+  InsertDestination *output_destination_;
+  QueryContext *query_context_;
 
   DISALLOW_COPY_AND_ASSIGN(FinalizeAggregationWorkOrder);
 };

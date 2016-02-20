@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -37,10 +37,6 @@
 #include "tmb/tagged_message.h"
 
 namespace quickstep {
-
-class CatalogDatabase;
-class QueryContext;
-class StorageManager;
 
 /** \addtogroup RelationalOperators
  *  @{
@@ -242,14 +238,8 @@ class WorkOrder {
 
   /**
    * @brief Run this WorkOrder in the calling thread.
-   *
-   * @param query_context The QueryContext that stores query execution states.
-   * @param catalog_database The catalog database where this query is executed.
-   * @param storage_manager The StorageManager to use.
    **/
-  virtual void execute(QueryContext *query_context,
-                       CatalogDatabase *catalog_database,
-                       StorageManager *storage_manager) = 0;
+  virtual void execute() = 0;
 
   /**
    * @brief Get the preferred NUMA node(s) where this WorkOrder should be

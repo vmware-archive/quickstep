@@ -22,9 +22,8 @@
 #include <list>
 #include <memory>
 #include <queue>
-#include <vector>
 
-#include "relational_operators/WorkOrder.hpp"
+#include "relational_operators/WorkOrder.pb.h"
 #include "utility/Macros.hpp"
 #include "utility/PtrVector.hpp"
 
@@ -48,7 +47,7 @@ class WorkOrdersContainer {
    * @param num_numa_nodes Number of NUMA nodes in the system.
    **/
   WorkOrdersContainer(const std::size_t num_operators,
-                     const std::size_t num_numa_nodes)
+                      const std::size_t num_numa_nodes)
     : num_operators_(num_operators), num_numa_nodes_(num_numa_nodes) {
     DEBUG_ASSERT(num_operators != 0);
     for (std::size_t op = 0; op < num_operators; ++op) {
@@ -142,8 +141,8 @@ class WorkOrdersContainer {
    *         available, return nullptr. The caller is responsible for taking the
    *         ownership.
    **/
-  WorkOrder* getNormalWorkOrderForNUMANode(const std::size_t operator_index,
-                                           const int numa_node_id) {
+  serialization::WorkOrder* getNormalWorkOrderForNUMANode(const std::size_t operator_index,
+                                                          const int numa_node_id) {
     DEBUG_ASSERT(operator_index < num_operators_);
     DEBUG_ASSERT(numa_node_id >= 0);
     DEBUG_ASSERT(static_cast<std::size_t>(numa_node_id) < num_numa_nodes_);
@@ -162,8 +161,8 @@ class WorkOrdersContainer {
    * @return A WorkOrder. If no WorkOrder is available, returns nullptr. The
    *         caller is responsible for taking the ownership.
    **/
-  WorkOrder* getNormalWorkOrder(const std::size_t operator_index,
-                                const bool prefer_single_NUMA_node = true) {
+  serialization::WorkOrder* getNormalWorkOrder(const std::size_t operator_index,
+                                               const bool prefer_single_NUMA_node = true) {
     DEBUG_ASSERT(operator_index < num_operators_);
     return normal_workorders_[operator_index].getWorkOrder(
         prefer_single_NUMA_node);
@@ -180,8 +179,8 @@ class WorkOrdersContainer {
    *         available, return nullptr. The caller is responsible for taking the
    *         ownership.
    **/
-  WorkOrder* getRebuildWorkOrderForNUMANode(const std::size_t operator_index,
-                                            const int numa_node_id) {
+  serialization::WorkOrder* getRebuildWorkOrderForNUMANode(const std::size_t operator_index,
+                                                           const int numa_node_id) {
     DEBUG_ASSERT(operator_index < num_operators_);
     DEBUG_ASSERT(numa_node_id >= 0);
     DEBUG_ASSERT(static_cast<std::size_t>(numa_node_id) < num_numa_nodes_);
@@ -200,8 +199,8 @@ class WorkOrdersContainer {
    * @return A WorkOrder. If no WorkOrder is available, returns nullptr. The
    *         caller is responsible for taking the ownership.
    **/
-  WorkOrder* getRebuildWorkOrder(const std::size_t operator_index,
-                                 const bool prefer_single_NUMA_node = true) {
+  serialization::WorkOrder* getRebuildWorkOrder(const std::size_t operator_index,
+                                                const bool prefer_single_NUMA_node = true) {
     DEBUG_ASSERT(operator_index < num_operators_);
     return rebuild_workorders_[operator_index].getWorkOrder(
         prefer_single_NUMA_node);
@@ -219,7 +218,7 @@ class WorkOrdersContainer {
    * @param workorder A pointer to the WorkOrder to be added.
    * @param operator_index The index of the operator in the query DAG.
    **/
-  void addNormalWorkOrder(WorkOrder *workorder, const std::size_t operator_index) {
+  void addNormalWorkOrder(serialization::WorkOrder *workorder, const std::size_t operator_index) {
     DEBUG_ASSERT(workorder != nullptr);
     DEBUG_ASSERT(operator_index < num_operators_);
     normal_workorders_[operator_index].addWorkOrder(workorder);
@@ -236,7 +235,7 @@ class WorkOrdersContainer {
    * @param workorder A pointer to the WorkOrder to be added.
    * @param operator_index The index of the operator in the query DAG.
    **/
-  void addRebuildWorkOrder(WorkOrder *workorder,
+  void addRebuildWorkOrder(serialization::WorkOrder *workorder,
                            const std::size_t operator_index) {
     DEBUG_ASSERT(workorder != nullptr);
     DEBUG_ASSERT(operator_index < num_operators_);
@@ -316,16 +315,16 @@ class WorkOrdersContainer {
     InternalQueueContainer() {
     }
 
-    inline void addWorkOrder(WorkOrder *workorder) {
-      workorders_.emplace(std::unique_ptr<WorkOrder>(workorder));
+    inline void addWorkOrder(serialization::WorkOrder *workorder) {
+      workorders_.emplace(std::unique_ptr<serialization::WorkOrder>(workorder));
     }
 
-    inline WorkOrder* getWorkOrder() {
+    inline serialization::WorkOrder* getWorkOrder() {
       if (workorders_.empty()) {
         return nullptr;
       }
 
-      WorkOrder *work_order = workorders_.front().release();
+      serialization::WorkOrder *work_order = workorders_.front().release();
       workorders_.pop();
       return work_order;
     }
@@ -339,7 +338,7 @@ class WorkOrdersContainer {
     }
 
    private:
-    std::queue<std::unique_ptr<WorkOrder>> workorders_;
+    std::queue<std::unique_ptr<serialization::WorkOrder>> workorders_;
 
     DISALLOW_COPY_AND_ASSIGN(InternalQueueContainer);
   };
@@ -356,16 +355,16 @@ class WorkOrdersContainer {
     InternalListContainer() {
     }
 
-    inline void addWorkOrder(WorkOrder *workorder) {
-      workorders_.emplace_back(std::unique_ptr<WorkOrder>(workorder));
+    inline void addWorkOrder(serialization::WorkOrder *workorder) {
+      workorders_.emplace_back(std::unique_ptr<serialization::WorkOrder>(workorder));
     }
 
-    inline WorkOrder* getWorkOrder() {
+    inline serialization::WorkOrder* getWorkOrder() {
       if (workorders_.empty()) {
         return nullptr;
       }
 
-      WorkOrder *work_order = workorders_.front().release();
+      serialization::WorkOrder *work_order = workorders_.front().release();
       workorders_.pop_front();
       return work_order;
     }
@@ -373,7 +372,7 @@ class WorkOrdersContainer {
     /**
      * @note This method has O(N) complexity.
      **/
-    WorkOrder* getWorkOrderForNUMANode(const int numa_node);
+    serialization::WorkOrder* getWorkOrderForNUMANode(const int numa_node);
 
     inline bool hasWorkOrder() const {
       return !workorders_.empty();
@@ -398,7 +397,7 @@ class WorkOrdersContainer {
     std::size_t getNumWorkOrdersForNUMANode(const int numa_node) const;
 
    private:
-    std::list<std::unique_ptr<WorkOrder>> workorders_;
+    std::list<std::unique_ptr<serialization::WorkOrder>> workorders_;
 
     DISALLOW_COPY_AND_ASSIGN(InternalListContainer);
   };
@@ -415,7 +414,7 @@ class WorkOrdersContainer {
       }
     }
 
-    void addWorkOrder(WorkOrder *workorder);
+    void addWorkOrder(serialization::WorkOrder *workorder);
 
     bool hasWorkOrderForNUMANode(const int numa_node_id) const {
       DEBUG_ASSERT(numa_node_id >= 0);
@@ -462,10 +461,10 @@ class WorkOrdersContainer {
       return num_workorders;
     }
 
-    WorkOrder* getWorkOrderForNUMANode(const int numa_node_id) {
+    serialization::WorkOrder* getWorkOrderForNUMANode(const int numa_node_id) {
       DEBUG_ASSERT(numa_node_id >= 0);
       DEBUG_ASSERT(static_cast<std::size_t>(numa_node_id) < num_numa_nodes_);
-      WorkOrder *work_order = single_numa_node_workorders_[numa_node_id].getWorkOrder();
+      serialization::WorkOrder *work_order = single_numa_node_workorders_[numa_node_id].getWorkOrder();
       if (work_order == nullptr) {
         work_order = multiple_numa_nodes_workorders_.getWorkOrderForNUMANode(
             numa_node_id);
@@ -473,10 +472,10 @@ class WorkOrdersContainer {
       return work_order;
     }
 
-    WorkOrder* getWorkOrder(const bool prefer_single_NUMA_node = true);
+    serialization::WorkOrder* getWorkOrder(const bool prefer_single_NUMA_node = true);
 
    private:
-    WorkOrder* getSingleNUMANodeWorkOrderHelper();
+    serialization::WorkOrder* getSingleNUMANodeWorkOrderHelper();
 
     const std::size_t num_numa_nodes_;
 
