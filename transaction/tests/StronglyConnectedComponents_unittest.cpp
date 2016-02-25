@@ -8,10 +8,10 @@ namespace quickstep {
 
 class StronglyConnectedComponentsTest : public testing::Test {
 public:
-  using NID = DirectedGraph<TransactionId>::NodeId;
+  using NID = DirectedGraph::NodeId;
 
   StronglyConnectedComponentsTest() {
-    wait_for_graph = std::make_unique<DirectedGraph<TransactionId>>();
+    wait_for_graph = std::make_unique<DirectedGraph>();
     tid1 = new TransactionId(1);
     tid2 = new TransactionId(2);
     tid3 = new TransactionId(3);
@@ -72,12 +72,12 @@ public:
 
     wait_for_graph->addEdge(nid12, nid10);
 
-    scc = std::make_unique<StronglyConnectedComponents<TransactionId>>(wait_for_graph.get());
+    scc = std::make_unique<StronglyConnectedComponents>(wait_for_graph.get());
     scc->findStronglyConnectedComponents();
   }
 
-  std::unique_ptr<DirectedGraph<TransactionId>> wait_for_graph;
-  std::unique_ptr<StronglyConnectedComponents<TransactionId>> scc;
+  std::unique_ptr<DirectedGraph> wait_for_graph;
+  std::unique_ptr<StronglyConnectedComponents> scc;
 
   TransactionId *tid1;
   TransactionId *tid2;

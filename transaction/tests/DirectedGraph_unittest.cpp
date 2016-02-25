@@ -6,7 +6,7 @@
 namespace quickstep {
 
 TEST(DirectedGraphTest, AddNode) {
-  DirectedGraph<TransactionId> wait_for_graph;
+  DirectedGraph wait_for_graph;
   TransactionId *tid3 = new TransactionId(3);
   TransactionId *tid4 = new TransactionId(4);
   TransactionId *tid5 = new TransactionId(5);
@@ -30,13 +30,13 @@ TEST(DirectedGraphTest, AddNode) {
 }
 
 TEST(DirectedGraphTest, AddEdge) {
-  DirectedGraph<TransactionId> wait_for_graph;
+  DirectedGraph wait_for_graph;
   TransactionId *tid3 = new TransactionId(3);
   TransactionId *tid4 = new TransactionId(4);
   TransactionId *tid5 = new TransactionId(5);
   TransactionId *tid6 = new TransactionId(6);
 
-  using NID = DirectedGraph<TransactionId>::NodeId;
+  using NID = DirectedGraph::NodeId;
   NID nid3 = wait_for_graph.addNode(tid3);
   NID nid6 = wait_for_graph.addNode(tid6);
   NID nid4 = wait_for_graph.addNode(tid4);
@@ -59,13 +59,13 @@ TEST(DirectedGraphTest, AddEdge) {
 }
 
 TEST(DirectedGraphTest, GetAdjacentNodes) {
-  DirectedGraph<TransactionId> wait_for_graph;
+  DirectedGraph wait_for_graph;
   TransactionId *tid3 = new TransactionId(3);
   TransactionId *tid4 = new TransactionId(4);
   TransactionId *tid5 = new TransactionId(5);
   TransactionId *tid6 = new TransactionId(6);
 
-  using NID = DirectedGraph<TransactionId>::NodeId;
+  using NID = DirectedGraph::NodeId;
   NID nid3 = wait_for_graph.addNode(tid3);
   NID nid6 = wait_for_graph.addNode(tid6);
   NID nid4 = wait_for_graph.addNode(tid4);
