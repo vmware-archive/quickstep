@@ -30,11 +30,10 @@ void LockManagerThread::run() {
 	  }
 	}
 	else {
-	  //std::cout << "c\n";
 	  bool result = lock_manager_->acquireLock(request.getTransactionId(),
 						 request.getResourceId(),
 						 request.getAccessMode());
-	  //std::cout << "d\n";
+	  
 	  if (!result) {
 	    std::cout << "Transaction " + std::to_string(request.getTransactionId())
 	      + " waiting " + request.getResourceId().toString() + "\n";

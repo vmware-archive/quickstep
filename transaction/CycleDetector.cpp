@@ -16,6 +16,7 @@ std::vector<DirectedGraph::NodeId> CycleDetector::breakCycle() {
   
   for (std::pair<std::uint64_t, std::vector<DirectedGraph::NodeId>>
 	 entry : component_mapping) {
+    // One node means no cycle.
     if (entry.second.size() == 1) {
       continue;
     }

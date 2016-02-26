@@ -19,6 +19,12 @@ void DeadLockDetector::addPendingInfo(TransactionId pending,
   wait_for_graph_->addEdge(pending_node_id, owner_node_id);
 }
 
+
+void DeadLockDetector::deletePendingInfo(TransactionId pending,
+					 TransactionId owner) {
+  FATAL_ERROR("Not implemented");
+}
+
 bool DeadLockDetector::isDependent(TransactionId pending, TransactionId owner) {
   FATAL_ERROR("Not implemented");
 }
