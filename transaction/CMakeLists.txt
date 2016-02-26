@@ -29,7 +29,7 @@ add_library(quickstep_transaction_LockManager
 add_library(quickstep_transaction_LockManagerThread
 	    LockManagerThread.cpp
 	    LockManagerThread.hpp)
-
+k
 add_library(quickstep_transaction_LockRequest
 	    LockRequest.cpp
 	    LockRequest.hpp)

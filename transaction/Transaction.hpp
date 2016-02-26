@@ -4,8 +4,14 @@
 #include <cstdint>
 
 namespace quickstep {
-  
+
 using TransactionId = std::uint64_t;
+
+enum class TransactionStatus {
+  kRUNNING = 0,
+  kABORTED,
+  kCOMMITTED
+};
 
 class Transaction {
 public:
@@ -15,6 +21,10 @@ public:
   
   TransactionId getTransactionId() const;
 
+  void setStatus(TransactionStatus status);
+
+  TransactionStatus getStatus() const;
+
   bool operator==(const Transaction &other) const;
 
   struct TransactionHasher {
@@ -23,6 +33,7 @@ public:
   
 private:
   TransactionId tid_;
+  TransactionStatus status_;
   //std::unique_ptr<QueryPlan> query_plan_;
   //std::unique_ptr<TransactionThread> thread_;
 };

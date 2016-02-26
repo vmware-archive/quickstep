@@ -14,7 +14,7 @@ class LockManagerThread : public Thread {
 public:
   LockManagerThread(ThreadSafeQueue<LockRequest> *incoming_requests,
 		    ThreadSafeQueue<LockRequest> *permitted_requests);
-
+  
   void run() override;
   
 private:

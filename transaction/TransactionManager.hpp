@@ -17,7 +17,6 @@ public:
 
   const Transaction& createTransaction();
   
-  
 private:
   DISALLOW_COPY_AND_ASSIGN(TransactionManager);
 
