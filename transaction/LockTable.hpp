@@ -74,9 +74,14 @@ public:
   /**
    * @brief Deletes the lock entry.
    *
-   * @param tid
-   * @param rid
+   * @param tid Id of the transaction that owns or awaits.
+   * @param rid Id of resource that the lock covers.
    *
+   * @return LockTableResult::kDEL_FROM_OWNED if the lock is deleted from 
+   *         owned list,
+   *         LockTableResult::kDEL_FROM_PENDING if the lock is deleted from 
+   *         pending list,
+   *         LockTableResult::kDEL_ERROR if the lock cannot be found
    **/
   LockTableResult deleteLock(TransactionId tid,
 			     const ResourceId &rid);
@@ -144,8 +149,12 @@ private:
   
   std::unordered_map<ResourceId, LockListPair, ResourceId::ResourceIdHasher> internal_map_;
 
+  // Mutex protects whole lock table.
   SharedMutex mutex_;
-};  
+};
+
+/** @} */
+
 }
 
 #endif

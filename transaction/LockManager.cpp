@@ -49,7 +49,7 @@ bool LockManager::acquireLock(TransactionId tid,
     std::pair<ResourceId, AccessMode> pair_to_pick = stack.top();
     ResourceId rid_to_pick = pair_to_pick.first;
     AccessMode access_mode_to_pick = pair_to_pick.second;
-    //std::cout << "LM c\n";
+    
     bool result = acquireLockInternal(tid,
 				      rid_to_pick,
 				      access_mode_to_pick);
