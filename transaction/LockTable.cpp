@@ -31,7 +31,7 @@ LockTableResult LockTable::putLock(TransactionId tid, const ResourceId &rid, Acc
     }
 
     lock_own_list.push_back(std::make_pair(tid, Lock(rid, access_mode)));
-    return LockTableResult::kALREADY_IN_OWNED;
+    return LockTableResult::kPLACED_IN_OWNED;
   }
   else {
     lock_pending_list.push_back(std::make_pair(tid, Lock(rid, access_mode)));
@@ -59,7 +59,7 @@ LockTableResult LockTable::deleteLock(TransactionId tid, const ResourceId &rid) 
        it != lock_pending_list.end();
        ++it) {
     if (it->first == tid) {
-      lock_own_list.erase(it);
+      lock_pending_list.erase(it);
       return LockTableResult::kDEL_FROM_PENDING;
     }
   }
@@ -90,8 +90,12 @@ void LockTable::movePendingToOwned(const ResourceId &rid) {
       }
     }
     if (is_compatible_with_own_list) {
-      lock_pending_list.erase(pending_it);
+      //TODO(Hakan) Check this if logic
+      // List erase invalidates the iterator, therefore
+      // we reassign pending_it.
+      pending_it = lock_pending_list.erase(pending_it);
       lock_own_list.emplace_back(pending_tid, Lock(rid, pending_mode));
+      --pending_it;
     }
     else {
       // No need for iterating pending list more since

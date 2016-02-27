@@ -84,7 +84,9 @@ std::vector<TransactionId> DeadLockDetector::getAllVictims() {
 	 it_own_list != own_list.end(); ++it_own_list) {
       
       TransactionId owned_transaction = it_own_list->first;
+
       std::cout << "Owned: " << owned_transaction << std::endl;
+
       DepGraph::NodeId owned_node = getNodeId(owned_transaction);
       
       for (LockTable::LockPendingList::const_iterator it_pending_list = pending_list.begin();
@@ -92,8 +94,11 @@ std::vector<TransactionId> DeadLockDetector::getAllVictims() {
 
 	TransactionId pending_transaction = it_pending_list->first;
 	std::cout << "Pending: " <<  pending_transaction << std::endl;
+
 	DepGraph::NodeId pending_node = getNodeId(pending_transaction);
+
 	wait_for_graph_->addEdge(pending_node, owned_node);
+
 	std::cout << "AddEdge(" << pending_transaction << ", "
 		  << owned_transaction << ")" << std::endl;
       }

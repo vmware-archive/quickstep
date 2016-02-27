@@ -26,18 +26,13 @@ LockManager::~LockManager() {
 bool LockManager::acquireLock(TransactionId tid,
 			      const ResourceId &rid,
 			      AccessMode access_mode) {
-  //std::cout << "LM a\n";
-  lock_table_->latchExclusive();
-  //std::cout << "LM b\n";
-  
   std::stack<std::pair<ResourceId, AccessMode>> stack;
   ResourceId current_rid = rid;
   AccessMode current_access_mode = access_mode;
   stack.push(std::make_pair(current_rid, current_access_mode));
 
-  //std::cout << "LM c\n";
+  
   while (current_rid.hasParent()) {
-    //std::cout << current_rid.toString() + "\n";
     current_rid = current_rid.getParentResourceId();
     current_access_mode =
       (current_access_mode.isShareLock() ||
@@ -47,7 +42,9 @@ bool LockManager::acquireLock(TransactionId tid,
     
     stack.push(std::make_pair(current_rid, current_access_mode));
   }
-  //std::cout << "LM d\n";
+  
+  lock_table_->latchExclusive();
+  
   while (!stack.empty()) {
     std::pair<ResourceId, AccessMode> pair_to_pick = stack.top();
     ResourceId rid_to_pick = pair_to_pick.first;
@@ -79,8 +76,10 @@ bool LockManager::releaseAllLocks(TransactionId tid) {
        it != related_rids.end();
        ++it) {
     LockTableResult lock_deleted = lock_table_->deleteLock(tid, *it);
+
     std::cout << "Transaction " + std::to_string(tid)
       + " released lock:" + it->toString() + "\n";
+
     if (lock_deleted == LockTableResult::kDEL_ERROR) {
       FATAL_ERROR("In LockManager.releaseAllLock "
 		  "lock could not be deleted from LockTable");
@@ -136,6 +135,8 @@ void LockManager::killVictims() {
 	 ++iter) {
       TransactionId tid = *iter;
       releaseAllLocks(tid);
+      // TODO(Hakan): Find a way to kill transaction, so that requests with this
+      //              tid should be ignored.
       std::cout << "Killed transaction " + std::to_string(tid) + "\n";
     }
   }

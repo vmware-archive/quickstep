@@ -43,7 +43,7 @@ public:
 
   /**
    * @brief Contructor for TransactionTable.
-   */
+   **/
   TransactionTable();
 
   /**
@@ -99,7 +99,7 @@ public:
    *
    * @return TransactionTableResult::kDEL_FROM_PENDING if the entry is
    *         successfuly deleted, otherwise TransactionTableResult::k_DEL_ERROR.
-   */
+   **/
   TransactionTableResult deletePendingEntry(TransactionId tid,
 					    const ResourceId &rid,
 					    AccessMode access_mode);
@@ -111,7 +111,7 @@ public:
    * @param tid Transaction id of the corresponding transaction
    *
    * @return Vector of resource id that the transaction owns or pends.
-   */
+   **/
   std::vector<ResourceId> getResourceIdList(TransactionId tid);
 
   /**
@@ -122,7 +122,7 @@ public:
    * @return TransactionTableResult::kTRANSACTION_DELETE_ERROR if there is no
    *         entry for the transaction, otherwise 
    *         TransactionTableResult::kTRANSACTION_DELETE_OK.
-   */
+   **/
   TransactionTableResult deleteTransaction(TransactionId tid);
   
 private:
