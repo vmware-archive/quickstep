@@ -15,7 +15,7 @@ add_library(quickstep_transaction_DeadLockThread
 	    DeadLockThread.hpp)
 	  
 add_library(quickstep_transaction_DirectedGraph
-	    DirectedGraph.cpp
+	    ../empty_src.cpp
 	    DirectedGraph.hpp)
 
 add_library(quickstep_transaction_Lock
