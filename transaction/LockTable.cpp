@@ -1,3 +1,20 @@
+/**
+ *   Copyright 2016, Quickstep Research Group, Computer Sciences Department,
+ *     University of Wisconsin—Madison.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ **/
+
 #include "transaction/LockTable.hpp"
 
 namespace quickstep {
@@ -6,7 +23,7 @@ namespace transaction {
 
 LockTableResult
 LockTable::putLock(TransactionId tid, const ResourceId &rid,
-		   AccessMode access_mode) {
+                   AccessMode access_mode) {
   LockListPair &lock_list_pair = internal_map_[rid];
 
   // Each resource id entry has own list and pending list.
@@ -100,23 +117,23 @@ void LockTable::movePendingToOwned(const ResourceId &rid) {
   LockOwnList &lock_own_list = lock_list_pair.first;
   LockPendingList &lock_pending_list = lock_list_pair.second;
 
-  // Iterate over pending list to pending requests compatible with the all entries
-  // in the resource ids owned lock list.
+  // Iterate over pending list to pending requests compatible with the
+  //all entries in the resource ids owned lock list.
   for (LockPendingList::const_iterator pending_it = lock_pending_list.begin(),
-	 end = lock_pending_list.end(); pending_it != end; ++pending_it) {
+         end = lock_pending_list.end(); pending_it != end; ++pending_it) {
     TransactionId pending_tid = pending_it->first;
     AccessMode pending_mode = pending_it->second.getAccessMode();
     bool is_compatible_with_own_list = true;
 
     // Now compare against the all entries in the owned lock list.
     for (LockOwnList::const_iterator owned_it = lock_own_list.begin(),
-	   end = lock_pending_list.end(); owned_it != end; ++owned_it) {
+           end = lock_pending_list.end(); owned_it != end; ++owned_it) {
       AccessMode owned_mode = owned_it->second.getAccessMode();
 
       if (!pending_mode.isCompatible(owned_mode)) {
-	// If it is not compatible, we will not move this entry.
-	is_compatible_with_own_list = false;
-	break;
+        // If it is not compatible, we will not move this entry.
+        is_compatible_with_own_list = false;
+        break;
       }
     }
 
