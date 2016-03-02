@@ -83,6 +83,7 @@ target_link_libraries(quickstep_transaction_Lock
                       quickstep_transaction_ResourceId)
 
 target_link_libraries(quickstep_transaction_LockManager
+		      quickstep_threading_Mutex
                       quickstep_transaction_AccessMode
 		      quickstep_transaction_DeadLockDetector
 		      quickstep_transaction_DeadLockThread
