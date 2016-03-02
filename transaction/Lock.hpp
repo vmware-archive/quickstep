@@ -6,30 +6,32 @@
 
 namespace quickstep {
 
+namespace transaction {
+
 /** \addtogroup Transaction
  *  @{
  */
 
 /**
- * @brief Class for representing resource locks. 
+ * @brief Class for representing resource locks.
  **/
 class Lock {
-public:
+ public:
   /**
    * @brief Constructor for Lock class.
-   * 
-   * @param rid Resource id of the resource on which the lock is taken.
    *
+   * @param rid Resource id of the resource on which the lock is taken.
    * @param access_mode Mode of the lock access.
    **/
   Lock(ResourceId rid, AccessMode access_mode);
 
   /**
    * @brief Equality operator for lock.
-   * 
-   * @param other Reference to othe Lock object that will be compared against to this 
    *
-   * @return True if both locks have equal resource ids and access modes, false otherwise.
+   * @param other Reference to othe Lock object that will
+   *        be compared against to this
+   * @return True if both locks have equal resource ids
+   *         and access modes, false otherwise.
    **/
   bool operator==(const Lock &other) const;
 
@@ -42,16 +44,18 @@ public:
 
   /**
    * @brief Getter for access mode.
-   * 
+   *
    * @return Access mode of the lock.
    **/
   AccessMode getAccessMode() const;
-  
-private:
+
+ private:
   ResourceId rid_;
   AccessMode access_mode_;
 };
-  
-}
+
+}  // namespace transaction
+
+}  // namespace quickstep
 
 #endif

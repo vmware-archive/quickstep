@@ -3,12 +3,14 @@
 #include "gtest/gtest.h"
 
 namespace quickstep {
-  
+
+namespace transaction {
+
 TEST(AccessModeTest, ModeCompatibilty) {
-  AccessMode is_mode = AccessMode::AccessModeType::kIS_LOCK;
-  AccessMode ix_mode = AccessMode::AccessModeType::kIX_LOCK;
-  AccessMode s_mode = AccessMode::AccessModeType::kS_LOCK;
-  AccessMode x_mode = AccessMode::AccessModeType::kX_LOCK;
+  AccessMode is_mode = AccessMode(AccessModeType::kIS_LOCK);
+  AccessMode ix_mode = AccessMode(AccessModeType::kIX_LOCK);
+  AccessMode s_mode = AccessMode(AccessModeType::kS_LOCK);
+  AccessMode x_mode = AccessMode(AccessModeType::kX_LOCK);
 
   EXPECT_TRUE(is_mode.isCompatible(is_mode));
   EXPECT_TRUE(is_mode.isCompatible(ix_mode));
@@ -29,14 +31,13 @@ TEST(AccessModeTest, ModeCompatibilty) {
   EXPECT_FALSE(x_mode.isCompatible(ix_mode));
   EXPECT_FALSE(x_mode.isCompatible(s_mode));
   EXPECT_FALSE(x_mode.isCompatible(x_mode));
-  
 }
 
 TEST(AccessModeTest, ModeQueryChecks) {
-  AccessMode is_mode = AccessMode::AccessModeType::kIS_LOCK;
-  AccessMode ix_mode = AccessMode::AccessModeType::kIX_LOCK;
-  AccessMode s_mode = AccessMode::AccessModeType::kS_LOCK;
-  AccessMode x_mode = AccessMode::AccessModeType::kX_LOCK;
+  AccessMode is_mode = AccessMode(AccessModeType::kIS_LOCK);
+  AccessMode ix_mode = AccessMode(AccessModeType::kIX_LOCK);
+  AccessMode s_mode = AccessMode(AccessModeType::kS_LOCK);
+  AccessMode x_mode = AccessMode(AccessModeType::kX_LOCK);
 
   EXPECT_TRUE(is_mode.isIntentionShareLock());
   EXPECT_FALSE(is_mode.isExclusiveLock());
@@ -60,15 +61,15 @@ TEST(AccessModeTest, ModeQueryChecks) {
 }
 
 TEST(AccessModeTest, Equality) {
-  AccessMode is_mode_1 = AccessMode::AccessModeType::kIS_LOCK;
-  AccessMode ix_mode_1 = AccessMode::AccessModeType::kIX_LOCK;
-  AccessMode s_mode_1 = AccessMode::AccessModeType::kS_LOCK;
-  AccessMode x_mode_1 = AccessMode::AccessModeType::kX_LOCK;
+  AccessMode is_mode_1 = AccessMode(AccessModeType::kIS_LOCK);
+  AccessMode ix_mode_1 = AccessMode(AccessModeType::kIX_LOCK);
+  AccessMode s_mode_1 = AccessMode(AccessModeType::kS_LOCK);
+  AccessMode x_mode_1 = AccessMode(AccessModeType::kX_LOCK);
 
-  AccessMode is_mode_2 = AccessMode::AccessModeType::kIS_LOCK;
-  AccessMode ix_mode_2 = AccessMode::AccessModeType::kIX_LOCK;
-  AccessMode s_mode_2 = AccessMode::AccessModeType::kS_LOCK;
-  AccessMode x_mode_2 = AccessMode::AccessModeType::kX_LOCK;
+  AccessMode is_mode_2 = AccessMode(AccessModeType::kIS_LOCK);
+  AccessMode ix_mode_2 = AccessMode(AccessModeType::kIX_LOCK);
+  AccessMode s_mode_2 = AccessMode(AccessModeType::kS_LOCK);
+  AccessMode x_mode_2 = AccessMode(AccessModeType::kX_LOCK);
 
   EXPECT_TRUE(is_mode_1 == is_mode_2);
   EXPECT_FALSE(is_mode_1 == ix_mode_1);
@@ -91,4 +92,6 @@ TEST(AccessModeTest, Equality) {
   EXPECT_TRUE(x_mode_1 == x_mode_2);
 }
 
-}
+}  // namespace transaction
+
+}  // namespace quickstep

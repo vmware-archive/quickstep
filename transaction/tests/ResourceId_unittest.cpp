@@ -4,6 +4,8 @@
 
 namespace quickstep {
 
+namespace transaction {
+
 TEST(ResourceIdTest, CheckAccessLevels) {
   ResourceId db2(2);
   ResourceId rel4_db2(2, 4);
@@ -32,9 +34,8 @@ TEST(ResourceIdTest, CheckAccessLevels) {
 }
 
 TEST(ResourceIdTest, Equality) {
-  
 }
-  
+
 TEST(ResourceIdTest, CheckAccessLevel) {
   ResourceId db2(2);
   ResourceId db3(3);
@@ -48,6 +49,8 @@ TEST(ResourceIdTest, CheckAccessLevel) {
   ResourceId block9_rel5_db3(3, 5, 9);
   ResourceId tuple4_block2_rel2_db2(2, 2, 2, 4);
   ResourceId tuple7_block2_rel2_db2(2, 2, 2, 7);
-  
 }
-}
+
+}  // namespace transaction
+
+}  // namespace quickstep

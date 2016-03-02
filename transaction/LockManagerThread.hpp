@@ -10,32 +10,34 @@
 
 namespace quickstep {
 
-/** \addtogroup Transaction 
+namespace transaction {
+
+/** \addtogroup Transaction
  *  @{
- */ 
+ */
 
 /**
  * @brief Class for the thread runs on LockManager.
  */
 class LockManagerThread : public Thread {
-public:
+ public:
   /**
    * @brief Constructor for LockManagerThread. Initial point
    *        for Transaction module.
-   * 
+   *
    * @param incoming_requests Pointer to queue for incoming lock requests.
    * @param permitted_requests Pointer to the queue for outputting permitted
-   *        lock requests. 
+   *        lock requests.
    */
   LockManagerThread(ThreadSafeQueue<LockRequest> *incoming_requests,
-		    ThreadSafeQueue<LockRequest> *permitted_requests);
+                    ThreadSafeQueue<LockRequest> *permitted_requests);
 
   /**
    * @brief Main logic loop for LockManagerThread.
    */
   void run() override;
-  
-private:
+
+ private:
   // Owner pointer to lock mananager.
   std::unique_ptr<LockManager> lock_manager_;
 
@@ -52,5 +54,7 @@ private:
 
 /** @} */
 
-}
+}  // namespace transaction
+
+}  // namespace quickstep
 #endif

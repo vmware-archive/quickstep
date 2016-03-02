@@ -1,16 +1,76 @@
-#include "transaction/DirectedGraph.hpp"
 #include "transaction/StronglyConnectedComponents.hpp"
+
+#include <vector>
+
+#include "transaction/DirectedGraph.hpp"
 #include "transaction/Transaction.hpp"
 
 #include "gtest/gtest.h"
 
 namespace quickstep {
 
+namespace transaction {
+
+class StronglyConnectedComponentsTestWithOneNode : public testing::Test {
+ protected:
+  using NID = DirectedGraph::NodeId;
+
+  StronglyConnectedComponentsTestWithOneNode() {
+    wait_for_graph = std::make_unique<DirectedGraph>();
+    tid1 = new TransactionId(1);
+    nid1 = wait_for_graph->addNode(tid1);
+
+    scc = std::make_unique<StronglyConnectedComponents>(wait_for_graph.get());
+    scc->findStronglyConnectedComponents();
+  }
+
+  std::unique_ptr<DirectedGraph> wait_for_graph;
+  std::unique_ptr<StronglyConnectedComponents> scc;
+
+  TransactionId *tid1;
+
+  NID nid1;
+
+  std::uint64_t total_components;
+};
+
+class StronglyConnectedComponentsTestWithTwoNodesCycle : public testing::Test {
+ protected:
+  using NID = DirectedGraph::NodeId;
+
+  StronglyConnectedComponentsTestWithTwoNodesCycle() {
+    wait_for_graph = std::make_unique<DirectedGraph>();
+    tid1 = new TransactionId(1);
+    tid2 = new TransactionId(2);
+
+    nid1 = wait_for_graph->addNode(tid1);
+    nid2 = wait_for_graph->addNode(tid2);
+
+    wait_for_graph->addEdge(nid1, nid2);
+    wait_for_graph->addEdge(nid2, nid1);
+
+    scc = std::make_unique<StronglyConnectedComponents>(wait_for_graph.get());
+    scc->findStronglyConnectedComponents();
+  }
+
+  std::unique_ptr<DirectedGraph> wait_for_graph;
+  std::unique_ptr<StronglyConnectedComponents> scc;
+
+  TransactionId *tid1;
+  TransactionId *tid2;
+
+  NID nid1;
+  NID nid2;
+
+  std::uint64_t total_components;
+};
+
 class StronglyConnectedComponentsTest : public testing::Test {
-public:
+ protected:
   using NID = DirectedGraph::NodeId;
 
   StronglyConnectedComponentsTest() {
+    // Creates a graph with predefined structure.
     wait_for_graph = std::make_unique<DirectedGraph>();
     tid1 = new TransactionId(1);
     tid2 = new TransactionId(2);
@@ -24,8 +84,6 @@ public:
     tid10 = new TransactionId(10);
     tid11 = new TransactionId(11);
     tid12 = new TransactionId(12);
-
-
 
     nid1 = wait_for_graph->addNode(tid1);
     nid2 = wait_for_graph->addNode(tid2);
@@ -41,7 +99,7 @@ public:
     nid12 = wait_for_graph->addNode(tid12);
 
     wait_for_graph->addEdge(nid1, nid2);
-    
+
     wait_for_graph->addEdge(nid2, nid3);
     wait_for_graph->addEdge(nid2, nid4);
     wait_for_graph->addEdge(nid2, nid5);
@@ -50,17 +108,17 @@ public:
 
     wait_for_graph->addEdge(nid4, nid5);
     wait_for_graph->addEdge(nid4, nid7);
-    
+
     wait_for_graph->addEdge(nid5, nid2);
     wait_for_graph->addEdge(nid5, nid6);
     wait_for_graph->addEdge(nid5, nid7);
-    
+
     wait_for_graph->addEdge(nid6, nid3);
     wait_for_graph->addEdge(nid6, nid8);
-    
+
     wait_for_graph->addEdge(nid7, nid8);
     wait_for_graph->addEdge(nid7, nid10);
-    
+
     wait_for_graph->addEdge(nid8, nid7);
 
     wait_for_graph->addEdge(nid9, nid7);
@@ -92,20 +150,19 @@ public:
   TransactionId *tid11;
   TransactionId *tid12;
 
-  NID nid1; 
-  NID nid2; 
-  NID nid3; 
-  NID nid4; 
-  NID nid5; 
-  NID nid6; 
-  NID nid7; 
-  NID nid8; 
-  NID nid9; 
+  NID nid1;
+  NID nid2;
+  NID nid3;
+  NID nid4;
+  NID nid5;
+  NID nid6;
+  NID nid7;
+  NID nid8;
+  NID nid9;
   NID nid10;
   NID nid11;
   NID nid12;
 
-  
   std::uint64_t nid1_component;
   std::uint64_t nid2_component;
   std::uint64_t nid3_component;
@@ -121,14 +178,49 @@ public:
 
   std::uint64_t total_components;
 };
-  
-TEST_F(StronglyConnectedComponentsTest, TotalNumberOfComponents) {
- 
+
+TEST_F(StronglyConnectedComponentsTestWithOneNode, TotalNumberOfComponents) {
   total_components = scc->getTotalComponents();
-  
-  EXPECT_EQ(4, total_components);
+
+  EXPECT_EQ(1u, total_components);
 }
-  
+
+TEST_F(StronglyConnectedComponentsTestWithOneNode, GetComponentId) {
+  std::uint64_t nid1_component = scc->getComponentId(nid1);
+  EXPECT_EQ(0u, nid1_component);
+}
+
+
+TEST_F(StronglyConnectedComponentsTestWithOneNode, GetComponentsMapping) {
+  std::unordered_map<std::uint64_t, std::vector<NID>> mapping
+      = scc->getComponentMapping();
+  std::vector<NID> component_no_0 = mapping[0];
+  EXPECT_EQ(1u, component_no_0.size());
+}
+
+TEST_F(StronglyConnectedComponentsTestWithTwoNodesCycle, TotalNumberOfComponents) {
+  total_components = scc->getTotalComponents();
+
+  EXPECT_EQ(1u, total_components);
+}
+
+TEST_F(StronglyConnectedComponentsTestWithTwoNodesCycle, GetComponentId) {
+  EXPECT_EQ(0u, scc->getComponentId(nid1));
+  EXPECT_EQ(0u, scc->getComponentId(nid2));
+}
+
+TEST_F(StronglyConnectedComponentsTestWithTwoNodesCycle, GetComponentsMapping) {
+  std::unordered_map<std::uint64_t, std::vector<NID>>
+      mapping = scc->getComponentMapping();
+  std::vector<NID> component_no_0 = mapping[0];
+  EXPECT_EQ(2u, component_no_0.size());
+}
+
+TEST_F(StronglyConnectedComponentsTest, TotalNumberOfComponents) {
+  total_components = scc->getTotalComponents();
+  EXPECT_EQ(4u, total_components);
+}
+
 TEST_F(StronglyConnectedComponentsTest, GetComponentId) {
   nid1_component = scc->getComponentId(nid1);
   nid2_component = scc->getComponentId(nid2);
@@ -148,7 +240,7 @@ TEST_F(StronglyConnectedComponentsTest, GetComponentId) {
   EXPECT_EQ(2u, nid2_component);
   EXPECT_EQ(2u, nid4_component);
   EXPECT_EQ(2u, nid5_component);
-  
+
   EXPECT_EQ(1u, nid3_component);
   EXPECT_EQ(1u, nid6_component);
 
@@ -158,11 +250,11 @@ TEST_F(StronglyConnectedComponentsTest, GetComponentId) {
   EXPECT_EQ(0u, nid10_component);
   EXPECT_EQ(0u, nid11_component);
   EXPECT_EQ(0u, nid12_component);
-  
 }
 
 TEST_F(StronglyConnectedComponentsTest, GetComponentsMapping) {
-  std::unordered_map<std::uint64_t, std::vector<NID>> mapping = scc->getComponentMapping();
+  std::unordered_map<std::uint64_t, std::vector<NID>>
+      mapping = scc->getComponentMapping();
 
   std::vector<NID> component_no_0 = mapping[0];
   std::vector<NID> component_no_1 = mapping[1];
@@ -173,6 +265,8 @@ TEST_F(StronglyConnectedComponentsTest, GetComponentsMapping) {
   EXPECT_EQ(2, component_no_1.size());
   EXPECT_EQ(3, component_no_2.size());
   EXPECT_EQ(1, component_no_3.size());
-  
 }
-}
+
+}  // namespace transaction
+
+}  // namespace quickstep

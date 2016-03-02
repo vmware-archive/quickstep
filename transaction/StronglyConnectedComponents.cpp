@@ -1,6 +1,10 @@
 #include "transaction/StronglyConnectedComponents.hpp"
 
+#include <vector>
+
 namespace quickstep {
+
+namespace transaction {
 
 StronglyConnectedComponents::StronglyConnectedComponents(DirectedGraph *directed_graph)
   : directed_graph_(directed_graph)
@@ -10,7 +14,7 @@ StronglyConnectedComponents::StronglyConnectedComponents(DirectedGraph *directed
   , preorder_counter_(0)
   , no_of_components_(0) {
 }
-  
+
 void StronglyConnectedComponents::findStronglyConnectedComponents() {
   for (DirectedGraph::NodeId v = 0; v < directed_graph_->count(); ++v) {
     if (!is_marked_[v]) {
@@ -90,7 +94,8 @@ std::uint64_t StronglyConnectedComponents::getTotalComponents() const {
   return no_of_components_;
 }
 
-std::unordered_map<std::uint64_t, std::vector<DirectedGraph::NodeId>> StronglyConnectedComponents::getComponentMapping() const {
+std::unordered_map<std::uint64_t, std::vector<DirectedGraph::NodeId>>
+    StronglyConnectedComponents::getComponentMapping() const {
   std::unordered_map<std::uint64_t, std::vector<DirectedGraph::NodeId>> component_mapping;
   for (std::uint64_t i = 0; i < component_ids_.size(); ++i) {
     component_mapping[component_ids_[i]].push_back(i);
@@ -98,4 +103,6 @@ std::unordered_map<std::uint64_t, std::vector<DirectedGraph::NodeId>> StronglyCo
   return component_mapping;
 }
 
-}
+}  // namespace transaction
+
+}  // namespace quickstep

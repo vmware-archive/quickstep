@@ -1,13 +1,15 @@
 #ifndef QUICKSTEP_TRANSACTION_DEADLOCK_THREAD_HPP_
 #define QUICKSTEP_TRANSACTION_DEADLOCK_THREAD_HPP_
 
-#include "threading/Thread.hpp"
-#include "transaction/DeadLockDetector.hpp"
-
 #include <memory>
 #include <vector>
 
+#include "threading/Thread.hpp"
+#include "transaction/DeadLockDetector.hpp"
+
 namespace quickstep {
+
+namespace transaction {
 
 /** \addtogroup Transaction
  *  @{
@@ -15,7 +17,7 @@ namespace quickstep {
 
 /**
  * @brief Class for representing DeadLockThread status,
- *        kNOT_READY means 
+ *        kNOT_READY means
  *        kDONE means it will move victims to victims buffer.
  */
 enum class DeadLockDetectorStatus {
@@ -28,7 +30,7 @@ enum class DeadLockDetectorStatus {
  *        after checking, it will sleep for 5 seconds.
  */
 class DeadLockThread : public Thread {
-public:
+ public:
   /**
    * @brief Constructor for DeadLockThread
    *
@@ -39,16 +41,16 @@ public:
    *        it is a buffer between this and constructer.
    */
   DeadLockThread(LockTable *lock_table,
-		 DeadLockDetectorStatus *detector_status,
-		 std::vector<TransactionId> *victim_result);
+                 DeadLockDetectorStatus *detector_status,
+                 std::vector<TransactionId> *victim_result);
 
   /**
    * @brief DeadLockThread class main logic function.
    *        Since its base class is Thread, it is overriden.
    */
   void run() override;
-  
-private:
+
+ private:
   // Pointer to lock table. It is needed because it will pass
   // to DeadLockDetector.
   LockTable *lock_table_;
@@ -63,11 +65,12 @@ private:
   // Owned pointer to DeadLockDetector. Run method will clear, delete,
   // and create new one for each iteration.
   std::unique_ptr<DeadLockDetector> dead_lock_detector_;
- 
 };
 
 /** @} */
 
-}
+}  // namespace transaction
+
+}  // namespace quickstep
 
 #endif

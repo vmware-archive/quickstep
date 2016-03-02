@@ -2,20 +2,24 @@
 
 namespace quickstep {
 
-  Lock::Lock(ResourceId rid, AccessMode access_mode)
-    : rid_(rid), access_mode_(access_mode) {}
+namespace transaction {
 
-  bool Lock::operator==(const Lock &other) const {
-    return rid_ == other.rid_
-      && access_mode_ == other.access_mode_;
-  }
+Lock::Lock(ResourceId rid, AccessMode access_mode)
+  : rid_(rid), access_mode_(access_mode) {}
 
-  ResourceId Lock::getResourceId() const {
-    return rid_;
-  }
-
-  AccessMode Lock::getAccessMode() const {
-    return access_mode_;
-  }
-    
+bool Lock::operator==(const Lock &other) const {
+  return rid_ == other.rid_
+    && access_mode_ == other.access_mode_;
 }
+
+ResourceId Lock::getResourceId() const {
+  return rid_;
+}
+
+AccessMode Lock::getAccessMode() const {
+  return access_mode_;
+}
+
+}  // namespace transaction
+
+}  // namespace quickstep

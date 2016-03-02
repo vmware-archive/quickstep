@@ -3,8 +3,11 @@
 #include <type_traits>
 
 namespace quickstep {
+
+namespace transaction {
+
   constexpr bool AccessMode::kCOMP_MATRIX[kNUMBER_LOCKS][kNUMBER_LOCKS];
-  
+
   bool AccessMode::isCompatible(const AccessMode &other) const {
     using TypeToCast = std::underlying_type<AccessModeType>::type;
     TypeToCast this_mode = static_cast<TypeToCast>(this->access_mode_);
@@ -35,4 +38,6 @@ namespace quickstep {
   bool AccessMode::isExclusiveLock() const {
     return access_mode_ == AccessModeType::kX_LOCK;
   }
-}
+}  // namespace transaction
+
+}  // namespace quickstep

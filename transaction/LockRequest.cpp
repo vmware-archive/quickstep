@@ -2,10 +2,12 @@
 
 namespace quickstep {
 
+namespace transaction {
+
 LockRequest::LockRequest(TransactionId tid,
-			 const ResourceId &rid,
-			 AccessMode access_mode,
-			 RequestType type)
+                         const ResourceId &rid,
+                         AccessMode access_mode,
+                         RequestType type)
   : tid_(tid), rid_(rid)
   , access_mode_(access_mode)
   , request_type_(type) {
@@ -27,4 +29,6 @@ RequestType LockRequest::getRequestType() const {
   return request_type_;
 }
 
-}
+}  // namespace transaction
+
+}  // namespace quickstep

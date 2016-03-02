@@ -1,31 +1,36 @@
 #include "transaction/CycleDetector.hpp"
 
+#include <set>
+#include <stack>
+#include <vector>
+#include <utility>
+
 namespace quickstep {
+
+namespace transaction {
 
 CycleDetector::CycleDetector(DirectedGraph *wait_for_graph)
   : wait_for_graph_(wait_for_graph) {
   scc_ = std::make_unique<StronglyConnectedComponents>(wait_for_graph_);
 }
 
-
 std::vector<DirectedGraph::NodeId> CycleDetector::breakCycle() {
   std::vector<DirectedGraph::NodeId> nodes_to_kill;
   scc_->findStronglyConnectedComponents();
   std::unordered_map<std::uint64_t, std::vector<DirectedGraph::NodeId>>
     component_mapping = scc_->getComponentMapping();
-  
+
   for (std::pair<std::uint64_t, std::vector<DirectedGraph::NodeId>>
-	 entry : component_mapping) {
+         entry : component_mapping) {
     // One node means no cycle.
     if (entry.second.size() == 1) {
       continue;
-    }
-    else {
-      std::vector<DirectedGraph::NodeId>
-	targets = breakComponent(entry.second);
+    } else {
+      std::vector<DirectedGraph::NodeId> targets
+          = breakComponent(entry.second);
 
       for (DirectedGraph::NodeId elem : targets) {
-	nodes_to_kill.push_back(elem);
+        nodes_to_kill.push_back(elem);
       }
     }
   }
@@ -33,8 +38,8 @@ std::vector<DirectedGraph::NodeId> CycleDetector::breakCycle() {
   return nodes_to_kill;
 }
 
-
-std::vector<DirectedGraph::NodeId> CycleDetector::breakComponent(const std::vector<DirectedGraph::NodeId> &nodes) {
+std::vector<DirectedGraph::NodeId>
+CycleDetector::breakComponent(const std::vector<DirectedGraph::NodeId> &nodes) {
   std::vector<DirectedGraph::NodeId> targets;
   std::set<DirectedGraph::NodeId> nodes_set(nodes.begin(), nodes.end());
   while (true) {
@@ -47,11 +52,10 @@ std::vector<DirectedGraph::NodeId> CycleDetector::breakComponent(const std::vect
     targets.push_back(victim);
   }
   return targets;
-  
 }
 
-
-bool CycleDetector::hasCycleWithin(const std::set<DirectedGraph::NodeId> &within) {
+bool
+CycleDetector::hasCycleWithin(const std::set<DirectedGraph::NodeId> &within) {
   std::set<DirectedGraph::NodeId> visited;
   for (DirectedGraph::NodeId node_id : within) {
     if (visited.count(node_id) == 1) {
@@ -63,19 +67,20 @@ bool CycleDetector::hasCycleWithin(const std::set<DirectedGraph::NodeId> &within
       DirectedGraph::NodeId current_node = to_visit.top();
       to_visit.pop();
       visited.insert(current_node);
-      std::vector<DirectedGraph::NodeId> adjacents = wait_for_graph_->getAdjacentNodes(current_node);
+      std::vector<DirectedGraph::NodeId> adjacents
+          = wait_for_graph_->getAdjacentNodes(current_node);
       for (DirectedGraph::NodeId adj : adjacents) {
-	if (adj == node_id) {
-	  return true;
-	}
-	else if (within.count(adj) == 1 && visited.count(adj) == 0) {
-	  to_visit.push(adj);
-	}
+        if (adj == node_id) {
+          return true;
+        } else if (within.count(adj) == 1 && visited.count(adj) == 0) {
+          to_visit.push(adj);
+        }
       }
     }
   }
   return false;
 }
 
+}  // namespace transaction
 
-}
+}  // namespace quickstep

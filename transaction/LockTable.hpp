@@ -15,6 +15,8 @@
 
 namespace quickstep {
 
+namespace transaction {
+
 /** \addtogroup Transaction
  * @{
  */
@@ -29,26 +31,26 @@ enum class LockTableResult {
   kALREADY_IN_PENDING,
   kDEL_FROM_OWNED,
   kDEL_FROM_PENDING,
-  kDEL_ERROR,  
+  kDEL_ERROR,
   kPUT_ERROR
 };
 
 /**
- * @brief LockTable class represents the hash map for RID and 
+ * @brief LockTable class represents the hash map for RID and
  *        list of locks on RID.
  **/
 class LockTable {
-public:
+ public:
   using LockEntry = std::pair<TransactionId, Lock>;
   using LockOwnList = std::list<LockEntry>;
   using LockPendingList = std::list<LockEntry>;
   using LockListPair = std::pair<LockOwnList, LockPendingList>;
   using Iterator = std::unordered_map<ResourceId,
-				      LockListPair,
-				      ResourceId::ResourceIdHasher>::iterator;
+                                      LockListPair,
+                                      ResourceId::ResourceIdHasher>::iterator;
   using ConstIterator = std::unordered_map<ResourceId,
-					   LockListPair,
-					   ResourceId::ResourceIdHasher>::const_iterator;
+                                           LockListPair,
+                                           ResourceId::ResourceIdHasher>::const_iterator;
   /**
    * @brief Constructor for LockTable.
    */
@@ -63,31 +65,31 @@ public:
    *
    * @return LockTableResult::kPLACED_IN_OWNED if lock is granted,
    *         LockTableResult::kPLACED_IN_PENDING if lock is not granted,
-   *         LockTableResult::kALREADY_IN_OWNED if lock has been 
+   *         LockTableResult::kALREADY_IN_OWNED if lock has been
    *         already granted,
    *         LockTableResult::kALREADY_IN_PENDING if lock has been
-   *         already pending. 
+   *         already pending.
    **/
   LockTableResult putLock(TransactionId tid,
-			  const ResourceId &rid,
-			  AccessMode access_mode);
+                          const ResourceId &rid,
+                          AccessMode access_mode);
   /**
    * @brief Deletes the lock entry.
    *
    * @param tid Id of the transaction that owns or awaits.
    * @param rid Id of resource that the lock covers.
    *
-   * @return LockTableResult::kDEL_FROM_OWNED if the lock is deleted from 
+   * @return LockTableResult::kDEL_FROM_OWNED if the lock is deleted from
    *         owned list,
-   *         LockTableResult::kDEL_FROM_PENDING if the lock is deleted from 
+   *         LockTableResult::kDEL_FROM_PENDING if the lock is deleted from
    *         pending list,
    *         LockTableResult::kDEL_ERROR if the lock cannot be found
    **/
   LockTableResult deleteLock(TransactionId tid,
-			     const ResourceId &rid);
+                             const ResourceId &rid);
 
 
-  /** 
+  /**
    * @brief Iterator for begin position.
    *
    * @return Non-const Iterator which points to begin point
@@ -106,7 +108,7 @@ public:
   /**
    * @brief ConstIterator for begin position.
    *
-   * @return Const iterator which points to the begin 
+   * @return Const iterator which points to the begin
    *         point of the lock table.
    **/
   ConstIterator begin() const;
@@ -139,22 +141,24 @@ public:
    * @brief Unlatch mutex in exclusive mode.
    */
   void unlatchExclusive();
-  
-private:
-  DISALLOW_COPY_AND_ASSIGN(LockTable);
 
+ private:
   // This method will be called after deletion of locks.
   // After delete, some pending locks might be acquired.
   void movePendingToOwned(const ResourceId &rid);
-  
+
   std::unordered_map<ResourceId, LockListPair, ResourceId::ResourceIdHasher> internal_map_;
 
   // Mutex protects whole lock table.
   SharedMutex mutex_;
+
+  DISALLOW_COPY_AND_ASSIGN(LockTable);
 };
 
 /** @} */
 
-}
+}  // namespace transaction
+
+}  // namespace quickstep
 
 #endif

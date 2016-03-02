@@ -1,9 +1,10 @@
 #include "transaction/DeadLockThread.hpp"
 
-#include <thread>
+#include <thread>  // NOLINT(build/c++11)
+#include <vector>
 
 int main() {
-  using namespace quickstep;
+  using namespace quickstep::transaction;  // NOLINT(build/namespaces)
   LockTable lock_table;
   DeadLockDetectorStatus status = DeadLockDetectorStatus::kNOT_READY;
   std::vector<TransactionId> victims;
@@ -12,10 +13,10 @@ int main() {
 
   std::thread t([&status]() {
       while (true) {
-	while (status == DeadLockDetectorStatus::kNOT_READY) {
-	}
-	//Process it
-	status = DeadLockDetectorStatus::kNOT_READY;
+        while (status == DeadLockDetectorStatus::kNOT_READY) {
+        }
+        // Process it.
+        status = DeadLockDetectorStatus::kNOT_READY;
       }
     });
 

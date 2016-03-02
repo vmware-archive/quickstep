@@ -10,17 +10,16 @@
 
 #include "gtest/gtest.h"
 
+namespace quickstep {
 
-
-namespace quickstep { 
+namespace transaction {
 
 class CycleDetectorTest : public testing::Test {
-public:
+ public:
   using NID = DirectedGraph::NodeId;
-  
+
   CycleDetectorTest() {
     wait_for_graph = std::make_unique<DirectedGraph>();
-    
 
     tid1 = new TransactionId(1);
     tid2 = new TransactionId(2);
@@ -34,8 +33,6 @@ public:
     tid10 = new TransactionId(10);
     tid11 = new TransactionId(11);
     tid12 = new TransactionId(12);
-
-
 
     nid1 = wait_for_graph->addNode(tid1);
     nid2 = wait_for_graph->addNode(tid2);
@@ -51,7 +48,7 @@ public:
     nid12 = wait_for_graph->addNode(tid12);
 
     wait_for_graph->addEdge(nid1, nid2);
-    
+
     wait_for_graph->addEdge(nid2, nid3);
     wait_for_graph->addEdge(nid2, nid4);
     wait_for_graph->addEdge(nid2, nid5);
@@ -60,17 +57,17 @@ public:
 
     wait_for_graph->addEdge(nid4, nid5);
     wait_for_graph->addEdge(nid4, nid7);
-    
+
     wait_for_graph->addEdge(nid5, nid2);
     wait_for_graph->addEdge(nid5, nid6);
     wait_for_graph->addEdge(nid5, nid7);
-    
+
     wait_for_graph->addEdge(nid6, nid3);
     wait_for_graph->addEdge(nid6, nid8);
-    
+
     wait_for_graph->addEdge(nid7, nid8);
     wait_for_graph->addEdge(nid7, nid10);
-    
+
     wait_for_graph->addEdge(nid8, nid7);
 
     wait_for_graph->addEdge(nid9, nid7);
@@ -83,12 +80,10 @@ public:
     wait_for_graph->addEdge(nid12, nid10);
 
     cycle_detector = std::make_unique<CycleDetector>(wait_for_graph.get());
-    
   }
 
   std::unique_ptr<DirectedGraph> wait_for_graph;
   std::unique_ptr<CycleDetector> cycle_detector;
-  
 
   TransactionId *tid1;
   TransactionId *tid2;
@@ -103,20 +98,19 @@ public:
   TransactionId *tid11;
   TransactionId *tid12;
 
-  NID nid1; 
-  NID nid2; 
-  NID nid3; 
-  NID nid4; 
-  NID nid5; 
-  NID nid6; 
-  NID nid7; 
-  NID nid8; 
-  NID nid9; 
+  NID nid1;
+  NID nid2;
+  NID nid3;
+  NID nid4;
+  NID nid5;
+  NID nid6;
+  NID nid7;
+  NID nid8;
+  NID nid9;
   NID nid10;
   NID nid11;
   NID nid12;
 
-  
   std::uint64_t nid1_component;
   std::uint64_t nid2_component;
   std::uint64_t nid3_component;
@@ -131,15 +125,15 @@ public:
   std::uint64_t nid12_component;
 
   std::unordered_map<std::uint64_t, std::vector<NID>> comp_mapping;
-
 };
-  
+
 TEST_F(CycleDetectorTest, BreakCycle) {
   std::vector<NID> victims = cycle_detector->breakCycle();
-  for (auto x : victims) {
+  for (NID x : victims) {
     std::cout << x << std::endl;
   }
-  
 }
-  
-}
+
+}  // namespace transaction
+
+}  // namespace quickstep

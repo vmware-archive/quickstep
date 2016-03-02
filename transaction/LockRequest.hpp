@@ -7,11 +7,13 @@
 
 namespace quickstep {
 
+namespace transaction {
+
 /** \addtogroup Transaction
  *  @{
  */
 
-/** 
+/**
  * @brief Enum class for representing request types.
  */
 enum class RequestType {
@@ -21,10 +23,10 @@ enum class RequestType {
 
 /**
  * @brief Class for encapsulate lock request put into
- *        the buffers. 
+ *        the buffers.
  */
 class LockRequest {
-public:
+ public:
   /**
    * @brief Constructor for LockRequest.
    *
@@ -34,13 +36,13 @@ public:
    * @param type Type of the request.
    */
   LockRequest(TransactionId tid,
-	      const ResourceId &rid,
-	      AccessMode access_mode,
-	      RequestType type);
+              const ResourceId &rid,
+              AccessMode access_mode,
+              RequestType type);
 
   /**
    * @brief Getter for transaction id.
-   * 
+   *
    * @return Transaction id of the request.
    */
   TransactionId getTransactionId() const;
@@ -56,7 +58,7 @@ public:
    * @brief Getter for access mode.
    *
    * @return Access mode of the request.
-   */ 
+   */
   AccessMode getAccessMode() const;
 
   /**
@@ -65,8 +67,8 @@ public:
    * @return Type of the request.
    */
   RequestType getRequestType() const;
-  
-private:
+
+ private:
   TransactionId tid_;
   ResourceId rid_;
   AccessMode access_mode_;
@@ -75,6 +77,8 @@ private:
 
 /** @} */
 
-}
+}  // namespace transaction
+
+}  // namespace quickstep
 
 #endif

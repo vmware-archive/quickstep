@@ -5,40 +5,41 @@
 
 namespace quickstep {
 
+namespace transaction {
+
 /** \addtogroup Transaction
  *  @{
  */
 
 /**
+ * @brief Represents mode type. Possible options are NL, IS, IX, S, SIX, X.
+ **/
+enum class AccessModeType : std::uint8_t {
+  kNO_LOCK = 0,
+  kIS_LOCK = 1,
+  kIX_LOCK = 2,
+  kS_LOCK = 3,
+  kSIX_LOCK = 4,
+  kX_LOCK = 5
+};
+
+/**
  * @brief Class for representing resource lock's access mode
  **/
 class AccessMode {
-public:
-  /**
-   * @brief Represents mode type. Possible options are NL, IS, IX, S, SIX, X.
-   **/
-  enum class AccessModeType : std::uint8_t {
-    kNO_LOCK = 0,
-    kIS_LOCK = 1,
-    kIX_LOCK = 2,
-    kS_LOCK = 3,
-    kSIX_LOCK = 4,
-    kX_LOCK = 5
-  };
-
+ public:
   /**
    * @brief Only constructor for access mode.
-   * 
-   * @param access_mode Mode type of the object. 
+   *
+   * @param access_mode Mode type of the object.
    **/
-  AccessMode(AccessModeType access_mode)
+  explicit AccessMode(AccessModeType access_mode)
     : access_mode_(access_mode) {}
-  
+
   /**
    * @brief Checks whether this access mode is compatible with the other.
    *
    * @param other Other access mode that will be checked against to this one.
-   *
    * @return True if they are compatible, otherwise false.
    */
   bool isCompatible(const AccessMode &other) const;
@@ -80,18 +81,19 @@ public:
   bool isExclusiveLock() const;
 
   /*
-   * @brief Checks whether this access mode is in the same level with other mode.
+   * @brief Checks whether this access mode is in
+   *        the same level with other mode.
    *
    * @return True if both modes have the same level.
    */
   bool operator==(const AccessMode &other) const;
-  
-private:
 
+ private:
   // The compatibility matrix should be N by N. kNUMBER_LOCKS == N.
   static constexpr std::uint64_t kNUMBER_LOCKS = 6;
 
-  // Compatibility matrix for checking access modes. True means they are compatible.
+  // Compatibility matrix for checking access modes.
+  // True means they are compatible.
   static constexpr bool kCOMP_MATRIX[kNUMBER_LOCKS][kNUMBER_LOCKS] = {
 /*           NL     IS     IX      S     SIX     X    */
 /*  NL  */ {true , true , true , true , true , true },
@@ -107,5 +109,8 @@ private:
 
 /** @} */
 
-}
+}  // namespace transaction
+
+}  // namespace quickstep
+
 #endif

@@ -5,6 +5,8 @@
 
 namespace quickstep {
 
+namespace transaction {
+
 /** \addtogroup Transaction
  *  @{
  */
@@ -27,13 +29,13 @@ enum class TransactionStatus {
  * @brief Transaction
  **/
 class Transaction {
-public:
+ public:
   /**
    * @brief Constructor for Transaction.
-   * 
+   *
    * @param tid Id of this transaction.
    **/
-  Transaction(TransactionId tid)
+  explicit Transaction(TransactionId tid)
     : tid_(tid) {
   }
 
@@ -57,7 +59,6 @@ public:
    * @brief Equality operator for Transaction class.
    *
    * @param other Other transaction to be compared with.
-   *
    * @return True if other tid and this tid are equal, false otherwise.
    **/
   bool operator==(const Transaction &other) const;
@@ -69,16 +70,18 @@ public:
   struct TransactionHasher {
     std::size_t operator()(const Transaction &transaction) const;
   };
-  
-private:
+
+ private:
   TransactionId tid_;
   TransactionStatus status_;
-  //std::unique_ptr<QueryPlan> query_plan_;
-  //std::unique_ptr<TransactionThread> thread_;
+  // std::unique_ptr<QueryPlan> query_plan_;
+  // std::unique_ptr<TransactionThread> thread_;
 };
 
 /** @} */
 
-}
+}  // namespace transaction
+
+}  // namespace quickstep
 
 #endif

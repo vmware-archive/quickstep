@@ -1,10 +1,14 @@
 #include "transaction/DeadLockThread.hpp"
 
+#include <vector>
+
 namespace quickstep {
 
+namespace transaction {
+
 DeadLockThread::DeadLockThread(LockTable *lock_table,
-			       DeadLockDetectorStatus *detector_status,
-			       std::vector<TransactionId> *victim_result)
+                               DeadLockDetectorStatus *detector_status,
+                               std::vector<TransactionId> *victim_result)
   : lock_table_(lock_table)
   , detector_status_(detector_status)
   , victim_result_(victim_result)
@@ -26,25 +30,21 @@ void DeadLockThread::run() {
 
     std::cout << "DeadLockDetector detection starts.\n";
 
-   
-   
     std::vector<TransactionId> victims = dead_lock_detector_->getAllVictims();
 
-    std::cout << "Victim size: " + std::to_string(victims.size()) + "\n"; 
+    std::cout << "Victim size: " + std::to_string(victims.size()) + "\n";
 
-    
     *victim_result_ = std::move(victims);
     *detector_status_ = DeadLockDetectorStatus::kDONE;
 
-    
-    
     std::cout << "DeadLockDetector detection ends.\n";
 
     std::this_thread::sleep_for(std::chrono::seconds(5));
-
     while (*detector_status_ == DeadLockDetectorStatus::kDONE) {
     }
   }
 }
 
-}
+}  // namespace transaction
+
+}  // namespace quickstep

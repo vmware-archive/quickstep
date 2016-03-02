@@ -1,6 +1,11 @@
 #include "transaction/DirectedGraph.hpp"
 
+#include <algorithm>
+#include <vector>
+
 namespace quickstep {
+
+namespace transaction {
 
 DirectedGraph::NodeId DirectedGraph::addNode(TransactionId *data) {
   nodes_.emplace_back(data);
@@ -50,4 +55,6 @@ TransactionId DirectedGraph::DirectedGraphNode::getData() const {
   return *(data_.get());
 }
 
-}
+}  // namespace transaction
+
+}  // namespace quickstep

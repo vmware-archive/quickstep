@@ -4,6 +4,8 @@
 
 namespace quickstep {
 
+namespace transaction {
+
 TransactionId Transaction::getTransactionId() const {
   return tid_;
 }
@@ -24,4 +26,6 @@ std::size_t Transaction::TransactionHasher::operator()(const Transaction &transa
   return std::hash<TransactionId>()(transaction.tid_);
 }
 
-}
+}  // namespace transaction
+
+}  // namespace quickstep

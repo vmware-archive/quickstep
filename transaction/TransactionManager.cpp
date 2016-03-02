@@ -1,6 +1,10 @@
 #include "transaction/TransactionManager.hpp"
 
+#include <utility>
+
 namespace quickstep {
+
+namespace transaction {
 
 const Transaction& TransactionManager::createTransaction() {
   TransactionId tid = transaction_counter_.fetch_add(1);
@@ -8,6 +12,6 @@ const Transaction& TransactionManager::createTransaction() {
   return *(result.first);
 }
 
+}  // namespace transaction
 
-
-}
+}  // namespace quickstep
