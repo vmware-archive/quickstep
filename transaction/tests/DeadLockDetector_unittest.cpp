@@ -30,13 +30,13 @@ TEST(DeadLockDetector, DeadLockExists) {
   TransactionId tid2 = TransactionId(2);
 
   LockTable lock_table;
-  lock_table.putLock(tid1, ResourceId(1,1,2), AccessMode(AccessModeType::kX_LOCK));
+  lock_table.putLock(tid1, ResourceId(1, 1, 2), AccessMode(AccessModeType::kX_LOCK));
 
-  lock_table.putLock(tid2, ResourceId(1,1,1), AccessMode(AccessModeType::kX_LOCK));
+  lock_table.putLock(tid2, ResourceId(1, 1, 1), AccessMode(AccessModeType::kX_LOCK));
 
-  lock_table.putLock(tid2, ResourceId(1,1,2), AccessMode(AccessModeType::kX_LOCK));
+  lock_table.putLock(tid2, ResourceId(1, 1, 2), AccessMode(AccessModeType::kX_LOCK));
 
-  lock_table.putLock(tid1, ResourceId(1,1,1), AccessMode(AccessModeType::kX_LOCK));
+  lock_table.putLock(tid1, ResourceId(1, 1, 1), AccessMode(AccessModeType::kX_LOCK));
 
   DeadLockDetector dead_lock_detector(&lock_table);
 

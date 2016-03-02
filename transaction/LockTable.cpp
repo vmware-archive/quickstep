@@ -99,7 +99,7 @@ LockTable::deleteLock(TransactionId tid, const ResourceId &rid) {
   // Iterate over pending locks list to check the lock entry of the transaction
   // on this resource id exists.
   for (LockPendingList::const_iterator it = lock_pending_list.begin(),
-	 end = lock_pending_list.end(); it != end; ++it) {
+         end = lock_pending_list.end(); it != end; ++it) {
     if (it->first == tid) {
       // If it exists, erase it from pending list.
       lock_pending_list.erase(it);
@@ -118,7 +118,7 @@ void LockTable::movePendingToOwned(const ResourceId &rid) {
   LockPendingList &lock_pending_list = lock_list_pair.second;
 
   // Iterate over pending list to pending requests compatible with the
-  //all entries in the resource ids owned lock list.
+  // all entries in the resource ids owned lock list.
   for (LockPendingList::const_iterator pending_it = lock_pending_list.begin(),
          end = lock_pending_list.end(); pending_it != end; ++pending_it) {
     TransactionId pending_tid = pending_it->first;
