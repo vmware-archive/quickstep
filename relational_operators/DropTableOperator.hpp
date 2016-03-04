@@ -61,7 +61,7 @@ class DropTableOperator : public RelationalOperator {
                     CatalogDatabase *database,
                     const bool only_drop_blocks = false)
       : relation_(relation),
-        database_(database),
+        database_(DCHECK_NOTNULL(database)),
         only_drop_blocks_(only_drop_blocks),
         work_generated_(false) {}
 
@@ -100,9 +100,7 @@ class DropTableWorkOrder : public WorkOrder {
   DropTableWorkOrder(std::vector<block_id> &&blocks,
                      StorageManager *storage_manager)
       : blocks_(std::move(blocks)),
-        storage_manager_(storage_manager) {
-    DCHECK(storage_manager_ != nullptr);
-  }
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
 
   ~DropTableWorkOrder() override {}
 

@@ -54,8 +54,8 @@ class CreateTableOperator : public RelationalOperator {
    **/
   CreateTableOperator(CatalogRelation *relation,
                       CatalogDatabase *database)
-      : relation_(relation),
-        database_(database),
+      : relation_(DCHECK_NOTNULL(relation)),
+        database_(DCHECK_NOTNULL(database)),
         work_generated_(false) {}
 
   ~CreateTableOperator() override {}
