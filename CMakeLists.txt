@@ -654,6 +654,10 @@ set(ENABLE_ZOOKEEPER OFF CACHE BOOL "Enable Zookeeper TMB")
 add_subdirectory("${THIRD_PARTY_SOURCE_DIR}/tmb" "${CMAKE_CURRENT_BINARY_DIR}/third_party/tmb")
 include_directories(${TMB_INCLUDE_DIRS})
 
+# Add re2 regular expression library.
+include_directories("${THIRD_PARTY_SOURCE_DIR}/re2")
+add_subdirectory("${THIRD_PARTY_SOURCE_DIR}/re2")
+
 # Add all of the module subdirectories. CMakeLists.txt in each of the subdirectories
 # defines how to build that module's libraries.
 add_subdirectory(catalog)
