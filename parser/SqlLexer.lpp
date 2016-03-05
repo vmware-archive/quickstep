@@ -196,6 +196,7 @@ unsigned_numeric_literal {exact_numeric_literal}|{approximate_numeric_literal}
   "from"             return TOKEN_FROM;
   "full"             return TOKEN_FULL;
   "group"            return TOKEN_GROUP;
+  "hash"             return TOKEN_HASH;
   "having"           return TOKEN_HAVING;
   "index"            return TOKEN_INDEX;
   "inner"            return TOKEN_INNER;
@@ -220,6 +221,7 @@ unsigned_numeric_literal {exact_numeric_literal}|{approximate_numeric_literal}
   "or"               return TOKEN_OR;
   "order"            return TOKEN_ORDER;
   "outer"            return TOKEN_OUTER;
+  "partition"        return TOKEN_PARTITION;
   "primary"          return TOKEN_PRIMARY;
   "quit"             return TOKEN_QUIT;
   "real"             return TOKEN_REAL;
