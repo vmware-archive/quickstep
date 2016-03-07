@@ -140,6 +140,12 @@ class Prog {
     }
 
     uint32 out_opcode_;  // 29 bits of out, 3 (low) bits opcode
+
+    struct LocalStByteRange {  // opcode == kInstByteRange
+      uint8 lo_;       //   byte range is lo_-hi_ inclusive
+      uint8 hi_;       //
+      uint8 foldcase_; //   convert A-Z to a-z before checking range.
+    };
     union {          // additional instruction arguments:
       uint32 out1_;      // opcode == kInstAlt
                          //   alternate next instruction
@@ -154,11 +160,7 @@ class Prog {
       int32 match_id_;   // opcode == kInstMatch
                          //   Match ID to identify this match (for re2::Set).
 
-      struct {        // opcode == kInstByteRange
-        uint8 lo_;       //   byte range is lo_-hi_ inclusive
-        uint8 hi_;       //
-        uint8 foldcase_; //   convert A-Z to a-z before checking range.
-      } br_;
+      struct LocalStByteRange br_;
 
       EmptyOp empty_;    // opcode == kInstEmptyWidth
                          //   empty_ is bitwise OR of kEmpty* flags above.

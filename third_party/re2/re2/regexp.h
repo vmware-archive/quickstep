@@ -545,26 +545,31 @@ class Regexp {
   Regexp* down_;
 
   // Arguments to operator.  See description of operators above.
+  struct LocalStRepeat {  // Repeat
+    int max_;
+    int min_;
+  };
+  struct LocalStCapture {  // Capture
+    int cap_;
+    string* name_;
+  };
+  struct LocalStLiteralString {  // LiteralString
+    int nrunes_;
+    Rune* runes_;
+  };
+  struct LocalStCharClass {  // CharClass
+    // These two could be in separate union members,
+    // but it wouldn't save any space (there are other two-word structs)
+    // and keeping them separate avoids confusion during parsing.
+    CharClass* cc_;
+    CharClassBuilder* ccb_;
+  };
+
   union {
-    struct {  // Repeat
-      int max_;
-      int min_;
-    } repeat_ ;
-    struct {  // Capture
-      int cap_;
-      string* name_;
-    } capture_;
-    struct {  // LiteralString
-      int nrunes_;
-      Rune* runes_;
-    } lit_str_;
-    struct {  // CharClass
-      // These two could be in separate union members,
-      // but it wouldn't save any space (there are other two-word structs)
-      // and keeping them separate avoids confusion during parsing.
-      CharClass* cc_;
-      CharClassBuilder* ccb_;
-    } char_class_;
+    struct LocalStRepeat repeat_ ;
+    struct LocalStCapture capture_;
+    struct LocalStLiteralString lit_str_;
+    struct LocalStCharClass char_class_;
     Rune rune_;  // Literal
     int match_id_;  // HaveMatch
     void *the_union_[2];  // as big as any other element, for memset
