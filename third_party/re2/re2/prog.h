@@ -101,9 +101,9 @@ class Prog {
     int out()     { return out_opcode_>>3; }
     int out1()    { DCHECK(opcode() == kInstAlt || opcode() == kInstAltMatch); return out1_; }
     int cap()       { DCHECK_EQ(opcode(), kInstCapture); return cap_; }
-    int lo()        { DCHECK_EQ(opcode(), kInstByteRange); return lo_; }
-    int hi()        { DCHECK_EQ(opcode(), kInstByteRange); return hi_; }
-    int foldcase()  { DCHECK_EQ(opcode(), kInstByteRange); return foldcase_; }
+    int lo()        { DCHECK_EQ(opcode(), kInstByteRange); return br_.lo_; }
+    int hi()        { DCHECK_EQ(opcode(), kInstByteRange); return br_.hi_; }
+    int foldcase()  { DCHECK_EQ(opcode(), kInstByteRange); return br_.foldcase_; }
     int match_id()  { DCHECK_EQ(opcode(), kInstMatch); return match_id_; }
     EmptyOp empty() { DCHECK_EQ(opcode(), kInstEmptyWidth); return empty_; }
     bool greedy(Prog *p) {
@@ -114,9 +114,9 @@ class Prog {
     // Does this inst (an kInstByteRange) match c?
     inline bool Matches(int c) {
       DCHECK_EQ(opcode(), kInstByteRange);
-      if (foldcase_ && 'A' <= c && c <= 'Z')
+      if (br_.foldcase_ && 'A' <= c && c <= 'Z')
         c += 'a' - 'A';
-      return lo_ <= c && c <= hi_;
+      return br_.lo_ <= c && c <= br_.hi_;
     }
 
     // Returns string representation for debugging.
@@ -140,7 +140,7 @@ class Prog {
     }
 
     uint32 out_opcode_;  // 29 bits of out, 3 (low) bits opcode
-    union {              // additional instruction arguments:
+    union {          // additional instruction arguments:
       uint32 out1_;      // opcode == kInstAlt
                          //   alternate next instruction
 
@@ -154,11 +154,11 @@ class Prog {
       int32 match_id_;   // opcode == kInstMatch
                          //   Match ID to identify this match (for re2::Set).
 
-      struct {           // opcode == kInstByteRange
+      struct {        // opcode == kInstByteRange
         uint8 lo_;       //   byte range is lo_-hi_ inclusive
         uint8 hi_;       //
         uint8 foldcase_; //   convert A-Z to a-z before checking range.
-      };
+      } br_;
 
       EmptyOp empty_;    // opcode == kInstEmptyWidth
                          //   empty_ is bitwise OR of kEmpty* flags above.

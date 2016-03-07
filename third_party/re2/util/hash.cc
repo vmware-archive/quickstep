@@ -121,7 +121,7 @@ and these came close:
  11  8 15 26 3 22 24
 -------------------------------------------------------------------------------
 */
-#define final(a,b,c) \
+#define mcfinal(a,b,c) \
 { \
   c ^= b; c -= rot(b,14); \
   a ^= c; a -= rot(c,11); \
@@ -174,7 +174,7 @@ uint32        initval)         /* the previous hash, or an arbitrary value */
   case 3 : c+=k[2];
   case 2 : b+=k[1];
   case 1 : a+=k[0];
-    final(a,b,c);
+    mcfinal(a,b,c);
   case 0:     /* case 0: nothing left to add */
     break;
   }
@@ -220,7 +220,7 @@ uint32       *pb)               /* IN: more seed OUT: secondary hash value */
   case 3 : c+=k[2];
   case 2 : b+=k[1];
   case 1 : a+=k[0];
-    final(a,b,c);
+    mcfinal(a,b,c);
   case 0:     /* case 0: nothing left to add */
     break;
   }

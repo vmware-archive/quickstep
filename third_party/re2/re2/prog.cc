@@ -23,9 +23,9 @@ void Prog::Inst::InitAlt(uint32 out, uint32 out1) {
 void Prog::Inst::InitByteRange(int lo, int hi, int foldcase, uint32 out) {
   DCHECK_EQ(out_opcode_, 0);
   set_out_opcode(out, kInstByteRange);
-  lo_ = lo & 0xFF;
-  hi_ = hi & 0xFF;
-  foldcase_ = foldcase & 0xFF;
+  br_.lo_ = lo & 0xFF;
+  br_.hi_ = hi & 0xFF;
+  br_.foldcase_ = foldcase & 0xFF;
 }
 
 void Prog::Inst::InitCapture(int cap, uint32 out) {
@@ -69,8 +69,8 @@ string Prog::Inst::Dump() {
 
     case kInstByteRange:
       return StringPrintf("byte%s [%02x-%02x] -> %d",
-                          foldcase_ ? "/i" : "",
-                          lo_, hi_, out());
+                          br_.foldcase_ ? "/i" : "",
+                          br_.lo_, br_.hi_, out());
 
     case kInstCapture:
       return StringPrintf("capture %d -> %d", cap_, out());

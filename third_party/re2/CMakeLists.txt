@@ -1,7 +1,3 @@
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-gnu -Wno-keyword-macro")
-endif()
-
 set(RE2_LIBRARY_SOURCES
     re2/bitstate.cc
     re2/compile.cc
