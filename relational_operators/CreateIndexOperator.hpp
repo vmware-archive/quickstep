@@ -23,6 +23,8 @@
 #include "relational_operators/RelationalOperator.hpp"
 #include "utility/Macros.hpp"
 
+#include "glog/logging.h"
+
 #include "tmb/id_typedefs.h"
 
 namespace tmb { class MessageBus; }
@@ -30,7 +32,6 @@ namespace tmb { class MessageBus; }
 namespace quickstep {
 
 class CatalogRelation;
-class CatalogDatabase;
 class QueryContext;
 class StorageManager;
 class WorkOrdersContainer;
@@ -55,7 +56,7 @@ class CreateIndexOperator : public RelationalOperator {
    **/
   CreateIndexOperator(CatalogRelation *relation,
                       const std::string &index_name)
-      : relation_(relation),
+      : relation_(DCHECK_NOTNULL(relation)),
         index_name_(index_name),
         work_generated_(false) {}
 
@@ -65,7 +66,6 @@ class CreateIndexOperator : public RelationalOperator {
    * @note no WorkOrder generated for this operator.
    **/
   bool getAllWorkOrders(WorkOrdersContainer *container,
-                        CatalogDatabase *catalog_database,
                         QueryContext *query_context,
                         StorageManager *storage_manager,
                         const tmb::client_id foreman_client_id,

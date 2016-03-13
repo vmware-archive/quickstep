@@ -38,7 +38,6 @@ namespace tmb { class MessageBus; }
 
 namespace quickstep {
 
-class CatalogDatabase;
 class CatalogRelationSchema;
 class InsertDestination;
 class Predicate;
@@ -109,7 +108,6 @@ class NestedLoopsJoinOperator : public RelationalOperator {
   ~NestedLoopsJoinOperator() override {}
 
   bool getAllWorkOrders(WorkOrdersContainer *container,
-                        CatalogDatabase *catalog_database,
                         QueryContext *query_context,
                         StorageManager *storage_manager,
                         const tmb::client_id foreman_client_id,
@@ -247,14 +245,10 @@ class NestedLoopsJoinWorkOrder : public WorkOrder {
         right_input_relation_(right_input_relation),
         left_block_id_(left_block_id),
         right_block_id_(right_block_id),
-        join_predicate_(join_predicate),
+        join_predicate_(DCHECK_NOTNULL(join_predicate)),
         selection_(selection),
-        output_destination_(output_destination),
-        storage_manager_(storage_manager) {
-    DCHECK(join_predicate_ != nullptr);
-    DCHECK(output_destination_ != nullptr);
-    DCHECK(storage_manager_ != nullptr);
-  }
+        output_destination_(DCHECK_NOTNULL(output_destination)),
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
 
   ~NestedLoopsJoinWorkOrder() override {}
 

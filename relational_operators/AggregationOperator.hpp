@@ -37,7 +37,6 @@ namespace tmb { class MessageBus; }
 namespace quickstep {
 
 class AggregationOperationState;
-class CatalogDatabase;
 class StorageManager;
 class WorkOrdersContainer;
 
@@ -73,7 +72,6 @@ class AggregationOperator : public RelationalOperator {
   ~AggregationOperator() override {}
 
   bool getAllWorkOrders(WorkOrdersContainer *container,
-                        CatalogDatabase *catalog_database,
                         QueryContext *query_context,
                         StorageManager *storage_manager,
                         const tmb::client_id foreman_client_id,
@@ -111,13 +109,10 @@ class AggregationWorkOrder : public WorkOrder {
    * @param input_block_id The block id.
    * @param state The AggregationState to use.
    **/
-  AggregationWorkOrder(
-      const block_id input_block_id,
-      AggregationOperationState *state)
+  AggregationWorkOrder(const block_id input_block_id,
+                       AggregationOperationState *state)
       : input_block_id_(input_block_id),
-        state_(state) {
-    DCHECK(state_ != nullptr);
-  }
+        state_(DCHECK_NOTNULL(state)) {}
 
   ~AggregationWorkOrder() override {}
 

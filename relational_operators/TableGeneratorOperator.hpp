@@ -37,7 +37,6 @@ namespace tmb { class MessageBus; }
 
 namespace quickstep {
 
-class CatalogDatabase;
 class GeneratorFunctionHandle;
 class InsertDestination;
 class StorageManager;
@@ -75,7 +74,6 @@ class TableGeneratorOperator : public RelationalOperator {
   ~TableGeneratorOperator() override {}
 
   bool getAllWorkOrders(WorkOrdersContainer *container,
-                        CatalogDatabase *catalog_database,
                         QueryContext *query_context,
                         StorageManager *storage_manager,
                         const tmb::client_id foreman_client_id,
@@ -120,9 +118,7 @@ class TableGeneratorWorkOrder : public WorkOrder {
   TableGeneratorWorkOrder(const GeneratorFunctionHandle &function_handle,
                           InsertDestination *output_destination)
       : function_handle_(function_handle),
-        output_destination_(output_destination) {
-    DCHECK(output_destination_ != nullptr);
-  }
+        output_destination_(DCHECK_NOTNULL(output_destination)) {}
 
   ~TableGeneratorWorkOrder() override {}
 

@@ -41,7 +41,6 @@ namespace tmb { class MessageBus; }
 
 namespace quickstep {
 
-class CatalogDatabase;
 class CatalogRelationSchema;
 class InsertDestination;
 class StorageManager;
@@ -124,7 +123,6 @@ class SortMergeRunOperator : public RelationalOperator {
   ~SortMergeRunOperator() {}
 
   bool getAllWorkOrders(WorkOrdersContainer *container,
-                        CatalogDatabase *catalog_database,
                         QueryContext *query_context,
                         StorageManager *storage_manager,
                         const tmb::client_id foreman_client_id,
@@ -246,15 +244,12 @@ class SortMergeRunWorkOrder : public WorkOrder {
         input_runs_(std::move(input_runs)),
         top_k_(top_k),
         merge_level_(merge_level),
-        output_destination_(output_destination),
-        storage_manager_(storage_manager),
+        output_destination_(DCHECK_NOTNULL(output_destination)),
+        storage_manager_(DCHECK_NOTNULL(storage_manager)),
         operator_index_(operator_index),
         foreman_client_id_(foreman_client_id),
-        bus_(bus) {
+        bus_(DCHECK_NOTNULL(bus)) {
     DCHECK(sort_config_.isValid());
-    DCHECK(output_destination_ != nullptr);
-    DCHECK(storage_manager_ != nullptr);
-    DCHECK(bus_ != nullptr);
   }
 
   const SortConfiguration &sort_config_;

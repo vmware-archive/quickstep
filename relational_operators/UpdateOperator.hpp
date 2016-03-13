@@ -40,7 +40,6 @@ namespace tmb { class MessageBus; }
 
 namespace quickstep {
 
-class CatalogDatabase;
 class CatalogRelationSchema;
 class InsertDestination;
 class Predicate;
@@ -91,7 +90,6 @@ class UpdateOperator : public RelationalOperator {
   ~UpdateOperator() override {}
 
   bool getAllWorkOrders(WorkOrdersContainer *container,
-                        CatalogDatabase *catalog_database,
                         QueryContext *query_context,
                         StorageManager *storage_manager,
                         const tmb::client_id foreman_client_id,
@@ -154,15 +152,11 @@ class UpdateWorkOrder : public WorkOrder {
         input_block_id_(input_block_id),
         predicate_(predicate),
         assignments_(assignments),
-        relocation_destination_(relocation_destination),
-        storage_manager_(storage_manager),
+        relocation_destination_(DCHECK_NOTNULL(relocation_destination)),
+        storage_manager_(DCHECK_NOTNULL(storage_manager)),
         update_operator_index_(update_operator_index),
         foreman_client_id_(foreman_client_id),
-        bus_(bus) {
-    DCHECK(relocation_destination_ != nullptr);
-    DCHECK(storage_manager != nullptr);
-    DCHECK(bus_ != nullptr);
-  }
+        bus_(DCHECK_NOTNULL(bus)) {}
 
   ~UpdateWorkOrder() override {}
 

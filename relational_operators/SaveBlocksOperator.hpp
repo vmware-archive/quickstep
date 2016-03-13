@@ -34,7 +34,6 @@ namespace tmb { class MessageBus; }
 
 namespace quickstep {
 
-class CatalogDatabase;
 class QueryContext;
 class StorageManager;
 class WorkOrdersContainer;
@@ -61,7 +60,6 @@ class SaveBlocksOperator : public RelationalOperator {
   ~SaveBlocksOperator() override {}
 
   bool getAllWorkOrders(WorkOrdersContainer *container,
-                        CatalogDatabase *catalog_database,
                         QueryContext *query_context,
                         StorageManager *storage_manager,
                         const tmb::client_id foreman_client_id,
@@ -105,9 +103,7 @@ class SaveBlocksWorkOrder : public WorkOrder {
                       StorageManager *storage_manager)
       : save_block_id_(save_block_id),
         force_(force),
-        storage_manager_(storage_manager) {
-    DCHECK(storage_manager_ != nullptr);
-  }
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
 
   ~SaveBlocksWorkOrder() override {}
 

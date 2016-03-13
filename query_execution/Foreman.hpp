@@ -25,24 +25,29 @@
 #include <vector>
 
 #include "catalog/CatalogTypedefs.hpp"
+#include "query_execution/ForemanLite.hpp"
+#include "query_execution/QueryContext.hpp"
 #include "query_execution/QueryExecutionTypedefs.hpp"
 #include "query_execution/WorkOrdersContainer.hpp"
 #include "query_execution/WorkerMessage.hpp"
 #include "relational_operators/RelationalOperator.hpp"
 #include "relational_operators/WorkOrder.hpp"
 #include "storage/StorageBlockInfo.hpp"
-#include "threading/Thread.hpp"
 #include "utility/DAG.hpp"
 #include "utility/Macros.hpp"
+
+#include "glog/logging.h"
+#include "gtest/gtest_prod.h"
 
 #include "tmb/message_bus.h"
 
 namespace quickstep {
 
 class CatalogDatabase;
-class QueryContext;
 class StorageManager;
 class WorkerDirectory;
+
+namespace serialization { class QueryContext; }
 
 /** \addtogroup QueryExecution
  *  @{
@@ -53,7 +58,7 @@ class WorkerDirectory;
  *        workorders. It also pipelines the intermediate output it receives to
  *        the relational operators which need it.
  **/
-class Foreman : public Thread {
+class Foreman final : public ForemanLite {
  public:
   /**
    * @brief Constructor.
@@ -67,22 +72,17 @@ class Foreman : public Thread {
    * @note If cpu_id is not specified, Foreman thread can be possibly moved
    *       around on different CPUs by the OS.
   **/
-  Foreman(MessageBus *bus,
+  Foreman(tmb::MessageBus *bus,
           CatalogDatabase *catalog_database,
           StorageManager *storage_manager,
           const int cpu_id = -1,
           const int num_numa_nodes = 1)
-      : bus_(bus),
-        catalog_database_(catalog_database),
-        storage_manager_(storage_manager),
-        cpu_id_(cpu_id),
-        query_context_(nullptr),
+      : ForemanLite(bus, cpu_id),
+        catalog_database_(DCHECK_NOTNULL(catalog_database)),
+        storage_manager_(DCHECK_NOTNULL(storage_manager)),
         num_operators_finished_(0),
         max_msgs_per_worker_(1),
         num_numa_nodes_(num_numa_nodes) {
-    DEBUG_ASSERT(bus != nullptr);
-    foreman_client_id_ = bus_->Connect();
-
     bus_->RegisterClientAsSender(foreman_client_id_, kWorkOrderMessage);
     bus_->RegisterClientAsSender(foreman_client_id_, kRebuildWorkOrderMessage);
     // NOTE : Right now, foreman thread doesn't send poison messages. In the
@@ -113,13 +113,13 @@ class Foreman : public Thread {
   }
 
   /**
-   * @brief Set the QueryContext for the query to be executed.
+   * @brief Reconstruct the QueryContext for the query to be executed.
    *
-   * @param query_context A pointer to the QueryContext.
+   * @param proto The serialized QueryContext.
    **/
-  // TODO(zuyu): Remove this API once the Shiftboss is introduced.
-  inline void setQueryContext(QueryContext *query_context) {
-    query_context_ = query_context;
+  inline void reconstructQueryContextFromProto(const serialization::QueryContext &proto) {
+    query_context_.reset(
+        new QueryContext(proto, catalog_database_, storage_manager_, foreman_client_id_, bus_));
   }
 
   /**
@@ -129,15 +129,6 @@ class Foreman : public Thread {
    **/
   void setWorkerDirectory(WorkerDirectory *workers) {
     workers_ = workers;
-  }
-
-  /**
-   * @brief Get the TMB client ID of Foreman thread.
-   *
-   * @return TMB client ID of foreman thread.
-   **/
-  client_id getBusClientID() const {
-    return foreman_client_id_;
   }
 
   /**
@@ -469,18 +460,12 @@ class Foreman : public Thread {
    **/
   void getRebuildWorkOrders(const dag_node_index index, WorkOrdersContainer *container);
 
-  MessageBus *bus_;
   CatalogDatabase *catalog_database_;
   StorageManager *storage_manager_;
 
-  client_id foreman_client_id_;
-
-  // The ID of the CPU that the Foreman thread can optionally be pinned to.
-  int cpu_id_;
-
   DAG<RelationalOperator, bool> *query_dag_;
 
-  QueryContext *query_context_;
+  std::unique_ptr<QueryContext> query_context_;
 
   // Number of operators who've finished their execution.
   std::size_t num_operators_finished_;
@@ -522,6 +507,7 @@ class Foreman : public Thread {
   WorkerDirectory *workers_;
 
   friend class ForemanTest;
+  FRIEND_TEST(ForemanTest, TwoNodesDAGPartiallyFilledBlocksTest);
 
   DISALLOW_COPY_AND_ASSIGN(Foreman);
 };

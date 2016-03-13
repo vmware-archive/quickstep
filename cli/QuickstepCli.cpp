@@ -25,8 +25,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <thread>  // NOLINT(build/c++11)
-
 
 #include "cli/CliConfig.h"  // For QUICKSTEP_USE_LINENOISE.
 #include "cli/DropRelation.hpp"
@@ -39,13 +37,13 @@ typedef quickstep::LineReaderLineNoise LineReaderImpl;
 typedef quickstep::LineReaderDumb LineReaderImpl;
 #endif
 
+#include "cli/DefaultsConfigurator.hpp"
 #include "cli/InputParserUtil.hpp"
 #include "cli/PrintToScreen.hpp"
 #include "parser/ParseStatement.hpp"
 #include "parser/SqlParserWrapper.hpp"
 #include "query_execution/Foreman.hpp"
 #include "query_execution/QueryExecutionTypedefs.hpp"
-#include "query_execution/QueryContext.hpp"
 #include "query_execution/Worker.hpp"
 #include "query_execution/WorkerDirectory.hpp"
 #include "query_execution/WorkerMessage.hpp"
@@ -86,6 +84,7 @@ using std::vector;
 
 using quickstep::Address;
 using quickstep::CatalogRelation;
+using quickstep::DefaultsConfigurator;
 using quickstep::DropRelation;
 using quickstep::Foreman;
 using quickstep::InputParserUtil;
@@ -96,7 +95,6 @@ using quickstep::ParseResult;
 using quickstep::ParseStatement;
 using quickstep::PrintToScreen;
 using quickstep::PtrVector;
-using quickstep::QueryContext;
 using quickstep::QueryHandle;
 using quickstep::QueryPlan;
 using quickstep::QueryProcessor;
@@ -142,9 +140,9 @@ int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
-  // Detect the hardware concurrency level. Note this call will return 0
-  // if it fails (which it may on some machines/environments).
-  const unsigned int num_hw_threads = std::thread::hardware_concurrency();
+  // Detect the hardware concurrency level.
+  const std::size_t num_hw_threads =
+      DefaultsConfigurator::GetNumHardwareThreads();
 
   // Use the command-line value if that was supplied, else use the value
   // that we computed above, provided it did return a valid value.
@@ -208,6 +206,9 @@ int main(int argc, char* argv[]) {
       InputParserUtil::ParseWorkerAffinities(real_num_workers,
                                              quickstep::FLAGS_worker_affinities);
 
+  const std::size_t num_numa_nodes_covered =
+      DefaultsConfigurator::GetNumNUMANodesCoveredByWorkers(worker_cpu_affinities);
+
   if (quickstep::FLAGS_preload_buffer_pool) {
     quickstep::PreloaderThread preloader(*query_processor->getDefaultDatabase(),
                                          query_processor->getStorageManager(),
@@ -221,7 +222,8 @@ int main(int argc, char* argv[]) {
 
   Foreman foreman(&bus,
                   query_processor->getDefaultDatabase(),
-                  query_processor->getStorageManager());
+                  query_processor->getStorageManager(),
+                  num_numa_nodes_covered);
 
   // Get the NUMA affinities for workers.
   vector<int> cpu_numa_nodes = InputParserUtil::GetNUMANodesForCPUs();
@@ -233,9 +235,6 @@ int main(int argc, char* argv[]) {
   vector<int> worker_numa_nodes;
   PtrVector<Worker> workers;
   vector<client_id> worker_client_ids;
-
-  // TODO(zuyu): Construct QueryContext in Shiftboss to avoid Worker's access.
-  std::unique_ptr<QueryContext> query_context;
 
   // Initialize the worker threads.
   DCHECK_EQ(static_cast<std::size_t>(real_num_workers),
@@ -311,14 +310,10 @@ int main(int argc, char* argv[]) {
         DCHECK(query_handle->getQueryPlanMutable() != nullptr);
         foreman.setQueryPlan(query_handle->getQueryPlanMutable()->getQueryPlanDAGMutable());
 
+        foreman.reconstructQueryContextFromProto(query_handle->getQueryContextProto());
+
         try {
           start = std::chrono::steady_clock::now();
-          query_context.reset(new QueryContext(query_handle->getQueryContextProto(),
-                                               query_processor->getDefaultDatabase(),
-                                               query_processor->getStorageManager(),
-                                               foreman.getBusClientID(),
-                                               &bus));
-          foreman.setQueryContext(query_context.get());
           foreman.start();
           foreman.join();
           end = std::chrono::steady_clock::now();

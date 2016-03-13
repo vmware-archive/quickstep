@@ -39,7 +39,6 @@ namespace tmb { class MessageBus; }
 
 namespace quickstep {
 
-class CatalogDatabase;
 class CatalogRelationSchema;
 class InsertDestination;
 class Predicate;
@@ -127,7 +126,6 @@ class HashJoinOperator : public RelationalOperator {
   ~HashJoinOperator() override {}
 
   bool getAllWorkOrders(WorkOrdersContainer *container,
-                        CatalogDatabase *catalog_database,
                         QueryContext *query_context,
                         StorageManager *storage_manager,
                         const tmb::client_id foreman_client_id,
@@ -228,13 +226,9 @@ class HashJoinWorkOrder : public WorkOrder {
         block_id_(lookup_block_id),
         residual_predicate_(residual_predicate),
         selection_(selection),
-        output_destination_(output_destination),
-        hash_table_(hash_table),
-        storage_manager_(storage_manager) {
-    DCHECK(output_destination_ != nullptr);
-    DCHECK(hash_table_ != nullptr);
-    DCHECK(storage_manager_ != nullptr);
-  }
+        output_destination_(DCHECK_NOTNULL(output_destination)),
+        hash_table_(DCHECK_NOTNULL(hash_table)),
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
 
   ~HashJoinWorkOrder() override {}
 

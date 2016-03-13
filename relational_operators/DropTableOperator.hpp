@@ -68,7 +68,6 @@ class DropTableOperator : public RelationalOperator {
   ~DropTableOperator() override {}
 
   bool getAllWorkOrders(WorkOrdersContainer *container,
-                        CatalogDatabase *catalog_database,
                         QueryContext *query_context,
                         StorageManager *storage_manager,
                         const tmb::client_id foreman_client_id,
@@ -100,9 +99,7 @@ class DropTableWorkOrder : public WorkOrder {
   DropTableWorkOrder(std::vector<block_id> &&blocks,
                      StorageManager *storage_manager)
       : blocks_(std::move(blocks)),
-        storage_manager_(storage_manager) {
-    DCHECK(storage_manager_ != nullptr);
-  }
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
 
   ~DropTableWorkOrder() override {}
 

@@ -36,7 +36,6 @@ namespace tmb { class MessageBus; }
 
 namespace quickstep {
 
-class CatalogDatabase;
 class InsertDestination;
 class StorageManager;
 class WorkOrdersContainer;
@@ -70,7 +69,6 @@ class FinalizeAggregationOperator : public RelationalOperator {
   ~FinalizeAggregationOperator() override {}
 
   bool getAllWorkOrders(WorkOrdersContainer *container,
-                        CatalogDatabase *catalog_database,
                         QueryContext *query_context,
                         StorageManager *storage_manager,
                         const tmb::client_id foreman_client_id,
@@ -109,11 +107,8 @@ class FinalizeAggregationWorkOrder : public WorkOrder {
    */
   FinalizeAggregationWorkOrder(AggregationOperationState *state,
                                InsertDestination *output_destination)
-      : state_(state),
-        output_destination_(output_destination) {
-    DCHECK(state_ != nullptr);
-    DCHECK(output_destination_ != nullptr);
-  }
+      : state_(DCHECK_NOTNULL(state)),
+        output_destination_(DCHECK_NOTNULL(output_destination)) {}
 
   ~FinalizeAggregationWorkOrder() override {}
 

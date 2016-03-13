@@ -37,7 +37,6 @@ namespace tmb { class MessageBus; }
 
 namespace quickstep {
 
-class CatalogDatabase;
 class CatalogRelationSchema;
 class InsertDestination;
 class Predicate;
@@ -130,7 +129,6 @@ class SelectOperator : public RelationalOperator {
   ~SelectOperator() override {}
 
   bool getAllWorkOrders(WorkOrdersContainer *container,
-                        CatalogDatabase *catalog_database,
                         QueryContext *query_context,
                         StorageManager *storage_manager,
                         const tmb::client_id foreman_client_id,
@@ -214,11 +212,8 @@ class SelectWorkOrder : public WorkOrder {
         simple_projection_(simple_projection),
         simple_selection_(simple_selection),
         selection_(selection),
-        output_destination_(output_destination),
-        storage_manager_(storage_manager) {
-    DCHECK(output_destination_ != nullptr);
-    DCHECK(storage_manager_ != nullptr);
-  }
+        output_destination_(DCHECK_NOTNULL(output_destination)),
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
 
   ~SelectWorkOrder() override {}
 

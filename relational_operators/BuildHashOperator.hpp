@@ -36,7 +36,6 @@ namespace tmb { class MessageBus; }
 
 namespace quickstep {
 
-class CatalogDatabase;
 class CatalogRelationSchema;
 class StorageManager;
 class WorkOrdersContainer;
@@ -88,7 +87,6 @@ class BuildHashOperator : public RelationalOperator {
   ~BuildHashOperator() override {}
 
   bool getAllWorkOrders(WorkOrdersContainer *container,
-                        CatalogDatabase *catalog_database,
                         QueryContext *query_context,
                         StorageManager *storage_manager,
                         const tmb::client_id foreman_client_id,
@@ -147,11 +145,8 @@ class BuildHashWorkOrder : public WorkOrder {
         join_key_attributes_(join_key_attributes),
         any_join_key_attributes_nullable_(any_join_key_attributes_nullable),
         build_block_id_(build_block_id),
-        hash_table_(hash_table),
-        storage_manager_(storage_manager) {
-    DCHECK(hash_table_ != nullptr);
-    DCHECK(storage_manager_ != nullptr);
-  }
+        hash_table_(DCHECK_NOTNULL(hash_table)),
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
 
   ~BuildHashWorkOrder() override {}
 
