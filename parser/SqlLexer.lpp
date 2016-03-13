@@ -55,6 +55,7 @@ class ParseKeyValue;
 class ParseLimit;
 class ParseOrderBy;
 class ParseOrderByItem;
+class ParsePartitionClause;
 class ParsePredicate;
 class ParseScalarLiteral;
 class ParseSelect;
@@ -222,6 +223,7 @@ unsigned_numeric_literal {exact_numeric_literal}|{approximate_numeric_literal}
   "order"            return TOKEN_ORDER;
   "outer"            return TOKEN_OUTER;
   "partition"        return TOKEN_PARTITION;
+  "partitions"       return TOKEN_PARTITIONS;
   "primary"          return TOKEN_PRIMARY;
   "quit"             return TOKEN_QUIT;
   "real"             return TOKEN_REAL;
