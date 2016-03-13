@@ -229,6 +229,7 @@ unsigned_numeric_literal {exact_numeric_literal}|{approximate_numeric_literal}
   "percent"          return TOKEN_PERCENT;
   "primary"          return TOKEN_PRIMARY;
   "quit"             return TOKEN_QUIT;
+  "range"            return TOKEN_RANGE;
   "real"             return TOKEN_REAL;
   "references"       return TOKEN_REFERENCES;
   "regexp"           return TOKEN_REGEXP;

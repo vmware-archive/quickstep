@@ -94,6 +94,7 @@ add_library(quickstep_parser_ParseKeyValue ../empty_src.cpp ParseKeyValue.hpp)
 add_library(quickstep_parser_ParseLimit ParseLimit.cpp ParseLimit.hpp)
 add_library(quickstep_parser_ParseLiteralValue ParseLiteralValue.cpp ParseLiteralValue.hpp)
 add_library(quickstep_parser_ParseOrderBy ParseOrderBy.cpp ParseOrderBy.hpp)
+add_library(quickstep_parser_ParsePartitionClause ../empty_src.cpp ParsePartitionCaluse.hpp)
 add_library(quickstep_parser_ParsePredicate ParsePredicate.cpp ParsePredicate.hpp)
 add_library(quickstep_parser_ParseSample ParseSample.cpp ParseSample.hpp)
 add_library(quickstep_parser_ParseSelect ../empty_src.cpp ParseSelect.hpp)
@@ -178,13 +179,18 @@ target_link_libraries(quickstep_parser_ParseOrderBy
                       quickstep_parser_ParseTreeNode
                       quickstep_utility_Macros
                       quickstep_utility_PtrList)
+target_link_libraries(quickstep_parser_ParsePartitionClause
+                      quickstep_parser_ParseLiteralValue
+                      quickstep_parser_ParseString
+                      quickstep_parser_ParseTreeNode
+                      quickstep_utility_Macros
+                      quickstep_utility_PtrList)
 target_link_libraries(quickstep_parser_ParsePredicate
                       quickstep_parser_ParseExpression
                       quickstep_parser_ParseTreeNode
                       quickstep_types_operations_comparisons_Comparison
                       quickstep_utility_Macros
                       quickstep_utility_PtrList)
-
 target_link_libraries(quickstep_parser_ParseSample
                       quickstep_parser_ParseLiteralValue
                       quickstep_parser_ParseTreeNode
@@ -219,6 +225,7 @@ target_link_libraries(quickstep_parser_ParseStatement
                       quickstep_parser_ParseBasicExpressions
                       quickstep_parser_ParseBlockProperties
                       quickstep_parser_ParseKeyValue
+                      quickstep_parser_ParsePartitionClause
                       quickstep_parser_ParsePredicate
                       quickstep_parser_ParseSelect
                       quickstep_parser_ParseString
@@ -275,6 +282,7 @@ target_link_libraries(quickstep_parser_SqlParser
                       quickstep_parser_ParseLimit
                       quickstep_parser_ParseLiteralValue
                       quickstep_parser_ParseOrderBy
+                      quickstep_parser_ParsePartitionClause
                       quickstep_parser_ParsePredicate
                       quickstep_parser_ParseSample
                       quickstep_parser_ParseSelect
@@ -344,6 +352,7 @@ target_link_libraries(quickstep_parser
                       quickstep_parser_ParseLimit
                       quickstep_parser_ParseLiteralValue
                       quickstep_parser_ParseOrderBy
+                      quickstep_parser_ParsePartitionClause
                       quickstep_parser_ParsePredicate
                       quickstep_parser_ParserUtil
                       quickstep_parser_ParseSample

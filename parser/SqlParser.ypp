@@ -863,7 +863,7 @@ opt_partition_clause:
   {
     $$ = nullptr;
   }
-  | TOKEN_PARTITION TOKEN_BY TOKEN_HASH '(' opt_column_list ')' TOKEN_PARTITIONS TOKEN_UNSIGNED_NUMVAL{
+  | TOKEN_PARTITION TOKEN_BY partition_type '(' opt_column_list ')' TOKEN_PARTITIONS TOKEN_UNSIGNED_NUMVAL{
     if ($2->float_like()) {
       delete $2;
       $$ = NULL;
@@ -876,10 +876,21 @@ opt_partition_clause:
         quickstep_yyerror(&@2, yyscanner, NULL, "NUMBER OF PARITIONS must be between 1 and 64");
         YYERROR;
       } else {
-        $$ = new quickstep::ParsePartitionClause(@1.first_line, @1.first_column, true, $2);
+        $$ = new quickstep::ParsePartitionClause(@1.first_line, @1.first_column, $3, $5, $8);
       }
     }
   }
+
+partition_type:
+  TOKEN_HASH {
+    $$ = new quickstep::ParseString(@1.first_line, @1.first_column,
+           std::to_string(quickstep::PartitionType::kHash));
+  }
+  | TOKEN_RANGE{
+    $$ = new quickstep::ParseString(@1.first_line, @1.first_column,
+           std::to_string(quickstep::PartitionType::kRange));
+  };
+
 key_value_list:
   key_value {
     $$ = new quickstep::PtrList<quickstep::ParseKeyValue>();
