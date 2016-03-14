@@ -186,7 +186,7 @@ class ParseStatementCreateTable : public ParseStatement {
     if (opt_partition_clause_) {
       container_child_field_names->push_back("partition_clause");
       container_child_fields->emplace_back();
-      container_child_fields->push_back(opt_partition_clause_.get());
+      container_child_fields->back().push_back(opt_partition_clause_.get());
     }
   }
 

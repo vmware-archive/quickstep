@@ -64,6 +64,7 @@ typedef struct YYLTYPE {
 #include <string>
 #include <utility>
 
+#include "catalog/PartitionScheme.hpp"
 #include "parser/ParseAssignment.hpp"
 #include "parser/ParseAttributeDefinition.hpp"
 #include "parser/ParseBasicExpressions.hpp"
@@ -163,7 +164,7 @@ typedef void* yyscan_t;
   quickstep::ParseStatementDelete *delete_statement_;
   quickstep::ParseStatementCopyFrom *copy_from_statement_;
   quickstep::ParseStatementCreateTable *create_table_statement_;
-  quickstep::ParsePartitionClause *opt_partition_clause_;
+  quickstep::ParsePartitionClause *partition_clause_;
   quickstep::ParseBlockProperties *block_properties_;
   quickstep::ParseStatementDropTable *drop_table_statement_;
   quickstep::ParseStatementQuit *quit_statement_;
@@ -254,6 +255,7 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_FROM;
 %token TOKEN_FULL;
 %token TOKEN_GROUP;
+%token TOKEN_HASH;
 %token TOKEN_HAVING;
 %token TOKEN_INDEX;
 %token TOKEN_INNER;
@@ -275,9 +277,12 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_OR;
 %token TOKEN_ORDER;
 %token TOKEN_OUTER;
+%token TOKEN_PARTITION;
+%token TOKEN_PARTITIONS;
 %token TOKEN_PERCENT;
 %token TOKEN_PRIMARY;
 %token TOKEN_QUIT;
+%token TOKEN_RANGE;
 %token TOKEN_REAL;
 %token TOKEN_REFERENCES;
 %token TOKEN_REGEXP;
@@ -305,6 +310,7 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %type <string_value_>
   any_name
   index_type
+  partition_type
 
 %type <boolean_value_>
   boolean_value
@@ -616,7 +622,7 @@ alter_table_statement:
 
 create_table_statement:
   TOKEN_CREATE TOKEN_TABLE any_name '(' column_def_commalist ')' opt_table_constraint_def_commalist opt_block_properties opt_partition_clause {
-    $$ = new quickstep::ParseStatementCreateTable(@1.first_line, @1.first_column, $3, $5, $8);
+    $$ = new quickstep::ParseStatementCreateTable(@1.first_line, @1.first_column, $3, $5, $8, $9);
   };
 
 create_index_statement:
@@ -863,17 +869,17 @@ opt_partition_clause:
   {
     $$ = nullptr;
   }
-  | TOKEN_PARTITION TOKEN_BY partition_type '(' opt_column_list ')' TOKEN_PARTITIONS TOKEN_UNSIGNED_NUMVAL{
-    if ($2->float_like()) {
-      delete $2;
+  | TOKEN_PARTITION TOKEN_BY partition_type '(' opt_column_list ')' TOKEN_PARTITIONS TOKEN_UNSIGNED_NUMVAL {
+    if ($8->float_like()) {
+      delete $8;
       $$ = NULL;
-      quickstep_yyerror(&@2, yyscanner, NULL, "NUMBER OF PARTITIONS must be an integer");
+      quickstep_yyerror(&@8, yyscanner, NULL, "NUMBER OF PARTITIONS must be an integer");
       YYERROR;
     } else {
-      if ($2->long_value() <= 0 || $2->long_value() >64) {
-        delete $2;
+      if ($8->long_value() <= 0 || $8->long_value() > 64) {
+        delete $8;
         $$ = NULL;
-        quickstep_yyerror(&@2, yyscanner, NULL, "NUMBER OF PARITIONS must be between 1 and 64");
+        quickstep_yyerror(&@8, yyscanner, NULL, "NUMBER OF PARITIONS must be between 1 and 64");
         YYERROR;
       } else {
         $$ = new quickstep::ParsePartitionClause(@1.first_line, @1.first_column, $3, $5, $8);
@@ -884,11 +890,11 @@ opt_partition_clause:
 partition_type:
   TOKEN_HASH {
     $$ = new quickstep::ParseString(@1.first_line, @1.first_column,
-           std::to_string(quickstep::PartitionType::kHash));
+           std::to_string(quickstep::PartitionScheme::PartitionType::kHash));
   }
   | TOKEN_RANGE{
     $$ = new quickstep::ParseString(@1.first_line, @1.first_column,
-           std::to_string(quickstep::PartitionType::kRange));
+           std::to_string(quickstep::PartitionScheme::PartitionType::kRange));
   };
 
 key_value_list:

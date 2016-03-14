@@ -94,7 +94,7 @@ add_library(quickstep_parser_ParseKeyValue ../empty_src.cpp ParseKeyValue.hpp)
 add_library(quickstep_parser_ParseLimit ParseLimit.cpp ParseLimit.hpp)
 add_library(quickstep_parser_ParseLiteralValue ParseLiteralValue.cpp ParseLiteralValue.hpp)
 add_library(quickstep_parser_ParseOrderBy ParseOrderBy.cpp ParseOrderBy.hpp)
-add_library(quickstep_parser_ParsePartitionClause ../empty_src.cpp ParsePartitionCaluse.hpp)
+add_library(quickstep_parser_ParsePartitionClause ../empty_src.cpp ParsePartitionClause.hpp)
 add_library(quickstep_parser_ParsePredicate ParsePredicate.cpp ParsePredicate.hpp)
 add_library(quickstep_parser_ParseSample ParseSample.cpp ParseSample.hpp)
 add_library(quickstep_parser_ParseSelect ../empty_src.cpp ParseSelect.hpp)
@@ -270,6 +270,7 @@ target_link_libraries(quickstep_parser_SqlLexer
                       quickstep_utility_PtrList
                       quickstep_utility_PtrVector)
 target_link_libraries(quickstep_parser_SqlParser
+                      quickstep_catalog_PartitionScheme
                       quickstep_parser_ParseAssignment
                       quickstep_parser_ParseAttributeDefinition
                       quickstep_parser_ParseBasicExpressions
