@@ -17,7 +17,7 @@ syntax = "proto2";
 
 package quickstep.serialization;
 
-import "catalog/Catalog.proto";
+import "catalog/PartitionScheme.proto";
 import "storage/StorageBlockLayout.proto";
 
 enum InsertDestinationType {
@@ -50,6 +50,6 @@ message BlockPoolInsertDestination {
 
 message PartitionAwareInsertDestination {
   extend InsertDestination {
-    repeated Partition partitions = 48;
+    optional PartitionScheme partition_scheme = 48;
   }
 }

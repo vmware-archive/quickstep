@@ -1,0 +1,59 @@
+//   Copyright 2011-2015 Quickstep Technologies LLC.
+//   Copyright 2015-2016 Pivotal Software, Inc.
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+
+syntax = "proto2";
+
+package quickstep.serialization;
+
+import "types/Type.proto";
+import "types/TypedValue.proto";
+
+message PartitionSchemeHeader {
+  enum PartitionType {
+    HASH = 0;
+    RANGE = 1;
+  }
+
+  required PartitionType partition_type = 1;
+
+  required uint64 num_partitions = 2;
+
+  required uint32 partition_attribute_id = 3;
+
+  // The convention for extension numbering is that extensions for a particular
+  // PartitionType should begin from (partition_type + 1) * 16.
+  extensions 16 to max;
+}
+
+message RangePartitionSchemeHeader {
+  extend PartitionSchemeHeader {
+    // All required.
+    optional Type partition_attribute_type = 32;
+    repeated TypedValue partition_range_boundaries = 33;
+  }
+}
+
+message Partition {
+  repeated fixed64 blocks = 1;
+}
+
+message Partitions {
+  repeated Partition partitions = 2;
+}
+
+message PartitionScheme {
+  required PartitionSchemeHeader header = 1;
+  optional Partitions blocks_in_partitions = 2;
+}
