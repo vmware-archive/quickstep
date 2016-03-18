@@ -255,15 +255,23 @@ class RangePartitionSchemeHeader : public PartitionSchemeHeader {
    *                           partition id is to be determined.
    * @return The partition id of the partition for the attribute value.
    **/
-  // TODO(gerald): Use the binary search instead.
   partition_id getPartitionId(const TypedValue &value_of_attribute) const override {
-    for (partition_id part_id = 0; part_id < range_boundaries_.size(); ++part_id) {
-      if (less_unchecked_comparator_->compareTypedValues(value_of_attribute,
-                                                         range_boundaries_[part_id])) {
-        return part_id;
+    partition_id start = 0, end = range_boundaries_.size() - 1;
+
+    if (!less_unchecked_comparator_->compareTypedValues(value_of_attribute, range_boundaries_[end])) {
+      return num_partitions_ - 1;
+    }
+
+    while (start < end) {
+      const partition_id mid = start + ((end - start) >> 1);
+      if (less_unchecked_comparator_->compareTypedValues(value_of_attribute, range_boundaries_[mid])) {
+        end = mid;
+      } else {
+        start = mid + 1;
       }
     }
-    return num_partitions_ - 1;
+
+    return start;
   }
 
   serialization::PartitionSchemeHeader getProto() const override;
