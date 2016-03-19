@@ -20,7 +20,6 @@ package quickstep.serialization;
 import "catalog/PartitionScheme.proto";
 import "storage/StorageBlockLayout.proto";
 import "types/Type.proto";
-import "types/TypedValue.proto";
 
 message CatalogAttribute {
   required string name = 1;

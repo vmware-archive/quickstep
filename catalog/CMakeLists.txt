@@ -22,12 +22,12 @@ configure_file (
   "${CMAKE_CURRENT_BINARY_DIR}/CatalogConfig.h"
 )
 
-QS_PROTOBUF_GENERATE_CPP(catalog_Catalog_proto_srcs catalog_Catalog_proto_hdrs Catalog.proto)
 QS_PROTOBUF_GENERATE_CPP(catalog_PartitionScheme_proto_srcs catalog_PartitionScheme_proto_hdrs PartitionScheme.proto)
+QS_PROTOBUF_GENERATE_CPP(catalog_Catalog_proto_srcs catalog_Catalog_proto_hdrs Catalog.proto)
 
 # Declare micro-libs:
 add_library(quickstep_catalog_Catalog Catalog.cpp Catalog.hpp)
-add_library(quickstep_catalog_Catalog_proto ${catalog_Catalog_proto_srcs})
+add_library(quickstep_catalog_Catalog_proto ${catalog_Catalog_proto_srcs} ${catalog_Catalog_proto_hdrs})
 add_library(quickstep_catalog_CatalogAttribute CatalogAttribute.cpp CatalogAttribute.hpp)
 add_library(quickstep_catalog_CatalogDatabase CatalogDatabase.cpp CatalogDatabase.hpp)
 add_library(quickstep_catalog_CatalogErrors ../empty_src.cpp CatalogErrors.hpp)
@@ -58,7 +58,6 @@ target_link_libraries(quickstep_catalog_Catalog_proto
                       quickstep_catalog_PartitionScheme_proto
                       quickstep_storage_StorageBlockLayout_proto
                       quickstep_types_Type_proto
-                      quickstep_types_TypedValue_proto
                       ${PROTOBUF_LIBRARY})
 target_link_libraries(quickstep_catalog_CatalogAttribute
                       glog
@@ -197,6 +196,7 @@ target_link_libraries(NUMAPlacementScheme_unittest
                       gtest_main
                       quickstep_catalog_NUMAPlacementScheme
                       quickstep_catalog_PartitionScheme
+                      quickstep_catalog_PartitionSchemeHeader
                       quickstep_storage_StorageBlockInfo
                       ${LIBS})
 add_test(NUMAPlacementScheme_unittest NUMAPlacementScheme_unittest)

@@ -51,7 +51,7 @@ bool PartitionScheme::ProtoIsValid(
   }
 
   if (proto.has_blocks_in_partitions()) {
-    if (proto.blocks_in_partitions().partitions_size() != proto.header().num_partitions()) {
+    if (static_cast<std::size_t>(proto.blocks_in_partitions().partitions_size()) != proto.header().num_partitions()) {
       return false;
     }
   }

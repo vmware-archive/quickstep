@@ -30,8 +30,6 @@
 
 #include "glog/logging.h"
 
-using std::move;
-
 namespace quickstep {
 
 PartitionSchemeHeader::PartitionSchemeHeader(const PartitionType type,
@@ -88,9 +86,9 @@ PartitionSchemeHeader* PartitionSchemeHeader::ReconstructFromProto(
       for (int i = 0;
            i < proto.ExtensionSize(serialization::RangePartitionSchemeHeader::partition_range_boundaries);
            ++i) {
-        ranges.emplace_back(move(
+        ranges.emplace_back(
             TypedValue::ReconstructFromProto(
-                proto.GetExtension(serialization::RangePartitionSchemeHeader::partition_range_boundaries, i))));
+                proto.GetExtension(serialization::RangePartitionSchemeHeader::partition_range_boundaries, i)));
       }
 
       return new RangePartitionSchemeHeader(
@@ -98,7 +96,7 @@ PartitionSchemeHeader* PartitionSchemeHeader::ReconstructFromProto(
               proto.GetExtension(serialization::RangePartitionSchemeHeader::partition_attribute_type)),
           proto.num_partitions(),
           proto.partition_attribute_id(),
-          move(ranges));
+          std::move(ranges));
     }
     default:
       LOG(FATAL) << "Invalid partition scheme header.";
@@ -132,11 +130,11 @@ serialization::PartitionSchemeHeader RangePartitionSchemeHeader::getProto() cons
   proto.set_partition_attribute_id(attribute_id_);
 
   proto.MutableExtension(serialization::RangePartitionSchemeHeader::partition_attribute_type)
-      ->MergeFrom(move(attr_type_.getProto()));
+      ->MergeFrom(attr_type_.getProto());
 
   for (std::size_t i = 0; i < range_boundaries_.size(); ++i) {
     proto.AddExtension(serialization::RangePartitionSchemeHeader::partition_range_boundaries)
-        ->MergeFrom(move(range_boundaries_[i].getProto()));
+        ->MergeFrom(range_boundaries_[i].getProto());
   }
 
   return proto;

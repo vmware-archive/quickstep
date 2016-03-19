@@ -171,7 +171,7 @@ TEST(PartitionSchemeHeaderTest, IntegerRangePartitionSchemeHeaderTest) {
   // Last partition can hold upto infinity.
   // First partition can hold from -infinity to -1.
   for (int i = 0; i < 3; ++i) {
-    partition_range.push_back(move(TypedValue(i * 10)));
+    partition_range.push_back(TypedValue(i * 10));
   }
   std::unique_ptr<PartitionSchemeHeader> partition_scheme_header(
       new RangePartitionSchemeHeader(TypeFactory::GetType(kInt), 4, 0, move(partition_range)));
@@ -196,7 +196,7 @@ TEST(PartitionSchemeHeaderTest, LongRangePartitionSchemeHeaderTest) {
   std::vector<TypedValue> partition_range;
   // Partition boundaries are 0, 10000, 20000, 30000
   for (int i = 0; i < 3; ++i) {
-    partition_range.push_back(move(TypedValue(i * INT64_C(10000))));
+    partition_range.push_back(TypedValue(i * INT64_C(10000)));
   }
   std::unique_ptr<PartitionSchemeHeader> partition_scheme_header(
       new RangePartitionSchemeHeader(TypeFactory::GetType(kLong), 4, 0, move(partition_range)));
@@ -222,7 +222,7 @@ TEST(PartitionSchemeHeaderTest, FloatRangePartitionSchemeHeaderTest) {
   std::vector<TypedValue> partition_range;
   // Partition boundaries are 0.0, 10.0, 20.0
   for (int i = 0; i < 3; ++i) {
-    partition_range.push_back(move(TypedValue(i * 10.0f)));
+    partition_range.push_back(TypedValue(i * 10.0f));
   }
   std::unique_ptr<PartitionSchemeHeader> partition_scheme_header(
       new RangePartitionSchemeHeader(TypeFactory::GetType(kFloat), 4, 0, move(partition_range)));
@@ -245,7 +245,7 @@ TEST(PartitionSchemeHeaderTest, DoubleRangePartitionSchemeHeaderTest) {
   std::vector<TypedValue> partition_range;
   // Partition boundaries are 0.00000, 10.00000, 20.00000
   for (int i = 0; i < 3; ++i) {
-    partition_range.push_back(move(TypedValue(i * 10.00000)));
+    partition_range.push_back(TypedValue(i * 10.00000));
   }
   std::unique_ptr<PartitionSchemeHeader> partition_scheme_header(
       new RangePartitionSchemeHeader(TypeFactory::GetType(kDouble), 4, 0, move(partition_range)));
@@ -275,10 +275,10 @@ TEST(PartitionSchemeHeaderTest, CharacterRangePartitionSchemeHeaderTest) {
   const char *kRangeBoundaryStrings[] = {"don", "hippo", "pattasu"};
   const size_t num_boundaries = sizeof(kRangeBoundaryStrings) / sizeof(kRangeBoundaryStrings[0]);
   for (size_t i = 0; i < num_boundaries; ++i) {
-    partition_range.push_back(move(
+    partition_range.push_back(
         TypedValue(kChar,
                    kRangeBoundaryStrings[i],
-                   std::strlen(kRangeBoundaryStrings[i]) + 1)));
+                   std::strlen(kRangeBoundaryStrings[i]) + 1));
   }
   std::unique_ptr<PartitionSchemeHeader> partition_scheme_header(
       new RangePartitionSchemeHeader(TypeFactory::GetType(kChar, 20, false), 4, 0, move(partition_range)));
@@ -313,10 +313,10 @@ TEST(PartitionSchemeHeaderTest, VarCharRangePartitionSchemeHeaderTest) {
   const char *kRangeBoundaryStrings[] = { "elephant", "jamaica", "zorgonz"};
   const size_t num_boundaries = sizeof(kRangeBoundaryStrings) / sizeof(kRangeBoundaryStrings[0]);
   for (size_t i = 0; i < num_boundaries; ++i) {
-    partition_range.push_back(move(
+    partition_range.push_back(
         TypedValue(kVarChar,
                    kRangeBoundaryStrings[i],
-                   std::strlen(kRangeBoundaryStrings[i]) + 1)));
+                   std::strlen(kRangeBoundaryStrings[i]) + 1));
   }
 
   std::unique_ptr<PartitionSchemeHeader> partition_scheme_header(
@@ -545,7 +545,7 @@ TEST(PartitionSchemeTest, CheckRangePartitionSchemeSerialization) {
   // Last partition can hold upto infinity.
   // First partition can hold from -infinity to -1.
   for (std::size_t i = 0; i < num_partitions - 1; ++i) {
-    partition_range.push_back(move(TypedValue(static_cast<int>(i * 10))));
+    partition_range.push_back(TypedValue(static_cast<int>(i * 10)));
   }
   std::unique_ptr<PartitionScheme> part_scheme(
       new PartitionScheme(

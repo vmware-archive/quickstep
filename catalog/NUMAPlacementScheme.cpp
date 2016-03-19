@@ -72,7 +72,7 @@ NUMAPlacementScheme* NUMAPlacementScheme::DeserializeNUMAPlacementScheme(
   NUMAPlacementScheme *placement_scheme;
   // This call to the constructor will populate the values of partition-to-NUMA
   // node map.
-  placement_scheme = new NUMAPlacementScheme(partition_proto.num_partitions());
+  placement_scheme = new NUMAPlacementScheme(partition_proto.header().num_partitions());
 
   DCHECK(ProtoIsValid(proto))
       << "Attempted to create NUMAPlacementScheme from an invalid proto description:\n"
