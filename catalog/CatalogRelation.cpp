@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@
 #endif
 
 #include "catalog/PartitionScheme.hpp"
+#include "catalog/PartitionScheme.pb.h"
 #include "storage/StorageBlockInfo.hpp"
 #include "storage/StorageBlockLayout.hpp"
 #include "storage/StorageBlockLayout.pb.h"
@@ -40,8 +41,6 @@
 #include "glog/logging.h"
 
 namespace quickstep {
-
-class Type;
 
 bool CatalogRelation::ProtoIsValid(const serialization::CatalogRelation &proto) {
   // Check that proto is fully initialized.
@@ -102,8 +101,7 @@ CatalogRelation::CatalogRelation(const serialization::CatalogRelation &proto)
   // This should be done after the attributes are added and before the
   // blocks of the relation are added.
   if (proto.has_partition_scheme()) {
-    const Type& attr_type = getAttributeById(proto.partition_scheme().partition_attribute_id())->getType();
-    setPartitionScheme(PartitionScheme::DeserializePartitionScheme(proto.partition_scheme(), attr_type));
+    setPartitionScheme(PartitionScheme::ReconstructFromProto(proto.partition_scheme()));
 
     // Deserializing the NUMA placement scheme for the relation.
 #ifdef QUICKSTEP_HAVE_LIBNUMA

@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 #include "catalog/Catalog.pb.h"
 #include "catalog/CatalogTypedefs.hpp"
+#include "catalog/PartitionScheme.pb.h"
 #include "storage/StorageBlockInfo.hpp"
 #include "utility/Macros.hpp"
 
@@ -175,9 +176,9 @@ class NUMAPlacementScheme {
    *                        ParitionScheme. This is needed for number of
    *                        partitions.
    *
-   * @return The deserialied NUMA Placement Scheme object.
+   * @return The deserialized NUMA Placement Scheme object.
    **/
-  static NUMAPlacementScheme *DeserializeNUMAPlacementScheme(
+  static NUMAPlacementScheme* DeserializeNUMAPlacementScheme(
       const serialization::NUMAPlacementScheme &proto,
       const serialization::PartitionScheme &partition_proto);
 
