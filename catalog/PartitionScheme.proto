@@ -50,7 +50,7 @@ message Partition {
 }
 
 message Partitions {
-  repeated Partition partitions = 2;
+  repeated Partition partitions = 1;
 }
 
 message PartitionScheme {
