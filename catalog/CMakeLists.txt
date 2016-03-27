@@ -1,5 +1,5 @@
 #   Copyright 2011-2015 Quickstep Technologies LLC.
-#   Copyright 2015 Pivotal Software, Inc.
+#   Copyright 2015-2016 Pivotal Software, Inc.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -35,10 +35,11 @@ add_library(quickstep_catalog_CatalogRelationSchema
             CatalogRelationSchema.cpp
             CatalogRelationSchema.hpp)
 add_library(quickstep_catalog_CatalogTypedefs ../empty_src.cpp CatalogTypedefs.hpp)
-add_library(quickstep_catalog_PartitionScheme PartitionScheme.cpp PartitionScheme.hpp)
 if(QUICKSTEP_HAVE_LIBNUMA)
   add_library(quickstep_catalog_NUMAPlacementScheme NUMAPlacementScheme.cpp NUMAPlacementScheme.hpp)
 endif()
+add_library(quickstep_catalog_PartitionScheme PartitionScheme.cpp PartitionScheme.hpp)
+add_library(quickstep_catalog_PartitionSchemeHeader PartitionSchemeHeader.cpp PartitionSchemeHeader.hpp)
 
 # Link dependencies:
 target_link_libraries(quickstep_catalog_Catalog
@@ -107,7 +108,6 @@ target_link_libraries(quickstep_catalog_NUMAPlacementScheme
                       glog
                       quickstep_catalog_CatalogTypedefs
                       quickstep_catalog_Catalog_proto
-                      quickstep_catalog_PartitionScheme
                       quickstep_storage_StorageBlockInfo
                       quickstep_utility_Macros
                       ${LIBNUMA_LIBRARY})
@@ -116,8 +116,16 @@ target_link_libraries(quickstep_catalog_PartitionScheme
                       glog
                       quickstep_catalog_CatalogTypedefs
                       quickstep_catalog_Catalog_proto
+                      quickstep_catalog_PartitionSchemeHeader
                       quickstep_storage_StorageBlockInfo
+                      quickstep_threading_Mutex
+                      quickstep_threading_SharedMutex
                       quickstep_threading_SpinSharedMutex
+                      quickstep_utility_Macros)
+target_link_libraries(quickstep_catalog_PartitionSchemeHeader
+                      glog
+                      quickstep_catalog_CatalogTypedefs
+                      quickstep_catalog_Catalog_proto
                       quickstep_types_TypedValue
                       quickstep_types_TypedValue_proto
                       quickstep_types_operations_comparisons_Comparison
@@ -136,7 +144,8 @@ target_link_libraries(quickstep_catalog
                       quickstep_catalog_CatalogRelationSchema
                       quickstep_catalog_CatalogTypedefs
                       quickstep_catalog_NUMAPlacementScheme
-                      quickstep_catalog_PartitionScheme)
+                      quickstep_catalog_PartitionScheme
+                      quickstep_catalog_PartitionSchemeHeader)
 
 # Catalog generator program.
 add_executable(quickstep_generate_initial_default_catalog GenerateInitialDefaultCatalog.cpp)
@@ -173,7 +182,7 @@ target_link_libraries(NUMAPlacementScheme_unittest
                       gtest
                       gtest_main
                       quickstep_catalog_NUMAPlacementScheme
-                      quickstep_catalog_PartitionScheme
+                      quickstep_catalog_PartitionSchemeHeader
                       quickstep_storage_StorageBlockInfo
                       ${LIBS})
 add_test(NUMAPlacementScheme_unittest NUMAPlacementScheme_unittest)
@@ -186,6 +195,7 @@ target_link_libraries(PartitionScheme_unittest
                       gtest_main
                       quickstep_catalog_CatalogTypedefs
                       quickstep_catalog_PartitionScheme
+                      quickstep_catalog_PartitionSchemeHeader
                       quickstep_storage_StorageBlockInfo
                       quickstep_types_TypeFactory
                       quickstep_types_TypeID
