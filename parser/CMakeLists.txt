@@ -270,7 +270,7 @@ target_link_libraries(quickstep_parser_SqlLexer
                       quickstep_utility_PtrList
                       quickstep_utility_PtrVector)
 target_link_libraries(quickstep_parser_SqlParser
-                      quickstep_catalog_PartitionScheme
+                      quickstep_catalog_PartitionSchemeHeader
                       quickstep_parser_ParseAssignment
                       quickstep_parser_ParseAttributeDefinition
                       quickstep_parser_ParseBasicExpressions

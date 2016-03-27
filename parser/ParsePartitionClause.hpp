@@ -51,7 +51,7 @@ class ParsePartitionClause : public ParseTreeNode {
   ParsePartitionClause(const int line_number,
                        const int column_number,
                        ParseString *partition_type,
-                       PtrList<ParseString> *attribute_name_list,              
+                       PtrList<ParseString> *attribute_name_list,
                        NumericParseLiteralValue *num_partitions)
       : ParseTreeNode(line_number, column_number),
         partition_type_(partition_type),
@@ -104,7 +104,7 @@ class ParsePartitionClause : public ParseTreeNode {
                            std::vector<std::vector<const ParseTreeNode*>> *container_child_fields) const override {
       inline_field_names->push_back("partition_type");
       inline_field_values->push_back(partition_type_->value());
-    
+
       if (attribute_name_list_.get() != nullptr) {
         container_child_field_names->push_back("attribute_name_list");
         container_child_fields->emplace_back();

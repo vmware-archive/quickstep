@@ -64,7 +64,7 @@ typedef struct YYLTYPE {
 #include <string>
 #include <utility>
 
-#include "catalog/PartitionScheme.hpp"
+#include "catalog/PartitionSchemeHeader.hpp"
 #include "parser/ParseAssignment.hpp"
 #include "parser/ParseAttributeDefinition.hpp"
 #include "parser/ParseBasicExpressions.hpp"
@@ -890,11 +890,11 @@ opt_partition_clause:
 partition_type:
   TOKEN_HASH {
     $$ = new quickstep::ParseString(@1.first_line, @1.first_column,
-           std::to_string(quickstep::PartitionScheme::PartitionType::kHash));
+           std::to_string(quickstep::PartitionSchemeHeader::PartitionType::kHash));
   }
   | TOKEN_RANGE{
     $$ = new quickstep::ParseString(@1.first_line, @1.first_column,
-           std::to_string(quickstep::PartitionScheme::PartitionType::kRange));
+           std::to_string(quickstep::PartitionSchemeHeader::PartitionType::kRange));
   };
 
 key_value_list:
