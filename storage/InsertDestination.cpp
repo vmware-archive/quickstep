@@ -68,7 +68,7 @@ InsertDestination::InsertDestination(const CatalogRelationSchema &relation,
       foreman_client_id_(foreman_client_id),
       bus_(DCHECK_NOTNULL(bus)) {
   if (layout_ == nullptr) {
-    layout_.reset(StorageBlockLayout::GenerateDefaultLayout(relation, relation.isVariableLength()));
+    layout_.reset(StorageBlockLayout::GenerateLayout(relation));
   }
 }
 

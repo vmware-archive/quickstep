@@ -23,6 +23,7 @@
 
 #include "glog/logging.h"
 
+#include "catalog/CatalogDatabase.hpp"
 #include "catalog/CatalogRelationSchema.hpp"
 #include "storage/StorageBlockLayout.pb.h"
 #include "storage/StorageConstants.hpp"
@@ -133,6 +134,20 @@ void StorageBlockLayout::copyHeaderTo(void *dest) const {
   if (!block_header_.SerializeToArray(static_cast<char*>(dest) + sizeof(int),
                                       block_header_.ByteSize())) {
     FATAL_ERROR("Failed to do binary serialization of StorageBlockHeader in StorageBlockLayout::copyHeaderTo()");
+  }
+}
+
+StorageBlockLayout* GenerateLayout(const CatalogRelationSchema &relationSchema) {
+  if (relationSchema.isTemporary()) {
+    // Temporary blocks use the default insert destination type.
+    return StorageBlockLayout::GenerateDefaultLayout(
+        relationSchema, relationSchema.isVariableLength());
+  } else {
+    // A non-temporary relation may have user-assigned block properties.
+    const CatalogRelation *relation = relationSchema.getParent().getRelationById(relationSchema.getID());
+    return new StorageBlockLayout(
+        relationSchema,
+        relation->getDefaultStorageBlockLayout().getDescription());
   }
 }
 
