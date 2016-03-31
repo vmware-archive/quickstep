@@ -1,5 +1,5 @@
 #   Copyright 2011-2015 Quickstep Technologies LLC.
-#   Copyright 2015 Pivotal Software, Inc.
+#   Copyright 2015-2016 Pivotal Software, Inc.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ add_library(quickstep_expressions_aggregation_AggregateFunctionSum
             AggregateFunctionSum.cpp
             AggregateFunctionSum.hpp)
 add_library(quickstep_expressions_aggregation_AggregationHandle
-            ../../empty_src.cpp
+            AggregationHandle.cpp
             AggregationHandle.hpp)
 add_library(quickstep_expressions_aggregation_AggregationHandleAvg
             AggregationHandleAvg.cpp
@@ -140,7 +140,9 @@ target_link_libraries(quickstep_expressions_aggregation_AggregateFunctionSum
 target_link_libraries(quickstep_expressions_aggregation_AggregationHandle
                       glog
                       quickstep_catalog_CatalogTypedefs
+                      quickstep_storage_HashTable
                       quickstep_storage_HashTableBase
+                      quickstep_storage_HashTableFactory
                       quickstep_types_TypedValue
                       quickstep_types_containers_ColumnVector
                       quickstep_utility_Macros)
@@ -181,7 +183,6 @@ target_link_libraries(quickstep_expressions_aggregation_AggregationHandleDistinc
                       quickstep_expressions_aggregation_AggregationHandle
                       quickstep_storage_HashTable
                       quickstep_storage_HashTableBase
-                      quickstep_storage_HashTableFactory
                       quickstep_types_TypedValue
                       quickstep_utility_Macros)
 target_link_libraries(quickstep_expressions_aggregation_AggregationHandleMax

@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -352,14 +352,19 @@ class ParseFunctionCall : public ParseExpression {
    *
    * @param line_number The line number of the first token of the function call.
    * @param column_number The column number of the first token of the first call.
+   * @param is_distinct Whether this function call contains the DISTINCT operator.
    * @param name The function name.
    * @param arguments The function argument list.
    */
   ParseFunctionCall(const int line_number,
                     const int column_number,
+                    const bool is_distinct,
                     ParseString *name,
                     PtrList<ParseExpression> *arguments)
-      : ParseExpression(line_number, column_number), name_(name), arguments_(arguments) {
+      : ParseExpression(line_number, column_number),
+        is_distinct_(is_distinct),
+        name_(name),
+        arguments_(arguments) {
   }
 
   /**
@@ -373,6 +378,7 @@ class ParseFunctionCall : public ParseExpression {
    */
   ParseFunctionCall(const int line_number, const int column_number, ParseString *name, ParseStar *star)
       : ParseExpression(line_number, column_number),
+        is_distinct_(false),
         name_(name),
         star_(star) {
   }
@@ -389,6 +395,13 @@ class ParseFunctionCall : public ParseExpression {
 
   std::string getName() const override {
     return "FunctionCall";
+  }
+
+  /**
+   * @return Whether this function call contains the DISTINCT operator.
+   */
+  bool is_distinct() const {
+    return is_distinct_;
   }
 
   /**
@@ -424,6 +437,7 @@ class ParseFunctionCall : public ParseExpression {
       std::vector<std::vector<const ParseTreeNode*>> *container_child_fields) const override;
 
  private:
+  const bool is_distinct_;
   std::unique_ptr<ParseString> name_;
   // Either <arguments_> or <star_> is NULL.
   std::unique_ptr<PtrList<ParseExpression>> arguments_;
