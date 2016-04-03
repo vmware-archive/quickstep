@@ -139,6 +139,18 @@ CREATE TABLE test (attr INT) CHECK(attr>0)
                              ^
 ==
 
+CREATE TABLE test (attr INT) PARTITION BY HASH(attr) PARTITIONS 4
+--
+CreateTableStatement[relation_name=test]
++-attribute_list=
+| +-AttributeDefinition[name=attr,type=Int]
++-partition_clause=
+  +-PartitionClause[partition_type=0]
+    +-Number of Partitions=NumericLiteral[numeric_string=4,float_like=false]
+    +-attribute_name_list=
+      +-String[value=attr]
+==
+
 # Empty partitioning attribute is not allowed
 CREATE TABLE test (attr INT) PARTITION BY HASH() PARTITIONS 4
 --
