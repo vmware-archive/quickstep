@@ -869,7 +869,7 @@ opt_partition_clause:
   {
     $$ = nullptr;
   }
-  | TOKEN_PARTITION TOKEN_BY partition_type '(' opt_column_list ')' TOKEN_PARTITIONS TOKEN_UNSIGNED_NUMVAL {
+  | TOKEN_PARTITION TOKEN_BY partition_type '(' name_commalist ')' TOKEN_PARTITIONS TOKEN_UNSIGNED_NUMVAL {
     if ($8->float_like()) {
       delete $8;
       $$ = NULL;

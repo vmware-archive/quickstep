@@ -102,24 +102,24 @@ class ParsePartitionClause : public ParseTreeNode {
                            std::vector<const ParseTreeNode*> *non_container_child_fields,
                            std::vector<std::string> *container_child_field_names,
                            std::vector<std::vector<const ParseTreeNode*>> *container_child_fields) const override {
-      inline_field_names->push_back("partition_type");
-      inline_field_values->push_back(partition_type_->value());
+    inline_field_names->push_back("partition_type");
+    inline_field_values->push_back(partition_type_->value());
 
-      if (attribute_name_list_.get() != nullptr) {
-        container_child_field_names->push_back("attribute_name_list");
-        container_child_fields->emplace_back();
-        for (const ParseString& attribute_name : *attribute_name_list_) {
-          container_child_fields->back().push_back(&attribute_name);
-        }
+    if (attribute_name_list_.get() != nullptr) {
+      container_child_field_names->push_back("attribute_name_list");
+      container_child_fields->emplace_back();
+      for (const ParseString& attribute_name : *attribute_name_list_) {
+        container_child_fields->back().push_back(&attribute_name);
       }
+    }
 
-      non_container_child_field_names->push_back("Number of Partitions");
-      non_container_child_fields->push_back(num_partitions_.get());
+    non_container_child_field_names->push_back("Number of Partitions");
+    non_container_child_fields->push_back(num_partitions_.get());
   }
 
  private:
   std::unique_ptr<ParseString> partition_type_;
-  std::unique_ptr<PtrList<ParseString> > attribute_name_list_;
+  std::unique_ptr<PtrList<ParseString>> attribute_name_list_;
   std::unique_ptr<NumericParseLiteralValue> num_partitions_;
 
   DISALLOW_COPY_AND_ASSIGN(ParsePartitionClause);
