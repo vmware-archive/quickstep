@@ -157,7 +157,7 @@ extern int quickstep_yydebug;
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 112 "../SqlParser.ypp" /* yacc.c:1909  */
+#line 114 "../SqlParser.ypp" /* yacc.c:1909  */
 
   quickstep::ParseString *string_value_;
 
@@ -173,6 +173,7 @@ union YYSTYPE
 
   quickstep::ParseScalarLiteral *scalar_literal_;
   quickstep::ParseAttribute *attribute_;
+  quickstep::PtrList<quickstep::ParseAttribute> *attribute_list_;
 
   quickstep::ParsePredicate *predicate_;
 
@@ -240,7 +241,7 @@ union YYSTYPE
   quickstep::PtrVector<quickstep::ParseSubqueryTableReference> *with_list_;
   quickstep::ParseSubqueryTableReference *with_list_element_;
 
-#line 244 "SqlParser_gen.hpp" /* yacc.c:1909  */
+#line 245 "SqlParser_gen.hpp" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

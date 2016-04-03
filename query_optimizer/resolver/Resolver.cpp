@@ -1,6 +1,8 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
  *   Copyright 2015-2016 Pivotal Software, Inc.
+ *   Copyright 2016, Quickstep Research Group, Computer Sciences Department,
+ *     University of Wisconsin—Madison.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -78,6 +80,7 @@
 #include "query_optimizer/logical/DeleteTuples.hpp"
 #include "query_optimizer/logical/DropTable.hpp"
 #include "query_optimizer/logical/Filter.hpp"
+#include "query_optimizer/logical/InsertSelection.hpp"
 #include "query_optimizer/logical/InsertTuple.hpp"
 #include "query_optimizer/logical/MultiwayCartesianJoin.hpp"
 #include "query_optimizer/logical/Project.hpp"
@@ -101,6 +104,7 @@
 #include "types/operations/comparisons/ComparisonID.hpp"
 #include "types/operations/unary_operations/UnaryOperation.hpp"
 #include "utility/PtrList.hpp"
+#include "utility/PtrVector.hpp"
 #include "utility/SqlError.hpp"
 #include "utility/StringUtil.hpp"
 
@@ -273,38 +277,48 @@ L::LogicalPtr Resolver::resolve(const ParseStatement &parse_query) {
       logical_plan_ = resolveDropTable(
           static_cast<const ParseStatementDropTable&>(parse_query));
       break;
-    case ParseStatement::kInsert:
+    case ParseStatement::kInsert: {
       context_->set_is_catalog_changed();
-      logical_plan_ =
-          resolveInsert(static_cast<const ParseStatementInsert&>(parse_query));
+      const ParseStatementInsert &insert_statement =
+          static_cast<const ParseStatementInsert&>(parse_query);
+      if (insert_statement.getInsertType() == ParseStatementInsert::InsertType::kTuple) {
+        logical_plan_ =
+            resolveInsertTuple(static_cast<const ParseStatementInsertTuple&>(insert_statement));
+      } else {
+        DCHECK(insert_statement.getInsertType() == ParseStatementInsert::InsertType::kSelection);
+        const ParseStatementInsertSelection &insert_selection_statement =
+            static_cast<const ParseStatementInsertSelection&>(insert_statement);
+
+        if (insert_selection_statement.with_clause() != nullptr) {
+          resolveWithClause(*insert_selection_statement.with_clause());
+        }
+        logical_plan_ = resolveInsertSelection(insert_selection_statement);
+
+        if (insert_selection_statement.with_clause() != nullptr) {
+          // Report an error if there is a WITH query that is not actually used.
+          if (!with_queries_info_.unreferenced_query_indexes.empty()) {
+            int unreferenced_with_query_index = *with_queries_info_.unreferenced_query_indexes.begin();
+            const ParseSubqueryTableReference &unreferenced_with_query =
+                (*insert_selection_statement.with_clause())[unreferenced_with_query_index];
+            THROW_SQL_ERROR_AT(&unreferenced_with_query)
+                << "WITH query "
+                << unreferenced_with_query.table_reference_signature()->table_alias()->value()
+                << " is defined but not used";
+          }
+        }
+      }
       break;
+    }
     case ParseStatement::kSelect: {
       const ParseStatementSelect &select_statement =
           static_cast<const ParseStatementSelect&>(parse_query);
       if (select_statement.with_clause() != nullptr) {
-        int index = 0;
-        for (const ParseSubqueryTableReference &with_table_reference : *select_statement.with_clause()) {
-          NameResolver name_resolver;
-          with_queries_info_.with_query_plans.emplace_back(
-              resolveTableReference(with_table_reference, &name_resolver));
-
-          const ParseString *reference_alias = with_table_reference.table_reference_signature()->table_alias();
-          const std::string lower_alias_name = ToLower(reference_alias->value());
-          if (with_queries_info_.with_query_name_to_vector_position.find(lower_alias_name)
-                  != with_queries_info_.with_query_name_to_vector_position.end()) {
-            THROW_SQL_ERROR_AT(reference_alias)
-                << "WITH query name " << reference_alias->value()
-                << " is specified more than once";
-          }
-
-          with_queries_info_.with_query_name_to_vector_position.emplace(lower_alias_name, index);
-          with_queries_info_.unreferenced_query_indexes.insert(index);
-          ++index;
-        }
+        resolveWithClause(*select_statement.with_clause());
       }
       logical_plan_ =
           resolveSelect(*select_statement.select_query(),
-                        "" /* select_name */);
+                        "" /* select_name */,
+                        nullptr /* No Type hints */);
       if (select_statement.with_clause() != nullptr) {
         // Report an error if there is a WITH query that is not actually used.
         if (!with_queries_info_.unreferenced_query_indexes.empty()) {
@@ -596,12 +610,64 @@ StorageBlockLayoutDescription* Resolver::resolveBlockProperties(
 
 L::LogicalPtr Resolver::resolveCreateIndex(
     const ParseStatementCreateIndex &create_index_statement) {
-  // Resolve relation name.
+  // Resolve relation reference.
   const L::LogicalPtr input = resolveSimpleTableReference(
       *create_index_statement.relation_name(), nullptr /* reference_alias */);
 
-  const std::string index_name = create_index_statement.index_name()->value();
-  return L::CreateIndex::Create(input, index_name);
+  const std::string &index_name = create_index_statement.index_name()->value();
+
+  // Resolve attribute references.
+  const PtrList<ParseAttribute> *index_attributes = create_index_statement.attribute_list();
+  const std::vector<E::AttributeReferencePtr> &relation_attributes =
+      input->getOutputAttributes();
+  std::vector<E::AttributeReferencePtr> resolved_attributes;
+  if (index_attributes == nullptr) {
+    // Specify to build index on all the attributes, if no attribute was specified.
+    for (const E::AttributeReferencePtr &relation_attribute : relation_attributes) {
+      resolved_attributes.emplace_back(relation_attribute);
+    }
+  } else {
+    // Otherwise specify to build index on the attributes that were given.
+    for (const ParseAttribute &index_attribute : *index_attributes) {
+      bool is_resolved = false;
+      for (const E::AttributeReferencePtr &relation_attribute : relation_attributes) {
+        const std::string &relation_attr_name = relation_attribute->attribute_name();
+        const std::string &index_attr_name = index_attribute.attr_name()->value();
+        if (relation_attr_name.compare(index_attr_name) == 0) {
+          is_resolved = true;
+          resolved_attributes.emplace_back(relation_attribute);
+          break;
+        }
+      }
+      if (!is_resolved) {
+        THROW_SQL_ERROR_AT(&index_attribute) << "Attribute "<< index_attribute.attr_name()->value()
+            << " is undefined for the relation "<< create_index_statement.relation_name()->value();
+      }
+    }
+  }
+
+  // Resolve index properties.
+  std::shared_ptr<const IndexSubBlockDescription> index_description_shared;
+  const IndexProperties *index_properties = create_index_statement.getIndexProperties();
+  if (index_properties->isIndexPropertyValid()) {
+    // Create a deep copy of the index description and pass its ownership to the shared ptr.
+    std::unique_ptr<IndexSubBlockDescription> index_description(new IndexSubBlockDescription());
+    index_description->CopyFrom(*index_properties->getIndexDescription());
+    index_description_shared.reset(index_description.release());
+    DCHECK(index_description_shared != nullptr);
+  } else {
+    if (index_properties->getInvalidPropertyNode() != nullptr) {
+      // If exact location is known in the parser, the error is thrown at that specific node.
+      THROW_SQL_ERROR_AT(index_properties->getInvalidPropertyNode())
+          << index_properties->getReasonForInvalidIndexDescription();
+    } else {
+      // Else the error is thrown at the index name node.
+      THROW_SQL_ERROR_AT(create_index_statement.index_type())
+         << index_properties->getReasonForInvalidIndexDescription();
+    }
+  }
+
+  return L::CreateIndex::Create(input, index_name, resolved_attributes, index_description_shared);
 }
 
 L::LogicalPtr Resolver::resolveDelete(
@@ -633,8 +699,82 @@ L::LogicalPtr Resolver::resolveDropTable(
       resolveRelationName(drop_table_statement.relation_name()));
 }
 
-L::LogicalPtr Resolver::resolveInsert(
-    const ParseStatementInsert &insert_statement) {
+L::LogicalPtr Resolver::resolveInsertSelection(
+    const ParseStatementInsertSelection &insert_statement) {
+  NameResolver name_resolver;
+
+  // Resolve the destination relation.
+  const L::LogicalPtr destination_logical = resolveSimpleTableReference(
+      *insert_statement.relation_name(), nullptr /* reference alias */);
+  name_resolver.addRelation(insert_statement.relation_name(),
+                            destination_logical);
+  const std::vector<E::AttributeReferencePtr> destination_attributes =
+      destination_logical->getOutputAttributes();
+
+  // Gather type information of the destination relation columns.
+  std::vector<const Type *> type_hints;
+  for (E::AttributeReferencePtr attr : destination_attributes) {
+    type_hints.emplace_back(&attr->getValueType());
+  }
+
+  // Resolve the selection query.
+  const L::LogicalPtr selection_logical =
+      resolveSelect(*insert_statement.select_query(), "", &type_hints);
+  const std::vector<E::AttributeReferencePtr> selection_attributes =
+      selection_logical->getOutputAttributes();
+
+  // Check that number of columns match between the selection relation and
+  // the destination relation.
+  if (selection_attributes.size() != destination_attributes.size()) {
+    THROW_SQL_ERROR_AT(insert_statement.relation_name())
+        << "The relation " << insert_statement.relation_name()->value()
+        << " has " << std::to_string(destination_attributes.size())
+        << " columns, but " << std::to_string(selection_attributes.size())
+        << " columns are generated by the SELECT query";
+  }
+
+  // Add cast operation if the selection column type does not match the destination
+  // column type
+  std::vector<E::NamedExpressionPtr> cast_expressions;
+  for (std::vector<E::AttributeReferencePtr>::size_type aid = 0;
+       aid < destination_attributes.size();
+       ++aid) {
+    const Type& destination_type = destination_attributes[aid]->getValueType();
+    const Type& selection_type = selection_attributes[aid]->getValueType();
+    if (destination_type.equals(selection_type)) {
+      cast_expressions.emplace_back(selection_attributes[aid]);
+    } else {
+      // TODO(jianqiao): implement Cast operation for non-numeric types.
+      if (destination_type.getSuperTypeID() == Type::kNumeric
+          && selection_type.getSuperTypeID() == Type::kNumeric
+          && destination_type.isSafelyCoercibleFrom(selection_type)) {
+        // Add cast operation
+        const E::AttributeReferencePtr attr = selection_attributes[aid];
+        const E::ExpressionPtr cast_expr =
+            E::Cast::Create(attr, destination_type);
+        cast_expressions.emplace_back(
+            E::Alias::Create(context_->nextExprId(),
+                             cast_expr,
+                             attr->attribute_name(),
+                             attr->attribute_alias()));
+      } else {
+        THROW_SQL_ERROR_AT(insert_statement.relation_name())
+            << "The assigned value for the column "
+            << insert_statement.relation_name()->value() << "."
+            << destination_attributes[aid]->attribute_name() << " has type "
+            << selection_attributes[aid]->getValueType().getName()
+            << ", which cannot be safely coerced to the column's type "
+            << destination_attributes[aid]->getValueType().getName();
+     }
+    }
+  }
+  return L::InsertSelection::Create(
+      destination_logical,
+      L::Project::Create(selection_logical, cast_expressions));
+}
+
+L::LogicalPtr Resolver::resolveInsertTuple(
+    const ParseStatementInsertTuple &insert_statement) {
   NameResolver name_resolver;
 
   const L::LogicalPtr input_logical = resolveSimpleTableReference(
@@ -784,7 +924,8 @@ L::LogicalPtr Resolver::resolveUpdate(
 
 L::LogicalPtr Resolver::resolveSelect(
     const ParseSelect &select_query,
-    const std::string &select_name) {
+    const std::string &select_name,
+    const std::vector<const Type*> *type_hints) {
   // Create a new name scope. We currently do not support correlated query.
   std::unique_ptr<NameResolver> name_resolver(new NameResolver());
 
@@ -811,6 +952,7 @@ L::LogicalPtr Resolver::resolveSelect(
   std::vector<bool> has_aggregate_per_expression;
   resolveSelectClause(select_query.selection(),
                       select_name,
+                      type_hints,
                       *name_resolver,
                       &query_aggregation_info,
                       &select_list_expressions,
@@ -1169,6 +1311,29 @@ void Resolver::validateExpressionForAggregation(
   }
 }
 
+void Resolver::resolveWithClause(
+    const PtrVector<ParseSubqueryTableReference> &with_list) {
+  int index = 0;
+  for (const ParseSubqueryTableReference &with_table_reference : with_list) {
+    NameResolver name_resolver;
+    with_queries_info_.with_query_plans.emplace_back(
+        resolveTableReference(with_table_reference, &name_resolver));
+
+    const ParseString *reference_alias = with_table_reference.table_reference_signature()->table_alias();
+    const std::string lower_alias_name = ToLower(reference_alias->value());
+    if (with_queries_info_.with_query_name_to_vector_position.find(lower_alias_name)
+            != with_queries_info_.with_query_name_to_vector_position.end()) {
+      THROW_SQL_ERROR_AT(reference_alias)
+          << "WITH query name " << reference_alias->value()
+          << " is specified more than once";
+    }
+
+    with_queries_info_.with_query_name_to_vector_position.emplace(lower_alias_name, index);
+    with_queries_info_.unreferenced_query_indexes.insert(index);
+    ++index;
+  }
+}
+
 L::LogicalPtr Resolver::resolveFromClause(
     const PtrList<ParseTableReference> &from_list,
     NameResolver *name_resolver) {
@@ -1249,7 +1414,8 @@ L::LogicalPtr Resolver::resolveTableReference(const ParseTableReference &table_r
       reference_alias = reference_signature->table_alias();
       logical_plan = resolveSelect(
           *static_cast<const ParseSubqueryTableReference&>(table_reference).subquery_expr()->query(),
-          reference_alias->value());
+          reference_alias->value(),
+          nullptr /* No Type hints */);
 
       if (reference_signature->column_aliases() != nullptr) {
         logical_plan = RenameOutputColumns(logical_plan, *reference_signature);
@@ -1386,6 +1552,7 @@ L::LogicalPtr Resolver::resolveGeneratorTableReference(
 void Resolver::resolveSelectClause(
     const ParseSelectionClause &parse_selection,
     const std::string &select_name,
+    const std::vector<const Type*> *type_hints,
     const NameResolver &name_resolver,
     QueryAggregationInfo *query_aggregation_info,
     std::vector<expressions::NamedExpressionPtr> *project_expressions,
@@ -1403,6 +1570,13 @@ void Resolver::resolveSelectClause(
     case ParseSelectionClause::kNonStar: {
       const ParseSelectionList &selection_list =
           static_cast<const ParseSelectionList&>(parse_selection);
+
+      // Ignore type hints if its size does not match the number of columns.
+      if (type_hints != nullptr && type_hints->size() != selection_list.select_item_list().size()) {
+        type_hints = nullptr;
+      }
+
+      std::vector<const Type*>::size_type tid = 0;
       for (const ParseSelectionItem &selection_item :
            selection_list.select_item_list()) {
         const ParseString *parse_alias = selection_item.alias();
@@ -1414,7 +1588,7 @@ void Resolver::resolveSelectClause(
             nullptr /* select_list_info */);
         const E::ScalarPtr project_scalar =
             resolveExpression(*parse_project_expression,
-                              nullptr,  // No Type hint.
+                              (type_hints == nullptr ? nullptr : type_hints->at(tid)),
                               &expr_resolution_info);
 
         // If the resolved expression is a named expression,
@@ -1460,6 +1634,7 @@ void Resolver::resolveSelectClause(
         project_expressions->push_back(project_named_expression);
         has_aggregate_per_expression->push_back(
             expr_resolution_info.hasAggregate());
+        ++tid;
       }
       break;
     }

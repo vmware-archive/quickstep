@@ -172,6 +172,7 @@ add_library(quickstep_storage_HashTableBase ../empty_src.cpp HashTableBase.hpp)
 add_library(quickstep_storage_HashTableFactory HashTableFactory.cpp HashTableFactory.hpp)
 add_library(quickstep_storage_HashTableKeyManager ../empty_src.cpp HashTableKeyManager.hpp)
 add_library(quickstep_storage_IndexSubBlock ../empty_src.cpp IndexSubBlock.hpp)
+add_library(quickstep_storage_IndexSubBlockDescriptionFactory ../empty_src.cpp IndexSubBlockDescriptionFactory.hpp)
 add_library(quickstep_storage_InsertDestination InsertDestination.cpp InsertDestination.hpp)
 add_library(quickstep_storage_InsertDestinationInterface
             ../empty_src.cpp
@@ -219,7 +220,7 @@ add_library(quickstep_storage_ValueAccessorUtil ../empty_src.cpp ValueAccessorUt
 # Link dependencies:
 target_link_libraries(quickstep_storage_AggregationOperationState
                       glog
-                      quickstep_catalog_CatalogDatabase
+                      quickstep_catalog_CatalogDatabaseLite
                       quickstep_catalog_CatalogRelationSchema
                       quickstep_catalog_CatalogTypedefs
                       quickstep_expressions_ExpressionFactories
@@ -227,6 +228,7 @@ target_link_libraries(quickstep_storage_AggregationOperationState
                       quickstep_expressions_aggregation_AggregateFunction
                       quickstep_expressions_aggregation_AggregateFunctionFactory
                       quickstep_expressions_aggregation_AggregationHandle
+                      quickstep_expressions_aggregation_AggregationHandleDistinct
                       quickstep_expressions_aggregation_AggregationID
                       quickstep_expressions_predicate_Predicate
                       quickstep_expressions_scalar_Scalar
@@ -556,14 +558,16 @@ target_link_libraries(quickstep_storage_IndexSubBlock
                       quickstep_storage_StorageBlockInfo
                       quickstep_storage_TupleStorageSubBlock
                       quickstep_utility_Macros)
+target_link_libraries(quickstep_storage_IndexSubBlockDescriptionFactory
+                      quickstep_storage_StorageBlockLayout
+                      quickstep_utility_Macros)
 target_link_libraries(quickstep_storage_InsertDestination
                       glog
                       gtest
                       quickstep_catalog_CatalogAttribute
-                      quickstep_catalog_CatalogRelation
+                      quickstep_catalog_CatalogRelationSchema
                       quickstep_catalog_CatalogTypedefs
                       quickstep_catalog_Catalog_proto
-                      quickstep_catalog_PartitionScheme
                       quickstep_catalog_PartitionSchemeHeader
                       quickstep_queryexecution_QueryExecutionMessages_proto
                       quickstep_queryexecution_QueryExecutionTypedefs
@@ -880,6 +884,7 @@ target_link_libraries(quickstep_storage
                       quickstep_storage_HashTableFactory
                       quickstep_storage_HashTableKeyManager
                       quickstep_storage_IndexSubBlock
+                      quickstep_storage_IndexSubBlockDescriptionFactory
                       quickstep_storage_InsertDestination
                       quickstep_storage_InsertDestinationInterface
                       quickstep_storage_InsertDestination_proto

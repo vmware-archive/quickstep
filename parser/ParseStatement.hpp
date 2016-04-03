@@ -1,6 +1,8 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
  *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2016, Quickstep Research Group, Computer Sciences Department,
+ *     University of Wisconsin—Madison.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -26,6 +28,7 @@
 #include "parser/ParseAttributeDefinition.hpp"
 #include "parser/ParseBasicExpressions.hpp"
 #include "parser/ParseBlockProperties.hpp"
+#include "parser/ParseIndexProperties.hpp"
 #include "parser/ParseKeyValue.hpp"
 #include "parser/ParsePartitionClause.hpp"
 #include "parser/ParsePredicate.hpp"
@@ -33,6 +36,7 @@
 #include "parser/ParseString.hpp"
 #include "parser/ParseSubqueryTableReference.hpp"
 #include "parser/ParseTreeNode.hpp"
+#include "storage/StorageBlockInfo.hpp"
 #include "utility/Macros.hpp"
 #include "utility/PtrList.hpp"
 #include "utility/PtrVector.hpp"
@@ -210,26 +214,56 @@ class ParseStatementCreateIndex : public ParseStatement {
      * @param index_name The name of the index to create.
      * @param relation_name The name of the relation to create index upon.
      * @param attribute_name_list A list of attributes of the relation
-     *                            on which the index has to be created.
-     *                            If specified as null, then index is created
-     *                            on all the attributes.
+     *        on which the index has to be created. If specified as null,
+     *        then index is created on all the attributes.
      * @param index_type The type of index to create.
-     * @param index_property_list A list of properties for the index that modify
-     *                            the default properties of the index.
      **/
     ParseStatementCreateIndex(const int line_number,
                               const int column_number,
                               ParseString *index_name,
                               ParseString *relation_name,
-                              PtrList<ParseString> *attribute_name_list,
+                              PtrList<ParseAttribute> *attribute_list,
+                              ParseString *index_type)
+        : ParseStatement(line_number, column_number),
+          index_name_(index_name),
+          relation_name_(relation_name),
+          attribute_list_(attribute_list),
+          index_type_(index_type) {
+      initializeIndexType();
+    }
+
+    /**
+     * @brief Constructor.
+     *
+     * @param index_name The name of the index to create.
+     * @param relation_name The name of the relation to create index upon.
+     * @param attribute_name_list A list of attributes of the relation
+     *        on which the index has to be created. If specified as null,
+     *        then index is created on all the attributes.
+     * @param index_type The type of index to create.
+     * @param index_properties_line_number
+     * @param index_properties_column_number
+     * @param opt_index_properties Optional index properties that were specified.
+     **/
+    ParseStatementCreateIndex(const int line_number,
+                              const int column_number,
+                              ParseString *index_name,
+                              ParseString *relation_name,
+                              PtrList<ParseAttribute> *attribute_list,
                               ParseString *index_type,
-                              PtrList<ParseKeyValue> *index_property_list)
-      : ParseStatement(line_number, column_number),
-        index_name_(index_name),
-        relation_name_(relation_name),
-        attribute_name_list_(attribute_name_list),
-        index_type_(index_type),
-        index_property_list_(index_property_list) {
+                              const int index_properties_line_number,
+                              const int index_properties_column_number,
+                              PtrList<ParseKeyValue> *opt_index_properties)
+        : ParseStatement(line_number, column_number),
+          index_name_(index_name),
+          relation_name_(relation_name),
+          attribute_list_(attribute_list),
+          index_type_(index_type) {
+      initializeIndexType();
+      custom_properties_node_.reset(new ParseIndexProperties(index_properties_line_number,
+                                                                   index_properties_column_number,
+                                                                   opt_index_properties));
+      index_properties_->addCustomProperties(custom_properties_node_->getKeyValueList());
     }
 
     ~ParseStatementCreateIndex() override {
@@ -264,8 +298,8 @@ class ParseStatementCreateIndex : public ParseStatement {
      *
      * @return The list of attributes on which index is to be built.
      **/
-    const PtrList<ParseString>& attribute_name_list() const {
-      return *attribute_name_list_;
+    const PtrList<ParseAttribute>* attribute_list() const {
+      return attribute_list_.get();
     }
 
     /**
@@ -277,6 +311,22 @@ class ParseStatementCreateIndex : public ParseStatement {
       return index_type_.get();
     }
 
+    /**
+     * @brief Get the index properties associated with this index type.
+     *
+     * @return The index properties for this type.
+     **/
+    const IndexProperties* getIndexProperties() const {
+      return index_properties_.get();
+    }
+
+    const ParseIndexProperties* getCustomPropertiesNode() const {
+      return custom_properties_node_.get();
+    }
+
+    bool hasCustomProperties() const {
+      return custom_properties_node_ != nullptr;
+    }
 
  protected:
     void getFieldStringItems(
@@ -293,31 +343,61 @@ class ParseStatementCreateIndex : public ParseStatement {
       inline_field_values->push_back(relation_name_->value());
 
       inline_field_names->push_back("index_type");
-      inline_field_values->push_back(index_type_->value());
+      const int index_type_enum_val = std::stoi(index_type_->value());
+      switch (index_type_enum_val) {
+        case IndexSubBlockType::kCSBTree:
+          inline_field_values->push_back("cs_b_tree");
+          break;
+        case IndexSubBlockType::kBloomFilter:
+          inline_field_values->push_back("bloom_filter");
+          break;
+        case IndexSubBlockType::kSMA:
+          inline_field_values->push_back("sma");
+          break;
+        default:
+          inline_field_values->push_back("unkown");
+      }
 
-      if (attribute_name_list_.get() != nullptr) {
-        container_child_field_names->push_back("attribute_name_list");
+      if (attribute_list_ != nullptr) {
+        container_child_field_names->push_back("attribute_list");
         container_child_fields->emplace_back();
-        for (const ParseString& attribute_name : *attribute_name_list_) {
-          container_child_fields->back().push_back(&attribute_name);
+        for (const ParseAttribute &attribute : *attribute_list_) {
+          container_child_fields->back().push_back(&attribute);
         }
       }
 
-      if (index_property_list_.get() != nullptr) {
+      if (custom_properties_node_ != nullptr) {
         container_child_field_names->push_back("index_property_list");
         container_child_fields->emplace_back();
-        for (const ParseKeyValue& index_property : *index_property_list_) {
-          container_child_fields->back().push_back(&index_property);
-        }
+        container_child_fields->back().push_back(custom_properties_node_.get());
       }
     }
 
  private:
     std::unique_ptr<ParseString> index_name_;
     std::unique_ptr<ParseString> relation_name_;
-    std::unique_ptr<PtrList<ParseString> > attribute_name_list_;
+    std::unique_ptr<PtrList<ParseAttribute>> attribute_list_;
     std::unique_ptr<ParseString> index_type_;
-    std::unique_ptr<PtrList<ParseKeyValue> > index_property_list_;
+    std::unique_ptr<IndexProperties> index_properties_;
+    // Optional custom properties for the index can be specified during creation.
+    std::unique_ptr<const ParseIndexProperties> custom_properties_node_;
+
+    void initializeIndexType() {
+      const int index_type_enum_val = std::stoi(index_type_->value());
+      switch (index_type_enum_val) {
+        case IndexSubBlockType::kBloomFilter:
+          index_properties_.reset(new BloomFilterIndexProperties());
+          break;
+        case IndexSubBlockType::kCSBTree:
+          index_properties_.reset(new CSBTreeIndexProperties());
+          break;
+        case IndexSubBlockType::kSMA:
+          LOG(FATAL) << "Currently cannot create this index subblock type using CREATE INDEX.";
+        default:
+          LOG(FATAL) << "Unknown index subblock type.";
+          break;
+      }
+    }
 
     DISALLOW_COPY_AND_ASSIGN(ParseStatementCreateIndex);
 };
@@ -458,33 +538,37 @@ class ParseStatementSelect : public ParseStatement {
 
 /**
  * @brief The parsed representation of an INSERT statement.
+ *
+ * This is an abstract class where each of its subclass represents a concrete
+ * type of insert operation.
  **/
 class ParseStatementInsert : public ParseStatement {
  public:
+  enum class InsertType {
+    kTuple = 0,
+    kSelection
+  };
+
   /**
    * @brief Constructor.
    *
    * @param line_number Line number of the first token of this node in the SQL statement.
    * @param column_number Column number of the first token of this node in the SQL statement.
    * @param relation_name The name of the relation to insert into.
-   * @param literal_values A list of literal values (in attribute-definition
-   *        order) to insert into the specified relation as a new tuple.
-   *        Becomes owned by this ParseStatementInsert.
    **/
   ParseStatementInsert(const int line_number,
                        const int column_number,
-                       ParseString *relation_name,
-                       PtrList<ParseScalarLiteral> *literal_values)
+                       const ParseString *relation_name)
       : ParseStatement(line_number, column_number),
-        relation_name_(relation_name),
-        literal_values_(literal_values) {
+        relation_name_(relation_name) {
   }
 
   /**
-   * @brief Destructor.
+   * @brief Get the insert type of this insert statement.
+   *
+   * @return The insert type of this insert statement.
    */
-  ~ParseStatementInsert() override {
-  }
+  virtual InsertType getInsertType() const = 0;
 
   std::string getName() const override { return "InsertStatement"; }
 
@@ -499,6 +583,43 @@ class ParseStatementInsert : public ParseStatement {
    **/
   const ParseString* relation_name() const {
     return relation_name_.get();
+  }
+
+ private:
+  std::unique_ptr<const ParseString> relation_name_;
+
+  DISALLOW_COPY_AND_ASSIGN(ParseStatementInsert);
+};
+
+
+/**
+ * @brief The parsed representation of an INSERT ... VALUES ... statement.
+ **/
+class ParseStatementInsertTuple : public ParseStatementInsert {
+ public:
+  /**
+   * @brief Constructor.
+   *
+   * @param line_number Line number of the first token of this node in the SQL statement.
+   * @param column_number Column number of the first token of this node in the SQL statement.
+   * @param relation_name The name of the relation to insert into.
+   * @param literal_values A list of literal values (in attribute-definition
+   *        order) to insert into the specified relation as a new tuple.
+   *        Becomes owned by this ParseStatementInsert.
+   **/
+  ParseStatementInsertTuple(const int line_number,
+                            const int column_number,
+                            const ParseString *relation_name,
+                            PtrList<ParseScalarLiteral> *literal_values)
+      : ParseStatementInsert(line_number, column_number, relation_name),
+        literal_values_(literal_values) {
+  }
+
+  ~ParseStatementInsertTuple() override {
+  }
+
+  InsertType getInsertType() const override {
+    return InsertType::kTuple;
   }
 
   /**
@@ -519,7 +640,7 @@ class ParseStatementInsert : public ParseStatement {
       std::vector<std::string> *container_child_field_names,
       std::vector<std::vector<const ParseTreeNode*>> *container_child_fields) const override {
     inline_field_names->push_back("relation_name");
-    inline_field_values->push_back(relation_name_->value());
+    inline_field_values->push_back(relation_name()->value());
 
     container_child_field_names->push_back("tuple");
     container_child_fields->emplace_back();
@@ -529,10 +650,86 @@ class ParseStatementInsert : public ParseStatement {
   }
 
  private:
-  std::unique_ptr<ParseString> relation_name_;
   std::unique_ptr<PtrList<ParseScalarLiteral> > literal_values_;
 
-  DISALLOW_COPY_AND_ASSIGN(ParseStatementInsert);
+  DISALLOW_COPY_AND_ASSIGN(ParseStatementInsertTuple);
+};
+
+/**
+ * @brief The parsed representation of an INSERT ... SELECT ... statement.
+ **/
+class ParseStatementInsertSelection : public ParseStatementInsert {
+ public:
+  /**
+   * @brief Constructor.
+   *
+   * @param line_number Line number of the first token of this node in the SQL statement.
+   * @param column_number Column number of the first token of this node in the SQL statement.
+   * @param relation_name The name of the relation to insert into.
+   * @param select_query The SELECT query for generating insertion tuples.
+   * @param with_clause The WITH clause of common table query expressions.
+   **/
+  ParseStatementInsertSelection(const int line_number,
+                                const int column_number,
+                                const ParseString *relation_name,
+                                ParseSelect *select_query,
+                                PtrVector<ParseSubqueryTableReference> *with_clause)
+      : ParseStatementInsert(line_number, column_number, relation_name),
+        select_query_(select_query),
+        with_clause_(with_clause) {
+  }
+
+  ~ParseStatementInsertSelection() override {
+  }
+
+  InsertType getInsertType() const override {
+    return InsertType::kSelection;
+  }
+
+  /**
+   * @return Gets the SELECT query.
+   */
+  const ParseSelect* select_query() const {
+    return select_query_.get();
+  }
+
+  /**
+   * @brief Gets the WITH table queries.
+   *
+   * @return The parsed WITH table list.
+   */
+  const PtrVector<ParseSubqueryTableReference>* with_clause() const {
+    return with_clause_.get();
+  }
+
+ protected:
+  void getFieldStringItems(
+      std::vector<std::string> *inline_field_names,
+      std::vector<std::string> *inline_field_values,
+      std::vector<std::string> *non_container_child_field_names,
+      std::vector<const ParseTreeNode*> *non_container_child_fields,
+      std::vector<std::string> *container_child_field_names,
+      std::vector<std::vector<const ParseTreeNode*>> *container_child_fields) const override {
+    inline_field_names->push_back("relation_name");
+    inline_field_values->push_back(relation_name()->value());
+
+    non_container_child_field_names->push_back("select_query");
+    non_container_child_fields->push_back(select_query_.get());
+
+    if (with_clause_ != nullptr && !with_clause_->empty()) {
+      container_child_field_names->push_back("with_clause");
+      container_child_fields->emplace_back();
+      for (const ParseSubqueryTableReference &common_subquery : *with_clause_) {
+        container_child_fields->back().push_back(&common_subquery);
+      }
+    }
+  }
+
+ private:
+  std::unique_ptr<ParseSelect> select_query_;
+  std::unique_ptr<PtrVector<ParseSubqueryTableReference>> with_clause_;
+
+  DISALLOW_COPY_AND_ASSIGN(ParseStatementInsertSelection);
 };
 
 /**
