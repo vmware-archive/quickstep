@@ -211,20 +211,20 @@ int main(int argc, char* argv[]) {
     // TODO(jmp): At some point, likely in C++-17, we will just have the
     //            filesystem path, and we can clean this up
 #ifdef QUICKSTEP_OS_WINDOWS
-    std::filesystem::create_directories(quickstep::FLAGS_storage_path);
-    LOG(FATAL) << "Failed when attempting to create the directory: " << quickstep::FLAGS_storage_path << "\n";
+    std::filesystem::create_directories(fixed_storage_path);
+    LOG(FATAL) << "Failed when attempting to create the directory: " << fixed_storage_path << "\n";
     LOG(FATAL) << "Check if the directory already exists. If so, delete it or move it before initializing \n";
 #else
     {
-      string path_name = "mkdir " + quickstep::FLAGS_storage_path;
+      string path_name = "mkdir " + fixed_storage_path;
       if (std::system(path_name.c_str())) {
-        LOG(FATAL) << "Failed when attempting to create the directory: " << quickstep::FLAGS_storage_path << "\n";
+        LOG(FATAL) << "Failed when attempting to create the directory: " << fixed_storage_path << "\n";
       }
     }
 #endif
 
     // Create the defaulty catalog file.
-    std::ofstream catalog_file(quickstep::FLAGS_storage_path + "catalog.pb.bin");
+    std::ofstream catalog_file(fixed_storage_path + "catalog.pb.bin");
     if (!catalog_file.good()) {
       LOG(FATAL) << "ERROR: Unable to open catalog.pb.bin for writing.\n";
     }
