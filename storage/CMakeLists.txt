@@ -220,7 +220,7 @@ add_library(quickstep_storage_ValueAccessorUtil ../empty_src.cpp ValueAccessorUt
 # Link dependencies:
 target_link_libraries(quickstep_storage_AggregationOperationState
                       glog
-                      quickstep_catalog_CatalogDatabase
+                      quickstep_catalog_CatalogDatabaseLite
                       quickstep_catalog_CatalogRelationSchema
                       quickstep_catalog_CatalogTypedefs
                       quickstep_expressions_ExpressionFactories
@@ -228,6 +228,7 @@ target_link_libraries(quickstep_storage_AggregationOperationState
                       quickstep_expressions_aggregation_AggregateFunction
                       quickstep_expressions_aggregation_AggregateFunctionFactory
                       quickstep_expressions_aggregation_AggregationHandle
+                      quickstep_expressions_aggregation_AggregationHandleDistinct
                       quickstep_expressions_aggregation_AggregationID
                       quickstep_expressions_predicate_Predicate
                       quickstep_expressions_scalar_Scalar
@@ -557,7 +558,7 @@ target_link_libraries(quickstep_storage_IndexSubBlock
                       quickstep_storage_StorageBlockInfo
                       quickstep_storage_TupleStorageSubBlock
                       quickstep_utility_Macros)
-target_link_libraries(quickstep_storage_IndexSubBlockDescriptionFactory                      
+target_link_libraries(quickstep_storage_IndexSubBlockDescriptionFactory
                       quickstep_storage_StorageBlockLayout
                       quickstep_utility_Macros)
 target_link_libraries(quickstep_storage_InsertDestination
@@ -580,7 +581,6 @@ target_link_libraries(quickstep_storage_InsertDestination
                       quickstep_storage_TupleIdSequence
                       quickstep_storage_ValueAccessorUtil
                       quickstep_threading_SpinMutex
-                      quickstep_threading_ThreadIDBasedMap
                       quickstep_types_TypedValue
                       quickstep_types_containers_Tuple
                       quickstep_utility_Macros

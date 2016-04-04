@@ -70,20 +70,22 @@ target_link_libraries(quickstep_queryexecution_ForemanLite
                       tmb)
 target_link_libraries(quickstep_queryexecution_QueryContext
                       glog
-                      quickstep_catalog_CatalogDatabase
-                      quickstep_catalog_CatalogRelation
+                      quickstep_catalog_CatalogDatabaseLite
+                      quickstep_catalog_CatalogRelationSchema
                       quickstep_catalog_CatalogTypedefs
                       quickstep_expressions_ExpressionFactories
                       quickstep_expressions_predicate_Predicate
                       quickstep_expressions_scalar_Scalar
                       quickstep_expressions_tablegenerator_GeneratorFunctionFactory
                       quickstep_expressions_tablegenerator_GeneratorFunctionHandle
+                      quickstep_expressions_tablegenerator_GeneratorFunction_proto
                       quickstep_queryexecution_QueryContext_proto
                       quickstep_storage_AggregationOperationState
                       quickstep_storage_HashTable
                       quickstep_storage_HashTableFactory
                       quickstep_storage_InsertDestination
                       quickstep_storage_InsertDestination_proto
+                      quickstep_types_TypedValue
                       quickstep_types_containers_Tuple
                       quickstep_utility_Macros
                       quickstep_utility_SortConfiguration)
@@ -99,7 +101,6 @@ target_link_libraries(quickstep_queryexecution_QueryContext_proto
 target_link_libraries(quickstep_queryexecution_QueryExecutionMessages_proto
                       ${PROTOBUF_LIBRARY})
 target_link_libraries(quickstep_queryexecution_QueryExecutionTypedefs
-                      quickstep_threading_ThreadIDBasedMap
                       tmb)
 target_link_libraries(quickstep_queryexecution_QueryExecutionUtil
                       quickstep_queryexecution_QueryExecutionTypedefs
@@ -118,7 +119,6 @@ target_link_libraries(quickstep_queryexecution_Worker
                       quickstep_queryexecution_WorkerMessage
                       quickstep_relationaloperators_WorkOrder
                       quickstep_threading_Thread
-                      quickstep_threading_ThreadIDBasedMap
                       quickstep_threading_ThreadUtil
                       quickstep_utility_Macros
                       tmb)

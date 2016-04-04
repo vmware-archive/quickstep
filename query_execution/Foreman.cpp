@@ -208,7 +208,8 @@ void Foreman::run() {
 
         const block_id block = proto.block_id();
 
-        CatalogRelation *relation = catalog_database_->getRelationByIdMutable(proto.relation_id());
+        CatalogRelation *relation =
+            static_cast<CatalogDatabase*>(catalog_database_)->getRelationByIdMutable(proto.relation_id());
         relation->addBlock(block);
 
         if (proto.has_partition_id()) {
@@ -415,6 +416,7 @@ bool Foreman::fetchNormalWorkOrders(const dag_node_index index) {
                                                                    query_context_.get(),
                                                                    storage_manager_,
                                                                    foreman_client_id_,
+                                                                   agent_client_id_,
                                                                    bus_);
 
     // TODO(shoban): It would be a good check to see if operator is making
@@ -529,6 +531,7 @@ void Foreman::getRebuildWorkOrders(const dag_node_index index, WorkOrdersContain
                             index,
                             op.getOutputRelationID(),
                             foreman_client_id_,
+                            agent_client_id_,
                             bus_),
         index);
   }
