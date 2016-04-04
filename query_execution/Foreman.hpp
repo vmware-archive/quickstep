@@ -20,13 +20,12 @@
 
 #include <cstddef>
 #include <memory>
-#include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include "catalog/CatalogTypedefs.hpp"
 #include "query_execution/ForemanLite.hpp"
 #include "query_execution/QueryContext.hpp"
+#include "query_execution/QueryExecutionState.hpp"
 #include "query_execution/QueryExecutionTypedefs.hpp"
 #include "query_execution/WorkOrdersContainer.hpp"
 #include "query_execution/WorkerMessage.hpp"
@@ -80,7 +79,6 @@ class Foreman final : public ForemanLite {
       : ForemanLite(bus, cpu_id),
         catalog_database_(DCHECK_NOTNULL(catalog_database)),
         storage_manager_(DCHECK_NOTNULL(storage_manager)),
-        num_operators_finished_(0),
         max_msgs_per_worker_(1),
         num_numa_nodes_(num_numa_nodes) {
     bus_->RegisterClientAsSender(foreman_client_id_, kWorkOrderMessage);
@@ -159,15 +157,6 @@ class Foreman final : public ForemanLite {
   typedef DAG<RelationalOperator, bool>::size_type_nodes dag_node_index;
 
   /**
-   * @brief Check if the current query has finished its execution.
-   *
-   * @return True if the query has finished. Otherwise false.
-   **/
-  bool checkQueryExecutionFinished() const {
-    return num_operators_finished_ == query_dag_->size();
-  }
-
-  /**
    * @brief Check if all the dependencies of the node at specified index have
    *        finished their execution.
    *
@@ -182,7 +171,7 @@ class Foreman final : public ForemanLite {
   inline bool checkAllDependenciesMet(const dag_node_index node_index) const {
     for (const dag_node_index dependency_index : query_dag_->getDependencies(node_index)) {
       // If at least one of the dependencies is not met, return false.
-      if (!execution_finished_[dependency_index]) {
+      if (!query_exec_state_->getExecutionFinished(dependency_index)) {
         return false;
       }
     }
@@ -204,7 +193,7 @@ class Foreman final : public ForemanLite {
    **/
   inline bool checkAllBlockingDependenciesMet(const dag_node_index node_index) const {
     for (const dag_node_index blocking_dependency_index : blocking_dependencies_[node_index]) {
-      if (!execution_finished_[blocking_dependency_index]) {
+      if (!query_exec_state_->getExecutionFinished(blocking_dependency_index)) {
         return false;
       }
     }
@@ -284,10 +273,6 @@ class Foreman final : public ForemanLite {
   void cleanUp() {
     output_consumers_.clear();
     blocking_dependencies_.clear();
-    done_gen_.clear();
-    execution_finished_.clear();
-    rebuild_required_.clear();
-    rebuild_status_.clear();
   }
 
   /**
@@ -382,8 +367,8 @@ class Foreman final : public ForemanLite {
   inline bool checkNormalExecutionOver(const dag_node_index index) const {
     return (checkAllDependenciesMet(index) &&
             !workorders_container_->hasNormalWorkOrder(index) &&
-            queued_workorders_per_op_[index] == 0 &&
-            done_gen_[index]);
+            query_exec_state_->getNumQueuedWorkOrders(index) == 0 &&
+            query_exec_state_->getDoneGenerationWorkOrders(index));
   }
 
   /**
@@ -394,7 +379,7 @@ class Foreman final : public ForemanLite {
    * @return True if the rebuild operation is required, false otherwise.
    **/
   inline bool checkRebuildRequired(const dag_node_index index) const {
-    return rebuild_required_[index];
+    return query_exec_state_->getRebuildRequired(index);
   }
 
   /**
@@ -405,13 +390,9 @@ class Foreman final : public ForemanLite {
    * @return True if the rebuild operation is over, false otherwise.
    **/
   inline bool checkRebuildOver(const dag_node_index index) const {
-    std::unordered_map<dag_node_index,
-                       std::pair<bool, std::size_t>>::const_iterator
-        search_res = rebuild_status_.find(index);
-    DEBUG_ASSERT(search_res != rebuild_status_.end());
-    return checkRebuildInitiated(index) &&
+    return query_exec_state_->hasRebuildInitiated(index) &&
            !workorders_container_->hasRebuildWorkOrder(index) &&
-           (search_res->second.second == 0);
+           (query_exec_state_->getNumRebuildWorkOrders(index) == 0);
   }
 
   /**
@@ -423,7 +404,7 @@ class Foreman final : public ForemanLite {
    * @return True if the rebuild operation has been initiated, false otherwise.
    **/
   inline bool checkRebuildInitiated(const dag_node_index index) const {
-    return rebuild_status_.at(index).first;
+    return query_exec_state_->hasRebuildInitiated(index);
   }
 
   /**
@@ -456,15 +437,9 @@ class Foreman final : public ForemanLite {
 
   std::unique_ptr<QueryContext> query_context_;
 
-  // Number of operators who've finished their execution.
-  std::size_t num_operators_finished_;
-
   // During a single round of WorkOrder dispatch, a Worker should be allocated
   // at most these many WorkOrders.
   std::size_t max_msgs_per_worker_;
-
-  // The ith bit denotes if the operator with ID = i has finished its execution.
-  std::vector<bool> execution_finished_;
 
   // For all nodes, store their receiving dependents.
   std::vector<std::vector<dag_node_index>> output_consumers_;
@@ -472,22 +447,7 @@ class Foreman final : public ForemanLite {
   // For all nodes, store their pipeline breaking dependencies (if any).
   std::vector<std::vector<dag_node_index>> blocking_dependencies_;
 
-  // The ith bit denotes if the operator with ID = i has finished generating
-  // work orders.
-  std::vector<bool> done_gen_;
-
-  // The ith bit denotes if the operator with ID = i requires generation of
-  // rebuild WorkOrders.
-  std::vector<bool> rebuild_required_;
-
-  // Key is dag_node_index of the operator for which rebuild is required. Value is
-  // a pair - first element has a bool (whether rebuild for operator at index i
-  // has been initiated) and if the boolean is true, the second element denotes
-  // the number of pending rebuild workorders for the operator.
-  std::unordered_map<dag_node_index, std::pair<bool, std::size_t>> rebuild_status_;
-
-  // A vector to track the number of workorders in execution, for each operator.
-  std::vector<int> queued_workorders_per_op_;
+  std::unique_ptr<QueryExecutionState> query_exec_state_;
 
   std::unique_ptr<WorkOrdersContainer> workorders_container_;
 
