@@ -172,31 +172,27 @@ void CommandExecutor::executeDescribeTable(
     const quickstep::IndexScheme &index_scheme = relation->getIndexScheme();
     for (auto index_it = index_scheme.begin(); index_it != index_scheme.end();
          ++index_it) {
-      for (auto index_desc_it = index_it->second.begin();
-           index_desc_it != index_it->second.end(); ++index_desc_it) {
-        fprintf(out, "\"%-*s\" %s", static_cast<int>(index_it->first.length()),
-                index_it->first.c_str(),
-                index_desc_it->IndexSubBlockType_Name(
-                                 index_desc_it->sub_block_type())
-                    .c_str());
-
-        fputc(' ', out);
-        fputc('(', out);
-        auto indexed_fields_it = index_desc_it->indexed_attribute_ids().begin();
-        ++indexed_fields_it;
-        fprintf(out, "%s", relation->getAttributeById(*indexed_fields_it)
+      fprintf(out, "\"%-*s\" %s", static_cast<int>(index_it->first.length()),
+              index_it->first.c_str(),
+              index_it->second.IndexSubBlockType_Name(
+                                  index_it->second.sub_block_type())
+                  .c_str());
+      fputc(' ', out);
+      fputc('(', out);
+      auto indexed_fields_it = index_it->second.indexed_attribute_ids().begin();
+      ++indexed_fields_it;
+      fprintf(out, "%s", relation->getAttributeById(*indexed_fields_it)
                                ->getDisplayName()
                                .c_str());
-        for (;
-             indexed_fields_it != index_desc_it->indexed_attribute_ids().end();
-             ++indexed_fields_it) {
-          fprintf(out, ", %s", relation->getAttributeById(*indexed_fields_it)
-                                   ->getDisplayName()
-                                   .c_str());
-        }
-        fputc(')', out);
-        fputc('\n', out);
+      for (;
+           indexed_fields_it != index_it->second.indexed_attribute_ids().end();
+           ++indexed_fields_it) {
+        fprintf(out, ", %s", relation->getAttributeById(*indexed_fields_it)
+                                 ->getDisplayName()
+                                 .c_str());
       }
+      fputc(')', out);
+      fputc('\n', out);
     }
   }
 }

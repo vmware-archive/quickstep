@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "catalog/Catalog.pb.h"
 #include "storage/StorageBlockLayout.pb.h"
@@ -41,7 +42,7 @@ namespace quickstep {
  **/
 class IndexScheme {
  public:
-  typedef std::unordered_map<std::string, std::vector<IndexSubBlockDescription>>::const_iterator const_iterator;
+  typedef std::unordered_map<std::string, IndexSubBlockDescription>::const_iterator const_iterator;
 
   /**
    * @brief Constructor.
