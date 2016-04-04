@@ -35,7 +35,7 @@ LockTableResult
 LockTable::putLock(const transaction_id tid,
                    const ResourceId &rid,
                    const AccessMode access_mode) {
-  //TODO(hakan): Lock upgrade is not supported.
+  // TODO(hakan): Lock upgrade is not supported.
   lock_list_pair &lock_list_pair = internal_map_[rid];
 
   // Each resource id entry has own list and pending list.
