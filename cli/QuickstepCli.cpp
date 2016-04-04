@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "cli/CliConfig.h"  // For QUICKSTEP_USE_LINENOISE.
+#include "cli/CommandExecutor.hpp"
 #include "cli/DropRelation.hpp"
 
 #ifdef QUICKSTEP_USE_LINENOISE
@@ -84,6 +85,7 @@ using std::vector;
 
 using quickstep::Address;
 using quickstep::CatalogRelation;
+using quickstep::CommandExecutor;
 using quickstep::DefaultsConfigurator;
 using quickstep::DropRelation;
 using quickstep::Foreman;
@@ -294,8 +296,14 @@ int main(int argc, char* argv[]) {
         }
 
         if (result.parsed_statement->getStatementType() == ParseStatement::kCommand) {
-          // TODO(marc): Add executer to this parsed command statement.
-          continue;
+          try {
+          CommandExecutor::executeCommand(*result.parsed_statement, query_processor->getDefaultDatabase() , stdout);
+        } catch (const quickstep::SqlError &sql_error) {
+          fprintf(stderr, "%s", sql_error.formatMessage(*command_string).c_str());
+          reset_parser = true;
+          break;
+        }
+        continue;
         }
 
         std::unique_ptr<QueryHandle> query_handle;
