@@ -220,8 +220,8 @@ int main(int argc, char* argv[]) {
     }
 #endif
 
-    // Create the defaulty catalog file.
-    std::ofstream catalog_file(fixed_storage_path + "catalog.pb.bin");
+    // Create the default catalog file.
+    std::ofstream catalog_file(catalog_path);
     if (!catalog_file.good()) {
       LOG(FATAL) << "ERROR: Unable to open catalog.pb.bin for writing.\n";
     }
