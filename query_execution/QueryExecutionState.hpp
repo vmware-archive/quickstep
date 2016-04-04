@@ -1,6 +1,6 @@
 /**
  *   Copyright 2016, Quickstep Research Group, Computer Sciences Department,
- *   University of Wisconsin—Madison.
+ *     University of Wisconsin—Madison.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -140,7 +140,7 @@ class QueryExecutionState {
     auto search_res = rebuild_status_.find(operator_index);
     if (search_res != rebuild_status_.end()) {
       DCHECK(search_res->second.first);
-      DCHECK_GE(search_res->second.second, 1);
+      DCHECK_GE(search_res->second.second, 1u);
       --rebuild_status_[operator_index].second;
     } else {
       LOG(FATAL) <<
@@ -168,7 +168,7 @@ class QueryExecutionState {
    **/
   inline void decrementNumQueuedWorkOrders(const std::size_t operator_index) {
     DCHECK(operator_index < num_operators_);
-    DCHECK_GT(queued_workorders_per_op_[operator_index], 0);
+    DCHECK_GT(queued_workorders_per_op_[operator_index], 0u);
     --queued_workorders_per_op_[operator_index];
   }
 
@@ -282,7 +282,7 @@ class QueryExecutionState {
   // first element is a bool (whether rebuild for operator at index i has been
   // initiated) and if the boolean is true, the second element denotes the
   // number of pending rebuild workorders for the operator.
-  std::unordered_map<std::size_t, std::pair<bool, std::size_t> > rebuild_status_;
+  std::unordered_map<std::size_t, std::pair<bool, std::size_t>> rebuild_status_;
 
   DISALLOW_COPY_AND_ASSIGN(QueryExecutionState);
 };
