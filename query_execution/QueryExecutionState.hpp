@@ -1,6 +1,6 @@
 /**
  *   Copyright 2016, Quickstep Research Group, Computer Sciences Department,
- *     University of Wisconsin—Madison.
+ *   University of Wisconsin—Madison.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -34,7 +34,8 @@ namespace quickstep {
  */
 
 /**
- * @brief A class that tracks the state of the execution of a query.
+ * @brief A class that tracks the state of the execution of a query which
+ *        includes status of operators, number of dispatched work orders etc.
  **/
 class QueryExecutionState {
  public:
@@ -68,13 +69,17 @@ class QueryExecutionState {
 
   /**
    * @brief Check if the query has finished its execution.
+   *
+   * @return True if the query has finished its execution, false otherwise.
    **/
   inline bool hasQueryExecutionFinished() const {
     return num_operators_finished_ == num_operators_;
   }
 
   /**
-   * @brief Set the rebuild status of the given operator.
+   * @brief Set the rebuild status of the given operator that includes the
+   *        flag for whether the rebuild has been initiated and if so, the
+   *        number of pending rebuild work orders.
    *
    * @param operator_index The index of the given operator.
    * @param num_rebuild_workorders The number of rebuild workorders of the given
@@ -90,6 +95,13 @@ class QueryExecutionState {
     rebuild_status_[operator_index].first = rebuild_initiated;
   }
 
+  /**
+   * @brief Check if the rebuild has been initiated for the given operator.
+   *
+   * @param operator_index The index of the given operator.
+   *
+   * @return True if the rebuild has been initiated, false otherwise.
+   **/
   inline bool hasRebuildInitiated(const std::size_t operator_index) const {
     DCHECK(operator_index < num_operators_);
     auto search_res = rebuild_status_.find(operator_index);
@@ -100,7 +112,11 @@ class QueryExecutionState {
   }
 
   /**
-   * @brief Get the number of rebuild workorders for the given operator.
+   * @brief Get the number of pending rebuild workorders for the given operator.
+   *
+   * @param operator_index The index of the given operator.
+   *
+   * @return The number of pending rebuild workorders for the given operator.
    **/
   inline const std::size_t getNumRebuildWorkOrders(
       const std::size_t operator_index) const {
@@ -116,6 +132,8 @@ class QueryExecutionState {
 
   /**
    * @brief Decrement the number of rebuild WorkOrders for the given operator.
+   *
+   * @param operator_index The index of the given operator.
    **/
   inline void decrementNumRebuildWorkOrders(const std::size_t operator_index) {
     DCHECK(operator_index < num_operators_);
@@ -134,6 +152,8 @@ class QueryExecutionState {
   /**
    * @brief Increment the number of queued (normal) WorkOrders for the given
    *        operator.
+   *
+   * @param operator_index The index of the given operator.
    **/
   inline void incrementNumQueuedWorkOrders(const std::size_t operator_index) {
     DCHECK(operator_index < num_operators_);
@@ -143,6 +163,8 @@ class QueryExecutionState {
   /**
    * @brief Decrement the number of queued (normal) WorkOrders for the given
    *        operator.
+   *
+   * @param operator_index The index of the given operator.
    **/
   inline void decrementNumQueuedWorkOrders(const std::size_t operator_index) {
     DCHECK(operator_index < num_operators_);
@@ -150,6 +172,18 @@ class QueryExecutionState {
     --queued_workorders_per_op_[operator_index];
   }
 
+  /**
+   * @brief Get the number of queued (normal) WorkOrders for the given operator.
+   *
+   * @note Queued WorkOrders mean those WorkOrders which have been dispatched
+   *       for execution by the Foreman and haven't yet completed. These are
+   *       different from pending WorkOrders which mean the WorkOrders that
+   *       haven't been dispatched for execution yet.
+   *
+   * @param operator_index The index of the given operator.
+   *
+   * @return The number of queued (normal) WorkOrders for the given operators.
+   **/
   inline const std::size_t getNumQueuedWorkOrders(
       const std::size_t operator_index) const {
     DCHECK(operator_index < num_operators_);
@@ -159,7 +193,7 @@ class QueryExecutionState {
   /**
    * @brief Set the rebuild required flag as true for the given operator.
    *
-   * @param By default this flag is false.
+   * @param operator_index The index of the given operator.
    **/
   inline void setRebuildRequired(const std::size_t operator_index) {
     DCHECK(operator_index < num_operators_);
@@ -167,7 +201,9 @@ class QueryExecutionState {
   }
 
   /**
-   * @brief Get the rebuild required flag as true for the given operator.
+   * @brief Get the rebuild required flag for the given operator.
+   *
+   * @param operator_index The index of the given operator.
    **/
   inline bool getRebuildRequired(const std::size_t operator_index) const {
     DCHECK(operator_index < num_operators_);
@@ -177,6 +213,9 @@ class QueryExecutionState {
   /**
    * @brief Set the execution finished flag for the given operator as true.
    *
+   * @note By default this flag is false.
+   *
+   * @param operator_index The index of the given operator.
    **/
   inline void setExecutionFinished(const std::size_t operator_index) {
     DCHECK(operator_index < num_operators_);
@@ -185,7 +224,9 @@ class QueryExecutionState {
   }
 
   /**
-   * @brief Get the execution finished flag for the given operator as true.
+   * @brief Get the execution finished flag for the given operator.
+   *
+   * @param operator_index The index of the given operator.
    **/
   inline bool getExecutionFinished(const std::size_t operator_index) const {
     DCHECK(operator_index < num_operators_);
@@ -196,7 +237,9 @@ class QueryExecutionState {
    * @brief Set the "done generation of workorders" flag as true for the given
    *        operator.
    *
-   * @param By default this flag is false.
+   * @note By default this flag is false.
+   *
+   * @param operator_index The index of the given operator.
    **/
   inline void setDoneGenerationWorkOrders(const std::size_t operator_index) {
     DCHECK(operator_index < num_operators_);
@@ -204,9 +247,9 @@ class QueryExecutionState {
   }
 
   /**
-   * @brief Get the "done generation of workorders" flag as true for the given
-   *        operator.
+   * @brief Get the "done generation of workorders" flag for the given operator.
    *
+   * @param operator_index The index of the given operator.
    **/
   inline bool getDoneGenerationWorkOrders(const std::size_t operator_index)
       const {
@@ -215,12 +258,13 @@ class QueryExecutionState {
   }
 
  private:
+  // Total number of operators in the query.
   const std::size_t num_operators_;
 
   // Number of operators who've finished their execution.
   std::size_t num_operators_finished_;
 
-  // A vector to track the number of WorkOrders in execution.
+  // A vector to track the number of normal WorkOrders in execution.
   std::vector<std::size_t> queued_workorders_per_op_;
 
   // The ith bit denotes if the operator with ID = i requires generation of
