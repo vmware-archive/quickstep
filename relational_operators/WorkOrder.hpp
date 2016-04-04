@@ -1,6 +1,6 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015 Pivotal Software, Inc.
+ *   Copyright 2015-2016 Pivotal Software, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -41,7 +41,6 @@ namespace quickstep {
 /** \addtogroup RelationalOperators
  *  @{
  */
-
 
 /**
  * @brief A single unit of work in a query plan, produced by a
@@ -285,8 +284,26 @@ class WorkOrder {
         " receiver thread with TMB client ID " << receiver_id;
   }
 
+  /**
+   * @brief Set the Worker thread index.
+   *
+   * @param worker_thread_id The Worker thread index in WorkerDirectory.
+   */
+  void setWorkerThreadId(const std::size_t worker_thread_id) {
+    worker_thread_id_ = worker_thread_id;
+  }
+
  protected:
-  WorkOrder() {}
+  /**
+   * @brief Constructor.
+   *
+   * @param worker_thread_id The Worker thread index in WorkerDirectory.
+   */
+  explicit WorkOrder(const std::size_t worker_thread_id = kInvalidWorkerThreadId)
+      : worker_thread_id_(worker_thread_id) {}
+
+  // The index of Worker thread in WorkerDirectory that executes this WorkOrder.
+  std::size_t worker_thread_id_;
 
   // A vector of preferred NUMA node IDs where this workorder should be executed.
   // These node IDs typically indicate the NUMA node IDs of the input(s) of the

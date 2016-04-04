@@ -246,21 +246,22 @@ class Foreman final : public ForemanLite {
    *
    * @param node_index The index of the specified operator node in the query DAG
    *        for the completed WorkOrder.
-   * @param worker_id The logical ID of the worker for the completed WorkOrder.
+   * @param worker_thread_id The logical ID of the worker for the completed
+   *        WorkOrder.
    **/
   void processWorkOrderCompleteMessage(const dag_node_index op_index,
-                                       const std::size_t worker_id);
+                                       const std::size_t worker_thread_id);
 
   /**
    * @brief Process the received RebuildWorkOrder complete message.
    *
    * @param node_index The index of the specified operator node in the query DAG
    *        for the completed RebuildWorkOrder.
-   * @param worker_id The logical ID of the worker for the completed
+   * @param worker_thread_id The logical ID of the worker for the completed
    *        RebuildWorkOrder.
    **/
   void processRebuildWorkOrderCompleteMessage(const dag_node_index op_index,
-                                              const std::size_t worker_id);
+                                              const std::size_t worker_thread_id);
 
   /**
    * @brief Process the received data pipeline message.
@@ -323,10 +324,10 @@ class Foreman final : public ForemanLite {
   /**
    * @brief Send the given message to the specified worker.
    *
-   * @param worker_id The logical ID of the recipient worker.
+   * @param worker_thread_id The logical ID of the recipient worker.
    * @param message The WorkerMessage to be sent.
    **/
-  void sendWorkerMessage(const std::size_t worker_id, const WorkerMessage &message);
+  void sendWorkerMessage(const std::size_t worker_thread_id, const WorkerMessage &message);
 
   /**
    * @brief Fetch all work orders currently available in relational operator and

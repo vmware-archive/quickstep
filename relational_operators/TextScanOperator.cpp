@@ -664,6 +664,8 @@ void TextSplitWorkOrder::sendBlobInfoToOperator(const bool write_row_aligned) {
   // Notify Foreman for the avaiable work order on the blob.
   serialization::WorkOrdersAvailableMessage message_proto;
   message_proto.set_operator_index(operator_index_);
+  DCHECK_NE(worker_thread_id_, kInvalidWorkerThreadId);
+  message_proto.set_worker_thread_id(worker_thread_id_);
 
   // NOTE(zuyu): Using the heap memory to serialize proto as a c-like string.
   const size_t message_proto_length = message_proto.ByteSize();

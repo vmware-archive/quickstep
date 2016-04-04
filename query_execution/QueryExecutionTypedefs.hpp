@@ -18,6 +18,8 @@
 #ifndef QUICKSTEP_QUERY_EXECUTION_QUERY_EXECUTION_TYPEDEFS_HPP_
 #define QUICKSTEP_QUERY_EXECUTION_QUERY_EXECUTION_TYPEDEFS_HPP_
 
+#include <cstddef>
+
 #include "tmb/address.h"
 #include "tmb/id_typedefs.h"
 #include "tmb/message_style.h"
@@ -29,6 +31,8 @@ namespace quickstep {
 /** \addtogroup QueryExecution
  *  @{
  */
+
+constexpr std::size_t kInvalidWorkerThreadId = static_cast<std::size_t>(-1);
 
 typedef tmb::Address Address;
 typedef tmb::AnnotatedMessage AnnotatedMessage;
