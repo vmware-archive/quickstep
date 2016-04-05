@@ -1,6 +1,4 @@
 /**
- *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015-2016 Pivotal Software, Inc.
  *   Copyright 2016, Quickstep Research Group, Computer Sciences Department,
  *     University of Wisconsin—Madison.
  *
@@ -19,6 +17,7 @@
 
 #include "cli/CommandExecutor.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdio>
 #include <memory>
@@ -42,8 +41,8 @@ using std::fprintf;
 using std::fputc;
 using std::fputs;
 using std::size_t;
-using std::vector;
 using std::string;
+using std::vector;
 
 namespace quickstep {
 
@@ -72,12 +71,12 @@ void CommandExecutor::executeDescribeDatabase(
   std::size_t relation_count = 0;
   // Column width initialized to 6 to take into account the header name
   // and the column value table
-  int max_column_width = 6;
+  std::size_t max_column_width = CommandExecutor::kInitMaxColumnWidth;
   const CatalogRelation *relation;
   if (arguments->size() == 0) {
     for (auto rel_it = catalog_database->begin();
          rel_it != catalog_database->end(); ++rel_it) {
-      int column_width = static_cast<int>(rel_it->getName().length());
+      std::size_t column_width = rel_it->getName().length();
       max_column_width =
           max_column_width < column_width ? column_width : max_column_width;
       relation_count++;
@@ -86,35 +85,31 @@ void CommandExecutor::executeDescribeDatabase(
     const ParseString &table_name = arguments->front();
     const std::string &table_name_val = table_name.value();
     relation = catalog_database->getRelationByName(table_name_val);
-    int column_width = static_cast<int>(relation->getName().length());
+    std::size_t column_width = relation->getName().length();
     max_column_width =
         max_column_width < column_width ? column_width : max_column_width;
-    relation_count++;
+    ++relation_count;
   }
-  // only if we have relations
+  // Only if we have relations work on the printing logic.
   if (relation_count > 0) {
     vector<int> column_widths;
-    column_widths.reserve(relation_count);
     column_widths.push_back(max_column_width);
-    column_widths.push_back(max_column_width);
+    column_widths.push_back(CommandExecutor::kInitMaxColumnWidth);
     fputs("       List of relations\n\n", out);
-    fprintf(out, "%-*s|", max_column_width, " Name");
-    fprintf(out, "%-*s|", 6, " Type");
-    fputc('\n', out);
+    fprintf(out, "%-*s|", static_cast<int>(max_column_width)+1, " Name");
+    fprintf(out, "%-*s\n", static_cast<int>(CommandExecutor::kInitMaxColumnWidth), " Type");
     PrintToScreen::printHBar(column_widths, out);
-    //  if there are no argument print the entire list of tables
-    //  else print the particular table only
+    //  If there are no argument print the entire list of tables
+    //  else print the particular table only.
     if (arguments->size() == 0) {
       for (auto rel_it = catalog_database->begin();
            rel_it != catalog_database->end(); ++rel_it) {
-        fprintf(out, " %-*s|", max_column_width, rel_it->getName().c_str());
-        fprintf(out, " %-*s", max_column_width, "table");
-        fputc('\n', out);
+        fprintf(out, " %-*s|", static_cast<int>(max_column_width), rel_it->getName().c_str());
+        fprintf(out, " %-*s\n", static_cast<int>(CommandExecutor::kInitMaxColumnWidth), "table");
       }
     } else {
-      fprintf(out, " %-*s|", max_column_width, relation->getName().c_str());
-      fprintf(out, " %-*s", max_column_width, "table");
-      fputc('\n', out);
+      fprintf(out, " %-*s|", static_cast<int>(max_column_width), relation->getName().c_str());
+      fprintf(out, " %-*s\n", static_cast<int>(CommandExecutor::kInitMaxColumnWidth), "table");
     }
     fputc('\n', out);
   }
@@ -128,10 +123,9 @@ void CommandExecutor::executeDescribeTable(
   const CatalogRelation *relation =
       catalog_database->getRelationByName(table_name_val);
   vector<int> column_widths;
-  // initialize it to the number of columns that need to be printed
-  column_widths.reserve(2);
+  std::size_t max_attr_column_width = CommandExecutor::kInitMaxColumnWidth;
+  std::size_t max_type_column_width = CommandExecutor::kInitMaxColumnWidth-1;
 
-  int max_column_width = 0;
   for (CatalogRelation::const_iterator attr_it = relation->begin();
        attr_it != relation->end(); ++attr_it) {
     // Printed column needs to be wide enough to print:
@@ -139,36 +133,29 @@ void CommandExecutor::executeDescribeTable(
     //   2. Any value of the attribute's Type.
     //   3. If the attribute's Type is nullable, the 4-character string "NULL".
     // We pick the largest of these 3 widths as the column width.
-    int column_width = static_cast<int>(attr_it->getDisplayName().length());
-    column_width = column_width < attr_it->getType().getPrintWidth()
-                       ? attr_it->getType().getPrintWidth()
-                       : column_width;
-    column_width = attr_it->getType().isNullable() && (column_width < 4)
-                       ? 4
-                       : column_width;
-    max_column_width =
-        column_width > max_column_width ? column_width : max_column_width;
+    std::size_t attr_column_width = attr_it->getDisplayName().length();
+    std::size_t type_column_width = attr_it->getType().getName().length();
+    max_attr_column_width = std::max(max_attr_column_width, attr_column_width);
+    max_type_column_width = std::max(max_type_column_width, type_column_width);
   }
-  column_widths.push_back(max_column_width);
-  column_widths.push_back(max_column_width);
+  column_widths.push_back(max_attr_column_width);
+  column_widths.push_back(max_type_column_width);
 
-  fprintf(out, "%*s \"%s\"", 6, "Table", table_name_val.c_str());
-  fputc('\n', out);
-  fprintf(out, "%-*s|", max_column_width, "Column");
-  fprintf(out, "%-*s", max_column_width, "Type");
-  fputc('\n', out);
+  fprintf(out, "%*s \"%s\"\n", static_cast<int>(CommandExecutor::kInitMaxColumnWidth), "Table", table_name_val.c_str());
+  fprintf(out, "%-*s|", static_cast<int>(max_attr_column_width)+1, " Column");
+  fprintf(out, "%-*s", static_cast<int>(max_type_column_width)+1, " Type\n");
   PrintToScreen::printHBar(column_widths, out);
   for (CatalogRelation::const_iterator attr_it = relation->begin();
-       attr_it != relation->end(); ++attr_it) {
-    fprintf(out, "%-*s|", max_column_width, attr_it->getDisplayName().c_str());
-    fprintf(out, "%-*s", max_column_width,
+       attr_it != relation->end();
+       ++attr_it) {
+    fprintf(out, " %-*s|", static_cast<int>(max_attr_column_width), 
+            attr_it->getDisplayName().c_str());
+    fprintf(out, " %-*s\n", static_cast<int>(max_type_column_width),
             attr_it->getType().getName().c_str());
-    fputc('\n', out);
   }
-  // TODO(rogers): add partitioning information
+  // TODO(rogers): Add handlers for partitioning information.
   if (relation->hasIndexScheme()) {
-    fputs("Indexes:", out);
-    fputc('\n', out);
+    fputs("Indexes:\n", out);
     const quickstep::IndexScheme &index_scheme = relation->getIndexScheme();
     for (auto index_it = index_scheme.begin(); index_it != index_scheme.end();
          ++index_it) {

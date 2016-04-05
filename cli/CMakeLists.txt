@@ -32,17 +32,6 @@ configure_file (
   "${CMAKE_CURRENT_BINARY_DIR}/CliConfig.h"
 )
 add_library(quickstep_cli_CommandExecutor CommandExecutor.cpp CommandExecutor.hpp)
-target_link_libraries(quickstep_cli_CommandExecutor
-                      glog
-                      quickstep_catalog_CatalogAttribute
-                      quickstep_catalog_CatalogDatabase
-                      quickstep_catalog_CatalogRelation
-                      quickstep_catalog_CatalogRelationSchema
-                      quickstep_parser_ParseStatement
-                      quickstep_cli_PrintToScreen
-                      quickstep_utility_Macros
-                      quickstep_utility_PtrVector                        
-                      quickstep_utility_SqlError)
 
 # Declare micro-libs and link dependencies:
 add_library(quickstep_cli_DropRelation DropRelation.cpp DropRelation.hpp)
@@ -77,6 +66,18 @@ add_library(quickstep_cli_InputParserUtil InputParserUtil.cpp InputParserUtil.hp
 add_library(quickstep_cli_PrintToScreen PrintToScreen.cpp PrintToScreen.hpp)
 
 # Link dependencies:
+target_link_libraries(quickstep_cli_CommandExecutor
+                      glog
+                      quickstep_catalog_CatalogAttribute
+                      quickstep_catalog_CatalogDatabase
+                      quickstep_catalog_CatalogRelation
+                      quickstep_catalog_CatalogRelationSchema
+                      quickstep_parser_ParseStatement
+                      quickstep_cli_PrintToScreen
+                      quickstep_utility_Macros
+                      quickstep_utility_PtrVector                        
+                      quickstep_utility_SqlError)
+
 target_link_libraries(quickstep_cli_DefaultsConfigurator
                       quickstep_utility_Macros)
 if(QUICKSTEP_HAVE_LIBNUMA)
