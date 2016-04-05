@@ -28,7 +28,7 @@ message WorkOrderCompletionMessage {
 message CatalogRelationNewBlockMessage {
   required int32 relation_id = 1;
   required fixed64 block_id = 2;
-  optional fixed64 worker_thread_id = 3;
+  required fixed64 worker_thread_id = 3;
 
   // Used by PartitionAwareInsertDestination.
   optional uint64 partition_id = 4;
@@ -38,7 +38,7 @@ message DataPipelineMessage {
   required uint64 operator_index = 1;
   required fixed64 block_id = 2;
   required int32 relation_id = 3;
-  optional fixed64 worker_thread_id = 4;
+  required fixed64 worker_thread_id = 4;
 }
 
 message WorkOrdersAvailableMessage {

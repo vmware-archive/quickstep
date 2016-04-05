@@ -39,6 +39,7 @@
 #include "storage/TupleIdSequence.hpp"
 #include "storage/ValueAccessorUtil.hpp"
 #include "threading/SpinMutex.hpp"
+#include "threading/ThreadIdBasedMap.hpp"
 #include "types/TypedValue.hpp"
 #include "types/containers/Tuple.hpp"
 
@@ -266,6 +267,7 @@ MutableBlockReference AlwaysCreateBlockInsertDestination::createNewBlock() {
   serialization::CatalogRelationNewBlockMessage proto;
   proto.set_relation_id(relation_.getID());
   proto.set_block_id(new_id);
+  proto.set_worker_thread_id(WorkerThreadIdMap::Instance()->getValue());
 
   const size_t proto_length = proto.ByteSize();
   char *proto_bytes = static_cast<char*>(malloc(proto_length));
@@ -313,6 +315,7 @@ MutableBlockReference BlockPoolInsertDestination::createNewBlock() {
   serialization::CatalogRelationNewBlockMessage proto;
   proto.set_relation_id(relation_.getID());
   proto.set_block_id(new_id);
+  proto.set_worker_thread_id(WorkerThreadIdMap::Instance()->getValue());
 
   const size_t proto_length = proto.ByteSize();
   char *proto_bytes = static_cast<char*>(malloc(proto_length));
@@ -420,6 +423,7 @@ MutableBlockReference PartitionAwareInsertDestination::createNewBlockInPartition
   serialization::CatalogRelationNewBlockMessage proto;
   proto.set_relation_id(relation_.getID());
   proto.set_block_id(new_id);
+  proto.set_worker_thread_id(WorkerThreadIdMap::Instance()->getValue());
   proto.set_partition_id(part_id);
 
   const size_t proto_length = proto.ByteSize();

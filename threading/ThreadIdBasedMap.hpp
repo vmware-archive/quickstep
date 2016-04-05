@@ -53,7 +53,7 @@ namespace quickstep {
  * @note This is in a way a simulation of thread-local object storage.
  **/
 template <class V, char... name>
-class ThreadIDBasedMap {
+class ThreadIdBasedMap {
  public:
 #ifdef QUICKSTEP_HAVE_CPP11_THREADS
   typedef std::thread::id thread_id_t;
@@ -74,8 +74,8 @@ class ThreadIDBasedMap {
    *
    * @return A pointer to the instance.
    **/
-  static ThreadIDBasedMap* Instance() {
-    static ThreadIDBasedMap instance;
+  static ThreadIdBasedMap* Instance() {
+    static ThreadIdBasedMap instance;
     return &instance;
   }
 
@@ -89,6 +89,7 @@ class ThreadIDBasedMap {
     {
       SpinSharedMutexExclusiveLock<false> lock(map_mutex_);
       DCHECK(map_.find(key) == map_.end());
+
       map_.emplace(key, value);
     }
   }
@@ -103,6 +104,7 @@ class ThreadIDBasedMap {
       // Use the following way to avoid exception in erase() call.
       const auto it = map_.find(key);
       DCHECK(it != map_.end());
+
       map_.erase(it);
     }
   }
@@ -118,6 +120,7 @@ class ThreadIDBasedMap {
       SpinSharedMutexSharedLock<false> lock(map_mutex_);
       const auto it = map_.find(key);
       DCHECK(it != map_.end());
+
       return it->second;
     }
   }
@@ -126,7 +129,7 @@ class ThreadIDBasedMap {
   /**
    * @brief Constructor.
    **/
-  ThreadIDBasedMap() {}
+  ThreadIdBasedMap() {}
 
   /**
    * @brief Destructor.
@@ -134,7 +137,7 @@ class ThreadIDBasedMap {
    * @note The destructor is private in order to prevent any caller that holds
    *       a pointer to the map from accidentally deleting it.
    **/
-  ~ThreadIDBasedMap() {}
+  ~ThreadIdBasedMap() {}
 
   /**
    * @brief Return a unique key corresponding to the caller thread.

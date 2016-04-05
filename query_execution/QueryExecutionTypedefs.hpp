@@ -20,6 +20,8 @@
 
 #include <cstddef>
 
+#include "threading/ThreadIdBasedMap.hpp"
+
 #include "tmb/address.h"
 #include "tmb/id_typedefs.h"
 #include "tmb/message_style.h"
@@ -43,6 +45,12 @@ typedef tmb::PureMemoryMessageBus<false> MessageBusImpl;
 typedef tmb::TaggedMessage TaggedMessage;
 typedef tmb::client_id client_id;
 typedef tmb::message_type_id message_type_id;
+
+using WorkerThreadIdMap = ThreadIdBasedMap<std::size_t,
+                                           'W', 'o', 'r', 'k', 'e', 'r',
+                                           'T', 'h', 'r', 'e', 'a', 'd',
+                                           'I', 'd',
+                                           'M', 'a', 'p'>;
 
 enum QueryExecutionMessageType : message_type_id {
   kWorkOrderMessage,  // From Foreman to Worker.

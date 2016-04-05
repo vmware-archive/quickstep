@@ -23,6 +23,7 @@
 #include "catalog/CatalogDatabase.hpp"
 #include "query_execution/QueryExecutionTypedefs.hpp"
 #include "storage/StorageManager.hpp"
+#include "threading/ThreadIdBasedMap.hpp"
 #include "utility/Macros.hpp"
 
 #include "tmb/id_typedefs.h"
@@ -56,6 +57,10 @@ class TestDatabaseLoader {
                           0 /* id */),
         storage_manager_(storage_path),
         test_relation_(nullptr) {
+    // Refer to InsertDestination::sendBlockFilledMessage for the rationale
+    // behind using WorkerThreadIdMap.
+    WorkerThreadIdMap::Instance()->addValue(kInvalidWorkerThreadId);
+
     bus_.Initialize();
 
     foreman_client_id_ = bus_.Connect();
@@ -67,6 +72,7 @@ class TestDatabaseLoader {
 
   ~TestDatabaseLoader() {
     clear();
+    WorkerThreadIdMap::Instance()->removeValue();
   }
 
   /**

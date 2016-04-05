@@ -101,6 +101,7 @@ target_link_libraries(quickstep_queryexecution_QueryContext_proto
 target_link_libraries(quickstep_queryexecution_QueryExecutionMessages_proto
                       ${PROTOBUF_LIBRARY})
 target_link_libraries(quickstep_queryexecution_QueryExecutionTypedefs
+                      quickstep_threading_ThreadIdBasedMap
                       tmb)
 target_link_libraries(quickstep_queryexecution_QueryExecutionUtil
                       quickstep_queryexecution_QueryExecutionTypedefs
@@ -119,6 +120,7 @@ target_link_libraries(quickstep_queryexecution_Worker
                       quickstep_queryexecution_WorkerMessage
                       quickstep_relationaloperators_WorkOrder
                       quickstep_threading_Thread
+                      quickstep_threading_ThreadIdBasedMap
                       quickstep_threading_ThreadUtil
                       quickstep_utility_Macros
                       tmb)

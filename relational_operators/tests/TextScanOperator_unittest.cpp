@@ -34,6 +34,7 @@
 #include "relational_operators/WorkOrder.hpp"
 #include "storage/InsertDestination.pb.h"
 #include "storage/StorageManager.hpp"
+#include "threading/ThreadIdBasedMap.hpp"
 #include "types/TypeFactory.hpp"
 #include "types/TypeID.hpp"
 #include "utility/MemStream.hpp"
@@ -60,6 +61,10 @@ constexpr int kOpIndex = 0;
 class TextScanOperatorTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    WorkerThreadIdMap::Instance()->addValue(0 /* dummy_worker_thread_id */);
+
     bus_.Initialize();
 
     foreman_client_id_ = bus_.Connect();
@@ -88,6 +93,10 @@ class TextScanOperatorTest : public ::testing::Test {
         new CatalogAttribute(relation_, "varchar_attr", TypeFactory::GetType(kVarChar, 20, true)));
 
     storage_manager_.reset(new StorageManager("./test_data/"));
+  }
+
+  virtual void TearDown() {
+    WorkerThreadIdMap::Instance()->removeValue();
   }
 
   void fetchAndExecuteWorkOrders(RelationalOperator *op) {

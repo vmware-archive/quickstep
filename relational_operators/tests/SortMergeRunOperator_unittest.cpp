@@ -58,6 +58,7 @@
 #include "storage/TupleStorageSubBlock.hpp"
 #include "storage/ValueAccessor.hpp"
 #include "storage/ValueAccessorUtil.hpp"
+#include "threading/ThreadIdBasedMap.hpp"
 #include "types/IntType.hpp"
 #include "types/Type.hpp"
 #include "types/TypeID.hpp"
@@ -154,6 +155,10 @@ class RunTest : public ::testing::Test {
   static const char kStoragePath[];
 
   virtual void SetUp() {
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    WorkerThreadIdMap::Instance()->addValue(0 /* dummy_worker_thread_id */);
+
     // Initialize the TMB, register this thread as sender and receiver for
     // appropriate types of messages.
     bus_.Initialize();
@@ -184,6 +189,10 @@ class RunTest : public ::testing::Test {
                                        foreman_client_id_,
                                        agent_client_id_,
                                        &bus_));
+  }
+
+  virtual void TearDown() {
+    WorkerThreadIdMap::Instance()->removeValue();
   }
 
   // Helper method to insert test tuples.
@@ -361,6 +370,10 @@ class RunMergerTest : public ::testing::Test {
   static const char kStoragePath[];
 
   virtual void SetUp() {
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    WorkerThreadIdMap::Instance()->addValue(0 /* dummy_worker_thread_id */);
+
     // Initialize the TMB, register this thread as sender and receiver for
     // appropriate types of messages.
     bus_.Initialize();
@@ -402,6 +415,10 @@ class RunMergerTest : public ::testing::Test {
                                        foreman_client_id_,
                                        agent_client_id_,
                                        &bus_));
+  }
+
+  virtual void TearDown() {
+    WorkerThreadIdMap::Instance()->removeValue();
   }
 
   // Helper method to create test tuples.
@@ -1166,6 +1183,10 @@ class SortMergeRunOperatorTest : public ::testing::Test {
   static const char kDatabaseName[];
 
   virtual void SetUp() {
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    WorkerThreadIdMap::Instance()->addValue(0 /* dummy_worker_thread_id */);
+
     // Initialize the TMB, register this thread as sender and receiver for
     // appropriate types of messages.
     bus_.Initialize();
@@ -1243,6 +1264,10 @@ class SortMergeRunOperatorTest : public ::testing::Test {
                                           foreman_client_id_,
                                           agent_client_id_,
                                           &bus_));
+  }
+
+  virtual void TearDown() {
+    WorkerThreadIdMap::Instance()->removeValue();
   }
 
   CatalogRelation *createTable(const char *name, const relation_id rel_id) {
