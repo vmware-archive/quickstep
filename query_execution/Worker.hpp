@@ -24,6 +24,8 @@
 #include "threading/Thread.hpp"
 #include "utility/Macros.hpp"
 
+#include "glog/logging.h"
+
 #include "tmb/id_typedefs.h"
 #include "tmb/message_bus.h"
 
@@ -41,20 +43,22 @@ class Worker : public Thread {
   /**
    * @brief Constructor
    *
-   * @param worker_id The unique ID of this worker thread.
+   * @param worker_thread_id The unique ID of this worker thread.
    * @param bus A pointer to the TMB.
    * @param cpu_id The ID of the CPU to which this worker thread can be pinned.
    *
    * @note If cpu_id is not specified, worker thread can be possibly moved
    *       around on different CPUs by the OS.
    **/
-  Worker(std::size_t worker_id,
+  Worker(const std::size_t worker_thread_id,
          MessageBus *bus,
          int cpu_id = -1)
-      : worker_id_(worker_id),
+      : worker_thread_id_(worker_thread_id),
         bus_(bus),
         cpu_id_(cpu_id) {
+    DCHECK_NE(worker_thread_id_, kInvalidWorkerThreadId);
     DEBUG_ASSERT(bus_ != nullptr);
+
     worker_client_id_ = bus_->Connect();
 
     bus_->RegisterClientAsSender(worker_client_id_, kWorkOrderCompleteMessage);
@@ -100,7 +104,7 @@ class Worker : public Thread {
                                     const std::size_t op_index,
                                     const bool is_rebuild_work_order);
 
-  const std::size_t worker_id_;
+  const std::size_t worker_thread_id_;
   MessageBus *bus_;
 
   const int cpu_id_;

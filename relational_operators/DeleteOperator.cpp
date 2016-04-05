@@ -95,6 +95,8 @@ void DeleteWorkOrder::execute() {
   proto.set_operator_index(delete_operator_index_);
   proto.set_block_id(input_block_id_);
   proto.set_relation_id(input_relation_.getID());
+  DCHECK_NE(worker_thread_id_, kInvalidWorkerThreadId);
+  proto.set_worker_thread_id(worker_thread_id_);
 
   // NOTE(zuyu): Using the heap memory to serialize proto as a c-like string.
   const std::size_t proto_length = proto.ByteSize();

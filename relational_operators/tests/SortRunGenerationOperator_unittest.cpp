@@ -54,6 +54,7 @@
 #include "storage/TupleStorageSubBlock.hpp"
 #include "storage/ValueAccessor.hpp"
 #include "storage/ValueAccessorUtil.hpp"
+#include "threading/ThreadIdBasedMap.hpp"
 #include "types/IntType.hpp"
 #include "types/Type.hpp"
 #include "types/TypeID.hpp"
@@ -144,6 +145,10 @@ class SortRunGenerationOperatorTest : public ::testing::Test {
   static const char kStoragePath[];
 
   virtual void SetUp() {
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    WorkerThreadIdMap::Instance()->addValue(0 /* dummy_worker_thread_id */);
+
     // Initialize the TMB, register this thread as sender and receiver for
     // appropriate types of messages.
     bus_.Initialize();
@@ -181,6 +186,10 @@ class SortRunGenerationOperatorTest : public ::testing::Test {
     ASSERT_EQ(null_col2_, result_table_->getAttributeByName("null-col-2")->getID());
     ASSERT_EQ(null_col3_, result_table_->getAttributeByName("null-col-3")->getID());
     ASSERT_EQ(tid_col_, result_table_->getAttributeByName("tid")->getID());
+  }
+
+  virtual void TearDown() {
+    WorkerThreadIdMap::Instance()->removeValue();
   }
 
   // Helper method to create catalog relation.

@@ -53,6 +53,7 @@
 #include "storage/StorageBlockLayout.hpp"
 #include "storage/StorageManager.hpp"
 #include "storage/TupleStorageSubBlock.hpp"
+#include "threading/ThreadIdBasedMap.hpp"
 #include "types/DoubleType.hpp"
 #include "types/FloatType.hpp"
 #include "types/IntType.hpp"
@@ -106,6 +107,10 @@ class AggregationOperatorTest : public ::testing::Test {
   static const int kPlaceholder = 0xbeef;
 
   virtual void SetUp() {
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    WorkerThreadIdMap::Instance()->addValue(0 /* dummy_worker_thread_id */);
+
     bus_.Initialize();
 
     foreman_client_id_ = bus_.Connect();
@@ -159,6 +164,10 @@ class AggregationOperatorTest : public ::testing::Test {
       }
       storage_block->rebuild();
     }
+  }
+
+  virtual void TearDown() {
+    WorkerThreadIdMap::Instance()->removeValue();
   }
 
   Tuple* createTuple(const CatalogRelation &relation, const std::int64_t val) {

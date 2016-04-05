@@ -35,6 +35,7 @@
 #include "storage/StorageBlockInfo.hpp"
 #include "storage/StorageBlockLayout.hpp"
 #include "threading/SpinMutex.hpp"
+#include "threading/ThreadIdBasedMap.hpp"
 #include "types/containers/Tuple.hpp"
 #include "utility/Macros.hpp"
 
@@ -209,10 +210,29 @@ class InsertDestination : public InsertDestinationInterface {
    * @param id The id of the StorageBlock to be pipelined.
    **/
   void sendBlockFilledMessage(const block_id id) const {
+    // The reason we use WorkerThreadIdMap is as follows:
+    // InsertDestination needs to set the worker thread id (the index in
+    // WorkerDirectory) in messages to Foreman. To figure out the id of the
+    // executing thread, there are multiple ways :
+    // 1. Trickle down the worker thread id all the way from
+    //    WorkerOrder::execute() method until here.
+    // 2. Use thread-local storage: each worker saves its id in the local
+    //    storage.
+    // 3. Use a globally accessible map whose key is the caller thread's
+    //    process level id and value is the worker thread index.
+    //
+    // Option 1 involves modifying the signature of several functions across
+    // different modules. Option 2 was difficult to implement given that Apple's
+    // Clang doesn't allow C++11's thread_local keyword. Therefore we chose
+    // option 3.
+    const std::size_t worker_thread_id = WorkerThreadIdMap::Instance()->getValue();
+    DCHECK_NE(worker_thread_id, kInvalidWorkerThreadId);
+
     serialization::DataPipelineMessage proto;
     proto.set_operator_index(relational_op_index_);
     proto.set_block_id(id);
     proto.set_relation_id(relation_.getID());
+    proto.set_worker_thread_id(worker_thread_id);
 
     // NOTE(zuyu): Using the heap memory to serialize proto as a c-like string.
     const std::size_t proto_length = proto.ByteSize();
