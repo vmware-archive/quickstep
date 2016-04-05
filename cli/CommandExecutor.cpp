@@ -46,6 +46,8 @@ using std::vector;
 
 namespace quickstep {
 
+const std::size_t  CommandExecutor::kInitMaxColumnWidth = 6;
+
 void CommandExecutor::executeCommand(const ParseStatement &statement,
                                      const CatalogDatabase *catalog_database,
                                      FILE *out) {
@@ -92,7 +94,7 @@ void CommandExecutor::executeDescribeDatabase(
   }
   // Only if we have relations work on the printing logic.
   if (relation_count > 0) {
-    vector<int> column_widths;
+    vector<std::size_t> column_widths;
     column_widths.push_back(max_column_width);
     column_widths.push_back(CommandExecutor::kInitMaxColumnWidth);
     fputs("       List of relations\n\n", out);
@@ -122,7 +124,7 @@ void CommandExecutor::executeDescribeTable(
   const std::string &table_name_val = table_name.value();
   const CatalogRelation *relation =
       catalog_database->getRelationByName(table_name_val);
-  vector<int> column_widths;
+  vector<std::size_t> column_widths;
   std::size_t max_attr_column_width = CommandExecutor::kInitMaxColumnWidth;
   std::size_t max_type_column_width = CommandExecutor::kInitMaxColumnWidth-1;
 

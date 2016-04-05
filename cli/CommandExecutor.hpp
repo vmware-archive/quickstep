@@ -57,7 +57,7 @@ class CommandExecutor {
                              FILE *out);
 
  private:
-  static const size_t kInitMaxColumnWidth = 6;
+  static const std::size_t kInitMaxColumnWidth;
   CommandExecutor();
 
   /**
