@@ -812,9 +812,9 @@ ORDER BY
   p_type,
   p_size
 --
-ERROR: syntax error (5 : 9)
-  COUNT(distinct ps_suppkey) AS supplie...
-        ^
+ERROR: syntax error (13 : 14)
+  AND p_size IN (32, 42, 9, 18, 50, 30, 12,...
+             ^
 ==
 
 # Query 17
