@@ -134,6 +134,13 @@ class AggregationHandleMin : public AggregationConcreteHandle {
       const AggregationStateHashTableBase &hash_table,
       std::vector<std::vector<TypedValue>> *group_by_keys) const override;
 
+  AggregationState* aggregateOnDistinctifyHashTableForSingle(
+      const AggregationStateHashTableBase &distinctify_hash_table) const override;
+
+  void aggregateOnDistinctifyHashTableForGroupBy(
+      const AggregationStateHashTableBase &distinctify_hash_table,
+      AggregationStateHashTableBase *aggregation_hash_table) const override;
+
  private:
   friend class AggregateFunctionMin;
 

@@ -22,9 +22,11 @@
 
 #include <cstddef>
 #include <vector>
+#include <utility>
 
 #include "catalog/CatalogTypedefs.hpp"
 #include "expressions/aggregation/AggregationHandle.hpp"
+#include "storage/HashTable.hpp"
 #include "storage/HashTableBase.hpp"
 #include "types/TypedValue.hpp"
 #include "types/containers/ColumnVector.hpp"
@@ -34,6 +36,7 @@
 
 namespace quickstep {
 
+class StorageManager;
 class Type;
 class ValueAccessor;
 
@@ -59,6 +62,17 @@ class AggregationConcreteHandle : public AggregationHandle {
                << "takes at least one argument.";
   }
 
+  AggregationStateHashTableBase* createDistinctifyHashTable(
+      const HashTableImplType hash_table_impl,
+      const std::vector<const Type*> &key_types,
+      const std::size_t estimated_num_distinct_keys,
+      StorageManager *storage_manager) const override;
+
+  void insertValueAccessorIntoDistinctifyHashTable(
+      ValueAccessor *accessor,
+      const std::vector<attribute_id> &key_ids,
+      AggregationStateHashTableBase *distinctify_hash_table) const override;
+
  protected:
   AggregationConcreteHandle() {
   }
@@ -79,6 +93,19 @@ class AggregationConcreteHandle : public AggregationHandle {
       ValueAccessor *accessor,
       const attribute_id argument_id,
       const std::vector<attribute_id> &group_by_key_ids,
+      const StateT &default_state,
+      AggregationStateHashTableBase *hash_table) const;
+
+  template <typename HandleT,
+            typename StateT>
+  StateT* aggregateOnDistinctifyHashTableForSingleUnaryHelper(
+      const AggregationStateHashTableBase &distinctify_hash_table) const;
+
+  template <typename HandleT,
+            typename StateT,
+            typename HashTableT>
+  void aggregateOnDistinctifyHashTableForGroupByUnaryHelper(
+      const AggregationStateHashTableBase &distinctify_hash_table,
       const StateT &default_state,
       AggregationStateHashTableBase *hash_table) const;
 
@@ -219,6 +246,53 @@ void AggregationConcreteHandle::aggregateValueAccessorIntoHashTableUnaryHelper(
       true,
       default_state,
       &upserter);
+}
+
+template <typename HandleT,
+          typename StateT>
+StateT* AggregationConcreteHandle::aggregateOnDistinctifyHashTableForSingleUnaryHelper(
+    const AggregationStateHashTableBase &distinctify_hash_table) const {
+  const HandleT& handle = static_cast<const HandleT&>(*this);
+  StateT *state = static_cast<StateT*>(createInitialState());
+
+  const auto aggregate_functor = [&handle, &state](const TypedValue &key,
+                                                   const bool &dumb_placeholder) {
+    handle.iterateUnaryInl(state, key);
+  };
+
+  const AggregationStateHashTable<bool> &hash_table =
+      static_cast<const AggregationStateHashTable<bool>&>(distinctify_hash_table);
+  hash_table.forEach(&aggregate_functor);
+
+  return state;
+}
+
+template <typename HandleT,
+          typename StateT,
+          typename HashTableT>
+void AggregationConcreteHandle::aggregateOnDistinctifyHashTableForGroupByUnaryHelper(
+    const AggregationStateHashTableBase &distinctify_hash_table,
+    const StateT &default_state,
+    AggregationStateHashTableBase *aggregation_hash_table) const {
+  const HandleT& handle = static_cast<const HandleT&>(*this);
+  HashTableT *target_hash_table = static_cast<HashTableT*>(aggregation_hash_table);
+
+  const auto aggregate_functor = [&handle, &target_hash_table, &default_state](
+      std::vector<TypedValue> &key,
+      const bool &dumb_placeholder) {
+    const TypedValue argument(std::move(key.back()));
+    key.pop_back();
+
+    const auto upserter = [&handle, &argument](StateT *state) {
+      handle.iterateUnaryInl(state, argument);
+    };
+
+    target_hash_table->upsertCompositeKey(key, default_state, &upserter);
+  };
+
+  const AggregationStateHashTable<bool> &source_hash_table =
+      static_cast<const AggregationStateHashTable<bool>&>(distinctify_hash_table);
+  source_hash_table.forEachCompositeKey(&aggregate_functor);
 }
 
 template <typename HandleT,
