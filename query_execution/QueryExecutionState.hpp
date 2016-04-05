@@ -45,13 +45,12 @@ class QueryExecutionState {
    * @param num_operators Number of relational operators in the query.
    **/
   explicit QueryExecutionState(const std::size_t num_operators)
-      : num_operators_(num_operators), num_operators_finished_(0) {
-    done_gen_.assign(num_operators, false);
-    execution_finished_.assign(num_operators, false);
-    rebuild_required_.assign(num_operators, false);
-
-    queued_workorders_per_op_.assign(num_operators, 0);
-  }
+      : num_operators_(num_operators),
+        num_operators_finished_(0),
+        queued_workorders_per_op_(num_operators, 0),
+        rebuild_required_(num_operators, false),
+        done_gen_(num_operators, false),
+        execution_finished_(num_operators, false) {}
 
   /**
    * @brief Get the number of operators in the query.
@@ -89,7 +88,7 @@ class QueryExecutionState {
    **/
   inline void setRebuildStatus(const std::size_t operator_index,
                                const std::size_t num_rebuild_workorders,
-                               bool rebuild_initiated) {
+                               const bool rebuild_initiated) {
     DCHECK(operator_index < num_operators_);
     rebuild_status_[operator_index].second = num_rebuild_workorders;
     rebuild_status_[operator_index].first = rebuild_initiated;
@@ -104,7 +103,7 @@ class QueryExecutionState {
    **/
   inline bool hasRebuildInitiated(const std::size_t operator_index) const {
     DCHECK(operator_index < num_operators_);
-    auto search_res = rebuild_status_.find(operator_index);
+    const auto search_res = rebuild_status_.find(operator_index);
     if (search_res != rebuild_status_.end()) {
       return search_res->second.first;
     }
@@ -121,7 +120,7 @@ class QueryExecutionState {
   inline const std::size_t getNumRebuildWorkOrders(
       const std::size_t operator_index) const {
     DCHECK(operator_index < num_operators_);
-    auto search_res = rebuild_status_.find(operator_index);
+    const auto search_res = rebuild_status_.find(operator_index);
     if (search_res != rebuild_status_.end()) {
       return search_res->second.second;
     }
@@ -137,7 +136,7 @@ class QueryExecutionState {
    **/
   inline void decrementNumRebuildWorkOrders(const std::size_t operator_index) {
     DCHECK(operator_index < num_operators_);
-    auto search_res = rebuild_status_.find(operator_index);
+    const auto search_res = rebuild_status_.find(operator_index);
     if (search_res != rebuild_status_.end()) {
       DCHECK(search_res->second.first);
       DCHECK_GE(search_res->second.second, 1u);
@@ -205,7 +204,7 @@ class QueryExecutionState {
    *
    * @param operator_index The index of the given operator.
    **/
-  inline bool getRebuildRequired(const std::size_t operator_index) const {
+  inline bool isRebuildRequired(const std::size_t operator_index) const {
     DCHECK(operator_index < num_operators_);
     return rebuild_required_[operator_index];
   }
@@ -228,7 +227,7 @@ class QueryExecutionState {
    *
    * @param operator_index The index of the given operator.
    **/
-  inline bool getExecutionFinished(const std::size_t operator_index) const {
+  inline bool hasExecutionFinished(const std::size_t operator_index) const {
     DCHECK(operator_index < num_operators_);
     return execution_finished_[operator_index];
   }
@@ -251,7 +250,7 @@ class QueryExecutionState {
    *
    * @param operator_index The index of the given operator.
    **/
-  inline bool getDoneGenerationWorkOrders(const std::size_t operator_index)
+  inline bool hasDoneGenerationWorkOrders(const std::size_t operator_index)
       const {
     DCHECK(operator_index < num_operators_);
     return done_gen_[operator_index];

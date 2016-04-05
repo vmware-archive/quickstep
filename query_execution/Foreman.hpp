@@ -175,7 +175,7 @@ class Foreman final : public ForemanLite {
   inline bool checkAllDependenciesMet(const dag_node_index node_index) const {
     for (const dag_node_index dependency_index : query_dag_->getDependencies(node_index)) {
       // If at least one of the dependencies is not met, return false.
-      if (!query_exec_state_->getExecutionFinished(dependency_index)) {
+      if (!query_exec_state_->hasExecutionFinished(dependency_index)) {
         return false;
       }
     }
@@ -197,7 +197,7 @@ class Foreman final : public ForemanLite {
    **/
   inline bool checkAllBlockingDependenciesMet(const dag_node_index node_index) const {
     for (const dag_node_index blocking_dependency_index : blocking_dependencies_[node_index]) {
-      if (!query_exec_state_->getExecutionFinished(blocking_dependency_index)) {
+      if (!query_exec_state_->hasExecutionFinished(blocking_dependency_index)) {
         return false;
       }
     }
@@ -372,7 +372,7 @@ class Foreman final : public ForemanLite {
     return (checkAllDependenciesMet(index) &&
             !workorders_container_->hasNormalWorkOrder(index) &&
             query_exec_state_->getNumQueuedWorkOrders(index) == 0 &&
-            query_exec_state_->getDoneGenerationWorkOrders(index));
+            query_exec_state_->hasDoneGenerationWorkOrders(index));
   }
 
   /**
@@ -383,7 +383,7 @@ class Foreman final : public ForemanLite {
    * @return True if the rebuild operation is required, false otherwise.
    **/
   inline bool checkRebuildRequired(const dag_node_index index) const {
-    return query_exec_state_->getRebuildRequired(index);
+    return query_exec_state_->isRebuildRequired(index);
   }
 
   /**

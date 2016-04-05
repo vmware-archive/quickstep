@@ -331,7 +331,7 @@ WorkerMessage* Foreman::getNextWorkerMessage(
   for (dag_node_index index = start_operator_index;
        num_operators_checked < query_dag_->size();
        index = (index + 1) % query_dag_->size(), ++num_operators_checked) {
-    if (query_exec_state_->getExecutionFinished(index)) {
+    if (query_exec_state_->hasExecutionFinished(index)) {
       continue;
     }
     if (numa_node != -1) {
@@ -393,7 +393,7 @@ void Foreman::sendWorkerMessage(const std::size_t worker_id,
 
 bool Foreman::fetchNormalWorkOrders(const dag_node_index index) {
   bool generated_new_workorders = false;
-  if (!query_exec_state_->getDoneGenerationWorkOrders(index)) {
+  if (!query_exec_state_->hasDoneGenerationWorkOrders(index)) {
     // Do not fetch any work units until all blocking dependencies are met.
     // The releational operator is not aware of blocking dependencies for
     // uncorrelated scalar queries.

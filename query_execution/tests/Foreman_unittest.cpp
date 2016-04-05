@@ -261,7 +261,7 @@ class ForemanTest : public ::testing::Test {
   }
 
   inline bool getOperatorFinishedStatus(const QueryPlan::DAGNodeIndex index) const {
-    return foreman_->query_exec_state_->getExecutionFinished(index);
+    return foreman_->query_exec_state_->hasExecutionFinished(index);
   }
 
   inline bool popWorkOrderIfAvailable(MockWorkOrder **workorder) {
