@@ -35,6 +35,7 @@ AggregationStateHashTableBase* AggregationConcreteHandle::createDistinctifyHashT
     const std::vector<const Type*> &key_types,
     const std::size_t estimated_num_distinct_keys,
     StorageManager *storage_manager) const {
+  // Create a hash table with key types as key_types and value type as bool.
   return AggregationStateHashTableFactory<bool>::CreateResizable(
       hash_table_impl,
       key_types,
@@ -46,6 +47,8 @@ void AggregationConcreteHandle::insertValueAccessorIntoDistinctifyHashTable(
     ValueAccessor *accessor,
     const std::vector<attribute_id> &key_ids,
     AggregationStateHashTableBase *distinctify_hash_table) const {
+  // If the key-value pair is already there, we don't need to update the value,
+  // which should always be "true". I.e. the value is just a placeholder.
   const auto noop_upserter = [](const auto &accessor, const bool *value) -> void {};
 
   AggregationStateHashTable<bool> *hash_table =
