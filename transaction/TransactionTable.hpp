@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "transaction/AccessMode.hpp"
 #include "transaction/Lock.hpp"
 #include "transaction/ResourceId.hpp"
 #include "transaction/Transaction.hpp"
@@ -39,16 +40,15 @@ namespace transaction {
  * @brief Represents different result for TransactionTable's methods.
  **/
 enum class TransactionTableResult {
-  kPLACED_IN_OWNED = 0,
-  kPLACED_IN_PENDING,
-  kALREADY_IN_OWNED,
-  kALREADY_IN_PENDING,
-  kDEL_FROM_OWNED,
-  kDEL_FROM_PENDING,
-  kDEL_ERROR,
-  kPUT_ERROR,
-  kTRANSACTION_DELETE_OK,
-  kTRANSACTION_DELETE_ERROR
+  kPlacedInOwned = 0,
+  kPlacedInPending,
+  kAlreadyInOwned,
+  kAlreadyInPending,
+  kDelFromOwned,
+  kDelFromPending,
+  kDelError,
+  kTransactionDeleteOk,
+  kTransactionDeleteError,
 };
 
 /**
@@ -57,10 +57,10 @@ enum class TransactionTableResult {
 class TransactionTable {
  public:
   typedef std::pair<ResourceId, Lock> transaction_entry;
-  typedef transaction_own_list std::list<transaction_entry>;
-  typedef transaction_pending_list = std::list<transaction_entry>;
-  typedef transaction_list_pair = std::pair<transaction_own_list,
-                                            transaction_pending_list>;
+  typedef std::list<transaction_entry> transaction_own_list;
+  typedef std::list<transaction_entry> transaction_pending_list;
+  typedef std::pair<transaction_own_list, transaction_pending_list>
+      transaction_list_pair;
 
   /**
    * @brief Contructor for TransactionTable.
@@ -79,9 +79,9 @@ class TransactionTable {
    * @return TransactionTableResult::kPLACED_IN_OWNED since it is
    *         always a successful operation on owned list.
    **/
-  TransactionTableResult putOwnEntry(TransactionId tid,
+  TransactionTableResult putOwnEntry(const transaction_id tid,
                                      const ResourceId &rid,
-                                     AccessMode access_mode);
+                                     const AccessMode access_mode);
 
   /**
    * @brief Puts a pending entry of the given resource id in the given
@@ -93,9 +93,9 @@ class TransactionTable {
    *
    * @return TransactionTableResult::kPLACED_IN_PENDING
    **/
-  TransactionTableResult putPendingEntry(TransactionId tid,
+  TransactionTableResult putPendingEntry(const transaction_id tid,
                                          const ResourceId &rid,
-                                         AccessMode access_mode);
+                                         const AccessMode access_mode);
 
   /**
    * @brief Deletes the owned entry corresponding to the resource id
@@ -108,9 +108,9 @@ class TransactionTable {
    * @return TransactionTableResult::kDEL_FROM_OWNED if the entry is deleted,
    *         otherwise TransactionTable::kDEL_ERROR.
    **/
-  TransactionTableResult deleteOwnEntry(TransactionId tid,
+  TransactionTableResult deleteOwnEntry(const transaction_id tid,
                                         const ResourceId &rid,
-                                        AccessMode access_mode);
+                                        const AccessMode access_mode);
 
   /**
    * @brief Deletes the pending entry corresponding to the resource id
@@ -122,9 +122,9 @@ class TransactionTable {
    * @return TransactionTableResult::kDEL_FROM_PENDING if the entry is
    *         successfuly deleted, otherwise TransactionTableResult::k_DEL_ERROR.
    **/
-  TransactionTableResult deletePendingEntry(TransactionId tid,
+  TransactionTableResult deletePendingEntry(const transaction_id tid,
                                             const ResourceId &rid,
-                                            AccessMode access_mode);
+                                            const AccessMode access_mode);
 
   /**
    * @brief Returns a vector of resource ids which the corresponding transaction
@@ -134,7 +134,7 @@ class TransactionTable {
    *
    * @return Vector of resource id that the transaction owns or pends.
    **/
-  std::vector<ResourceId> getResourceIdList(TransactionId tid);
+  std::vector<ResourceId> getResourceIdList(const transaction_id tid);
 
   /**
    * @brief Deletes the transaction entry from transaction table.
@@ -145,10 +145,10 @@ class TransactionTable {
    *         entry for the transaction, otherwise
    *         TransactionTableResult::kTRANSACTION_DELETE_OK.
    **/
-  TransactionTableResult deleteTransaction(TransactionId tid);
+  TransactionTableResult deleteTransaction(const transaction_id tid);
 
  private:
-  std::unordered_map<TransactionId, TransactionListPair> internal_map_;
+  std::unordered_map<transaction_id, transaction_list_pair> internal_map_;
 
   DISALLOW_COPY_AND_ASSIGN(TransactionTable);
 };

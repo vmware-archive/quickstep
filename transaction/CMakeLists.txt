@@ -37,7 +37,10 @@ add_library(quickstep_transaction_StronglyConnectedComponents
 add_library(quickstep_transaction_Transaction
             ../empty_src.cpp
             Transaction.hpp)
-
+add_library(quickstep_transaction_TransactionTable
+            TransactionTable.cpp
+            TransactionTable.hpp)
+          
 target_link_libraries(quickstep_transaction_DirectedGraph
                       glog
                       quickstep_transaction_Transaction
@@ -64,6 +67,12 @@ target_link_libraries(quickstep_transaction_ResourceId
                       glog)
 target_link_libraries(quickstep_transaction_StronglyConnectedComponents
                       quickstep_transaction_DirectedGraph
+                      quickstep_utility_Macros)
+target_link_libraries(quickstep_transaction_TransactionTable
+                      quickstep_transaction_AccessMode
+                      quickstep_transaction_Lock
+                      quickstep_transaction_ResourceId
+                      quickstep_transaction_Transaction
                       quickstep_utility_Macros)
 
 add_library(quickstep_transaction
@@ -131,3 +140,14 @@ target_link_libraries(StronglyConnectedComponents_unittest
                       quickstep_transaction_DirectedGraph
                       quickstep_transaction_StronglyConnectedComponents)
 add_test(StronglyConnectedComponents_unittest StronglyConnectedComponents_unittest)
+
+add_executable(TransactionTable_unittest
+               "${CMAKE_CURRENT_SOURCE_DIR}/tests/TransactionTable_unittest.cpp")
+target_link_libraries(TransactionTable_unittest
+                      gtest
+                      gtest_main
+                      quickstep_transaction_AccessMode
+                      quickstep_transaction_ResourceId
+                      quickstep_transaction_Transaction
+                      quickstep_transaction_TransactionTable)
+add_test(TransactionTable_unittest TransactionTable_unittest)

@@ -39,7 +39,7 @@ TransactionTable::putOwnEntry(const transaction_id tid,
 
   transaction_own_list.push_back(std::make_pair(rid, Lock(rid, access_mode)));
 
-  return TransactionTableResult::kPLACED_IN_OWNED;
+  return TransactionTableResult::kPlacedInOwned;
 }
 
 TransactionTableResult
@@ -53,7 +53,7 @@ TransactionTable::putPendingEntry(const transaction_id tid,
   transaction_pending_list.push_back(std::make_pair(rid,
                                                     Lock(rid, access_mode)));
 
-  return TransactionTableResult::kPLACED_IN_PENDING;
+  return TransactionTableResult::kPlacedInPending;
 }
 
 TransactionTableResult
@@ -65,14 +65,14 @@ TransactionTable::deleteOwnEntry(const transaction_id tid,
 
   std::size_t original_size = transaction_own_list.size();
   transaction_own_list.remove_if(
-      [&rid, &access_mode](TransactionEntry &entry) {
+      [&rid, &access_mode](transaction_entry &entry) {
         return entry.second.getResourceId() == rid
         && entry.second.getAccessMode() == access_mode;
       });
   if (transaction_own_list.size() == original_size) {
-    return TransactionTableResult::kDEL_ERROR;
+    return TransactionTableResult::kDelError;
   } else {
-    return TransactionTableResult::kDEL_FROM_OWNED;
+    return TransactionTableResult::kDelFromOwned;
   }
 }
 
@@ -86,20 +86,20 @@ TransactionTable::deletePendingEntry(const transaction_id tid,
 
   std::size_t original_size = transaction_pending_list.size();
   transaction_pending_list.remove_if(
-     [&rid, &access_mode] (TransactionEntry &entry) {
+     [&rid, &access_mode] (transaction_entry &entry) {
        return entry.second.getResourceId() == rid
          && entry.second.getAccessMode() == access_mode;
      });
 
   if (transaction_pending_list.size() == original_size) {
-    return TransactionTableResult::kDEL_ERROR;
+    return TransactionTableResult::kDelError;
   } else {
-    return TransactionTableResult::kDEL_FROM_PENDING;
+    return TransactionTableResult::kDelFromPending;
   }
 }
 
 std::vector<ResourceId>
-TransactionTable::getResourceIdList(transaction_id tid) {
+TransactionTable::getResourceIdList(const transaction_id tid) {
   std::vector<ResourceId> result;
   const transaction_list_pair &transaction_list_pair = internal_map_[tid];
   const transaction_own_list &transaction_own_list =
@@ -126,14 +126,14 @@ TransactionTable::getResourceIdList(transaction_id tid) {
 TransactionTableResult
 TransactionTable::deleteTransaction(const transaction_id tid) {
   std::size_t original_size = internal_map_.size();
-  internal_map_.erase(id);
+  internal_map_.erase(tid);
   std::size_t size_after_delete = internal_map_.size();
 
   if (original_size == size_after_delete) {
-    return  TransactionTableResult::kTRANSACTION_DELETE_ERROR;
+    return  TransactionTableResult::kTransactionDeleteError;
   }
 
-  return TransactionTableResult::kTRANSACTION_DELETE_OK;
+  return TransactionTableResult::kTransactionDeleteOk;
 }
 
 }  // namespace transaction
