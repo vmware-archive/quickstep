@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "catalog/CatalogTypedefs.hpp"
+#include "expressions/aggregation/AggregationConcreteHandle.hpp"
 #include "expressions/aggregation/AggregationHandle.hpp"
 #include "storage/HashTableBase.hpp"
 #include "threading/SpinMutex.hpp"
@@ -79,7 +80,7 @@ class AggregationStateAvg : public AggregationState {
 /**
  * @brief An aggregationhandle for avg.
  **/
-class AggregationHandleAvg : public AggregationHandle {
+class AggregationHandleAvg : public AggregationConcreteHandle {
  public:
   ~AggregationHandleAvg() override {
   }

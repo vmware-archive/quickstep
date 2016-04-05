@@ -15,10 +15,9 @@
  *   limitations under the License.
  **/
 
-#include "expressions/aggregation/AggregationHandle.hpp"
+#include "expressions/aggregation/AggregationConcreteHandle.hpp"
 
 #include <cstddef>
-#include <memory>
 #include <vector>
 
 #include "catalog/CatalogTypedefs.hpp"
@@ -31,7 +30,7 @@ class StorageManager;
 class Type;
 class ValueAccessor;
 
-AggregationStateHashTableBase* AggregationHandle::createDistinctifyHashTable(
+AggregationStateHashTableBase* AggregationConcreteHandle::createDistinctifyHashTable(
     const HashTableImplType hash_table_impl,
     const std::vector<const Type*> &key_types,
     const std::size_t estimated_num_distinct_keys,
@@ -43,7 +42,7 @@ AggregationStateHashTableBase* AggregationHandle::createDistinctifyHashTable(
       storage_manager);
 }
 
-void AggregationHandle::insertValueAccessorIntoDistinctifyHashTable(
+void AggregationConcreteHandle::insertValueAccessorIntoDistinctifyHashTable(
     ValueAccessor *accessor,
     const std::vector<attribute_id> &key_ids,
     AggregationStateHashTableBase *distinctify_hash_table) const {

@@ -41,8 +41,11 @@ add_library(quickstep_expressions_aggregation_AggregateFunctionMin
 add_library(quickstep_expressions_aggregation_AggregateFunctionSum
             AggregateFunctionSum.cpp
             AggregateFunctionSum.hpp)
+add_library(quickstep_expressions_aggregation_AggregationConcreteHandle
+            AggregationConcreteHandle.cpp
+            AggregationConcreteHandle.hpp)
 add_library(quickstep_expressions_aggregation_AggregationHandle
-            AggregationHandle.cpp
+            ../../empty_src.cpp
             AggregationHandle.hpp)
 add_library(quickstep_expressions_aggregation_AggregationHandleAvg
             AggregationHandleAvg.cpp
@@ -137,18 +140,26 @@ target_link_libraries(quickstep_expressions_aggregation_AggregateFunctionSum
                       quickstep_types_operations_binaryoperations_BinaryOperationFactory
                       quickstep_types_operations_binaryoperations_BinaryOperationID
                       quickstep_utility_Macros)
-target_link_libraries(quickstep_expressions_aggregation_AggregationHandle
+target_link_libraries(quickstep_expressions_aggregation_AggregationConcreteHandle
                       glog
                       quickstep_catalog_CatalogTypedefs
+                      quickstep_expressions_aggregation_AggregationHandle
                       quickstep_storage_HashTable
                       quickstep_storage_HashTableBase
                       quickstep_storage_HashTableFactory
                       quickstep_types_TypedValue
                       quickstep_types_containers_ColumnVector
                       quickstep_utility_Macros)
+target_link_libraries(quickstep_expressions_aggregation_AggregationHandle
+                      glog
+                      quickstep_catalog_CatalogTypedefs
+                      quickstep_storage_HashTableBase
+                      quickstep_types_TypedValue
+                      quickstep_utility_Macros)
 target_link_libraries(quickstep_expressions_aggregation_AggregationHandleAvg
                       glog
                       quickstep_catalog_CatalogTypedefs
+                      quickstep_expressions_aggregation_AggregationConcreteHandle
                       quickstep_expressions_aggregation_AggregationHandle
                       quickstep_storage_HashTable
                       quickstep_storage_HashTableBase
@@ -165,6 +176,7 @@ target_link_libraries(quickstep_expressions_aggregation_AggregationHandleAvg
 target_link_libraries(quickstep_expressions_aggregation_AggregationHandleCount
                       glog
                       quickstep_catalog_CatalogTypedefs
+                      quickstep_expressions_aggregation_AggregationConcreteHandle
                       quickstep_expressions_aggregation_AggregationHandle
                       quickstep_storage_HashTable
                       quickstep_storage_HashTableBase
@@ -180,7 +192,7 @@ target_link_libraries(quickstep_expressions_aggregation_AggregationHandleCount
 target_link_libraries(quickstep_expressions_aggregation_AggregationHandleDistinct
                       glog
                       quickstep_catalog_CatalogTypedefs
-                      quickstep_expressions_aggregation_AggregationHandle
+                      quickstep_expressions_aggregation_AggregationConcreteHandle
                       quickstep_storage_HashTable
                       quickstep_storage_HashTableBase
                       quickstep_types_TypedValue
@@ -188,6 +200,7 @@ target_link_libraries(quickstep_expressions_aggregation_AggregationHandleDistinc
 target_link_libraries(quickstep_expressions_aggregation_AggregationHandleMax
                       glog
                       quickstep_catalog_CatalogTypedefs
+                      quickstep_expressions_aggregation_AggregationConcreteHandle
                       quickstep_expressions_aggregation_AggregationHandle
                       quickstep_storage_HashTable
                       quickstep_storage_HashTableBase
@@ -203,6 +216,7 @@ target_link_libraries(quickstep_expressions_aggregation_AggregationHandleMax
 target_link_libraries(quickstep_expressions_aggregation_AggregationHandleMin
                       glog
                       quickstep_catalog_CatalogTypedefs
+                      quickstep_expressions_aggregation_AggregationConcreteHandle
                       quickstep_expressions_aggregation_AggregationHandle
                       quickstep_storage_HashTable
                       quickstep_storage_HashTableBase
@@ -218,6 +232,7 @@ target_link_libraries(quickstep_expressions_aggregation_AggregationHandleMin
 target_link_libraries(quickstep_expressions_aggregation_AggregationHandleSum
                       glog
                       quickstep_catalog_CatalogTypedefs
+                      quickstep_expressions_aggregation_AggregationConcreteHandle
                       quickstep_expressions_aggregation_AggregationHandle
                       quickstep_storage_HashTable
                       quickstep_storage_HashTableBase
@@ -243,6 +258,7 @@ target_link_libraries(quickstep_expressions_aggregation
                       quickstep_expressions_aggregation_AggregateFunctionMax
                       quickstep_expressions_aggregation_AggregateFunctionMin
                       quickstep_expressions_aggregation_AggregateFunctionSum
+                      quickstep_expressions_aggregation_AggregationConcreteHandle
                       quickstep_expressions_aggregation_AggregationHandle
                       quickstep_expressions_aggregation_AggregationHandleAvg
                       quickstep_expressions_aggregation_AggregationHandleCount

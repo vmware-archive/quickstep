@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "catalog/CatalogTypedefs.hpp"
+#include "expressions/aggregation/AggregationConcreteHandle.hpp"
 #include "expressions/aggregation/AggregationHandle.hpp"
 #include "storage/HashTableBase.hpp"
 #include "threading/SpinMutex.hpp"
@@ -79,7 +80,7 @@ class AggregationStateMax : public AggregationState {
 /**
  * @brief An aggregationhandle for max.
  **/
-class AggregationHandleMax : public AggregationHandle {
+class AggregationHandleMax : public AggregationConcreteHandle {
  public:
   ~AggregationHandleMax() override {
   }

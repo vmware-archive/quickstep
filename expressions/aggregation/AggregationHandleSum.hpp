@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "catalog/CatalogTypedefs.hpp"
+#include "expressions/aggregation/AggregationConcreteHandle.hpp"
 #include "expressions/aggregation/AggregationHandle.hpp"
 #include "storage/HashTableBase.hpp"
 #include "threading/SpinMutex.hpp"
@@ -78,7 +79,7 @@ class AggregationStateSum : public AggregationState {
 /**
  * @brief An aggregationhandle for sum.
  **/
-class AggregationHandleSum : public AggregationHandle {
+class AggregationHandleSum : public AggregationConcreteHandle {
  public:
   ~AggregationHandleSum() override {
   }
