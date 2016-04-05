@@ -49,7 +49,7 @@ target_link_libraries(quickstep_transaction_Lock
                       quickstep_transaction_AccessMode
                       quickstep_transaction_ResourceId)
 target_link_libraries(quickstep_transaction_LockRequest
-                      quickstep_transaction_AcessMode
+                      quickstep_transaction_AccessMode
                       quickstep_transaction_ResourceId
                       quickstep_transaction_Transaction)
 target_link_libraries(quickstep_transaction_LockTable
@@ -82,9 +82,12 @@ target_link_libraries(quickstep_transaction
                       quickstep_transaction_AccessMode
                       quickstep_transaction_DirectedGraph
                       quickstep_transaction_Lock
+                      quickstep_transaction_LockRequest
+                      quickstep_transaction_LockTable
                       quickstep_transaction_ResourceId
                       quickstep_transaction_StronglyConnectedComponents
-                      quickstep_transaction_Transaction)
+                      quickstep_transaction_Transaction
+                      quickstep_transaction_TransactionTable)
 
 add_executable(AccessMode_unittest
                "${CMAKE_CURRENT_SOURCE_DIR}/tests/AccessMode_unittest.cpp")
@@ -106,12 +109,22 @@ add_test(DirectedGraph_unittest DirectedGraph_unittest)
 add_executable(Lock_unittest
                "${CMAKE_CURRENT_SOURCE_DIR}/tests/Lock_unittest.cpp")
 target_link_libraries(Lock_unittest
-               gtest
-               gtest_main
-               quickstep_transaction_AccessMode
-               quickstep_transaction_Lock
-               quickstep_transaction_ResourceId)
+                      gtest
+                      gtest_main
+                      quickstep_transaction_AccessMode
+                      quickstep_transaction_Lock
+                      quickstep_transaction_ResourceId)
 add_test(Lock_unittest Lock_unittest)
+
+add_executable(LockRequest_unittest
+               "${CMAKE_CURRENT_SOURCE_DIR}/tests/LockRequest_unittest.cpp")
+target_link_libraries(LockRequest_unittest
+                      gtest
+                      gtest_main
+                      quickstep_transaction_AccessMode
+                      quickstep_transaction_ResourceId
+                      quickstep_transaction_Transaction)
+add_test(LockRequest_unittest LockRequest_unittest)
 
 add_executable(LockTable_unittest
                "${CMAKE_CURRENT_SOURCE_DIR}/tests/LockTable_unittest.cpp")

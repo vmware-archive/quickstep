@@ -33,8 +33,8 @@ namespace transaction {
  * @brief Enum class for representing request types.
  **/
 enum class RequestType {
-  kACQUIRE_LOCK = 0,
-  kRELEASE_LOCKS
+  kAcquireLock = 0,
+  kReleaseLocks,
 };
 
 /**
@@ -51,14 +51,14 @@ class LockRequest {
    * @param access_mode Access mode of the request.
    * @param type Type of the request.
    */
-  LockRequest(TransactionId tid,
+  LockRequest(const transaction_id tid,
               const ResourceId &rid,
-              AccessMode access_mode,
-              RequestType request_type)
+              const AccessMode access_mode,
+              const RequestType request_type)
       : tid_(tid),
         rid_(rid),
         access_mode_(access_mode),
-        request_type_(type) {
+        request_type_(request_type) {
   }
 
   /**
@@ -66,7 +66,7 @@ class LockRequest {
    *
    * @return Transaction id of the request.
    **/
-  inline TransactionId getTransactionId() const {
+  inline transaction_id getTransactionId() const {
     return tid_;
   }
 
@@ -98,7 +98,7 @@ class LockRequest {
   }
 
  private:
-  TransactionId tid_;
+  transaction_id tid_;
   ResourceId rid_;
   AccessMode access_mode_;
   RequestType request_type_;
