@@ -43,7 +43,7 @@ class ParseExpression : public ParseTreeNode {
     kFunctionCall,
     kScalarLiteral,
     kSubqueryExpression,
-    kUnaryExpression
+    kUnaryExpression,
   };
 
   /**
