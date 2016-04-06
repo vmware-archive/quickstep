@@ -70,7 +70,7 @@ void CommandExecutor::executeCommand(const ParseStatement &statement,
 void CommandExecutor::executeDescribeDatabase(
     const PtrVector<ParseString> *arguments,
     const CatalogDatabase *catalog_database, FILE *out) {
-  std::size_t relation_count = 0;
+  std::size_t num_relations = 0;
   // Column width initialized to 6 to take into account the header name
   // and the column value table
   std::size_t max_column_width = CommandExecutor::kInitMaxColumnWidth;
@@ -81,19 +81,23 @@ void CommandExecutor::executeDescribeDatabase(
       std::size_t column_width = rel_it->getName().length();
       max_column_width =
           max_column_width < column_width ? column_width : max_column_width;
-      relation_count++;
+      num_relations++;
     }
   } else {
     const ParseString &table_name = arguments->front();
     const std::string &table_name_val = table_name.value();
     relation = catalog_database->getRelationByName(table_name_val);
+
+    if (relation == nullptr) {
+     THROW_SQL_ERROR_AT(&(arguments->front())) << " Unrecognized relation "  <<table_name_val;
+    }
     std::size_t column_width = relation->getName().length();
     max_column_width =
         max_column_width < column_width ? column_width : max_column_width;
-    ++relation_count;
+    ++num_relations;
   }
   // Only if we have relations work on the printing logic.
-  if (relation_count > 0) {
+  if (num_relations > 0) {
     vector<std::size_t> column_widths;
     column_widths.push_back(max_column_width);
     column_widths.push_back(CommandExecutor::kInitMaxColumnWidth);
@@ -124,6 +128,9 @@ void CommandExecutor::executeDescribeTable(
   const std::string &table_name_val = table_name.value();
   const CatalogRelation *relation =
       catalog_database->getRelationByName(table_name_val);
+  if (relation == nullptr) {
+     THROW_SQL_ERROR_AT(&(arguments->front())) << " Unrecognized relation "  <<table_name_val;
+  }    
   vector<std::size_t> column_widths;
   std::size_t max_attr_column_width = CommandExecutor::kInitMaxColumnWidth;
   std::size_t max_type_column_width = CommandExecutor::kInitMaxColumnWidth-1;
