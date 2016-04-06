@@ -68,7 +68,7 @@ void CatalogDatabaseCache::update(const serialization::CatalogDatabase &proto) {
     if (it == rel_map_.end()) {
       rel_map_.emplace(rel_id, move(relation_schema));
     } else {
-      it->second.reset(relation_schema.release());
+      // TODO(zuyu): Support the schema changes based on versioning.
     }
   }
 }

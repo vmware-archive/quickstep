@@ -18,6 +18,7 @@
 #ifndef QUICKSTEP_RELATIONAL_OPERATORS_BUILD_HASH_OPERATOR_HPP_
 #define QUICKSTEP_RELATIONAL_OPERATORS_BUILD_HASH_OPERATOR_HPP_
 
+#include <utility>
 #include <vector>
 
 #include "catalog/CatalogRelation.hpp"
@@ -38,12 +39,15 @@ namespace quickstep {
 
 class CatalogRelationSchema;
 class StorageManager;
+class WorkOrderProtosContainer;
 class WorkOrdersContainer;
 
 struct TupleReference;
 
 template <typename, bool, bool, bool, bool> class HashTable;
 typedef HashTable<TupleReference, true, false, false, true> JoinHashTable;
+
+namespace serialization { class WorkOrder; }
 
 /** \addtogroup RelationalOperators
  *  @{
@@ -93,6 +97,8 @@ class BuildHashOperator : public RelationalOperator {
                         const tmb::client_id agent_client_id,
                         tmb::MessageBus *bus) override;
 
+  bool getAllWorkOrderProtos(WorkOrderProtosContainer *container) override;
+
   void feedInputBlock(const block_id input_block_id,
                       const relation_id input_relation_id) override {
     input_relation_block_ids_.push_back(input_block_id);
@@ -106,6 +112,13 @@ class BuildHashOperator : public RelationalOperator {
   }
 
  private:
+  /**
+   * @brief Create Work Order proto.
+   *
+   * @param block The block id used in the Work Order.
+   **/
+  serialization::WorkOrder* createWorkOrderProto(const block_id block);
+
   const CatalogRelation &input_relation_;
   const bool input_relation_is_stored_;
   const std::vector<attribute_id> join_key_attributes_;
@@ -144,6 +157,30 @@ class BuildHashWorkOrder : public WorkOrder {
                      StorageManager *storage_manager)
       : input_relation_(input_relation),
         join_key_attributes_(join_key_attributes),
+        any_join_key_attributes_nullable_(any_join_key_attributes_nullable),
+        build_block_id_(build_block_id),
+        hash_table_(DCHECK_NOTNULL(hash_table)),
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
+
+  /**
+   * @brief Constructor for the distributed version.
+   *
+   * @param input_relation The relation to build hash table on.
+   * @param join_key_attributes The IDs of equijoin attributes in
+   *        input_relation.
+   * @param any_join_key_attributes_nullable If any attribute is nullable.
+   * @param build_block_id The block id.
+   * @param hash_table The JoinHashTable to use.
+   * @param storage_manager The StorageManager to use.
+   **/
+  BuildHashWorkOrder(const CatalogRelationSchema &input_relation,
+                     std::vector<attribute_id> &&join_key_attributes,
+                     const bool any_join_key_attributes_nullable,
+                     const block_id build_block_id,
+                     JoinHashTable *hash_table,
+                     StorageManager *storage_manager)
+      : input_relation_(input_relation),
+        join_key_attributes_(std::move(join_key_attributes)),
         any_join_key_attributes_nullable_(any_join_key_attributes_nullable),
         build_block_id_(build_block_id),
         hash_table_(DCHECK_NOTNULL(hash_table)),

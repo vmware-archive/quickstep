@@ -27,6 +27,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/Catalog.pb.h"
 #include "catalog/CatalogAttribute.hpp"
 #include "catalog/CatalogDatabase.hpp"
 #include "catalog/CatalogRelation.hpp"
@@ -183,6 +184,18 @@ void ExecutionGenerator::generatePlan(const P::PhysicalPtr &physical_plan) {
         drop_table_index,
         temporary_relation_info.producer_operator_index);
   }
+
+  catalog_database_cache_proto_->set_name(optimizer_context_->catalog_database()->getName());
+
+  LOG(INFO) << "CatalogDatabaseCacheProto has " << relation_ids_.size() << " relation(s)";
+  for (const relation_id rel_id : relation_ids_) {
+    const CatalogRelationSchema &relation =
+        optimizer_context_->catalog_database()->getRelationSchemaById(rel_id);
+    LOG(INFO) << "RelationSchema " << rel_id
+              << ", name: " << relation.getName()
+              << ", " << relation.size()  << " attribute(s)";
+    catalog_database_cache_proto_->add_relations()->MergeFrom(relation.getProto());
+  }
 }
 
 void ExecutionGenerator::generatePlanInternal(
@@ -286,6 +299,7 @@ void ExecutionGenerator::createTemporaryCatalogRelation(
   *catalog_relation_output = catalog_relation.get();
   const relation_id output_rel_id = optimizer_context_->catalog_database()->addRelation(
       catalog_relation.release());
+  relation_ids_.insert(output_rel_id);
 
   insert_destination_proto->set_insert_destination_type(S::InsertDestinationType::BLOCK_POOL);
   insert_destination_proto->set_relation_id(output_rel_id);
@@ -346,6 +360,7 @@ void ExecutionGenerator::convertTableReference(
       std::forward_as_tuple(physical_table_reference),
       std::forward_as_tuple(CatalogRelationInfo::kInvalidOperatorIndex,
                             catalog_relation));
+  relation_ids_.insert(catalog_relation->getID());
 }
 
 void ExecutionGenerator::convertSample(const P::SamplePtr &physical_sample) {
@@ -477,21 +492,17 @@ void ExecutionGenerator::convertSelection(
   // Use the "simple" form of the selection operator (a pure projection that
   // doesn't require any expression evaluation or intermediate copies) if
   // possible.
-  std::unique_ptr<std::vector<attribute_id>> attributes(new std::vector<attribute_id>());
-  SelectOperator *op
-      = convertSimpleProjection(project_expressions_group_index, attributes.get())
-        ? new SelectOperator(*input_relation_info->relation,
-                             *output_relation,
-                             insert_destination_index,
-                             execution_predicate_index,
-                             attributes.release(),
-                             input_relation_info->isStoredRelation())
-        : new SelectOperator(*input_relation_info->relation,
-                             *output_relation,
-                             insert_destination_index,
-                             execution_predicate_index,
-                             project_expressions_group_index,
-                             input_relation_info->isStoredRelation());
+  std::vector<attribute_id> attributes;
+  convertSimpleProjection(project_expressions_group_index, &attributes);
+
+  SelectOperator *op =
+      new SelectOperator(*input_relation_info->relation,
+                         *output_relation,
+                         insert_destination_index,
+                         execution_predicate_index,
+                         move(attributes),
+                         project_expressions_group_index,
+                         input_relation_info->isStoredRelation());
 
   const QueryPlan::DAGNodeIndex select_index =
       execution_plan_->addRelationalOperator(op);
@@ -956,6 +967,7 @@ void ExecutionGenerator::convertDropTable(
   execution_plan_->addRelationalOperator(
       new DropTableOperator(*physical_plan->catalog_relation(),
                             optimizer_context_->catalog_database()));
+  relation_ids_.insert(physical_plan->catalog_relation()->getID());
 }
 
 void ExecutionGenerator::convertInsertTuple(
@@ -1064,12 +1076,12 @@ void ExecutionGenerator::convertInsertSelection(
       findRelationInfoOutputByPhysical(physical_plan->selection());
 
   // Prepare the attributes, which are output columns of the selection relation.
-  std::unique_ptr<std::vector<attribute_id>> attributes(new std::vector<attribute_id>());
+  std::vector<attribute_id> attributes;
   for (E::AttributeReferencePtr attr_ref : physical_plan->selection()->getOutputAttributes()) {
     unique_ptr<const Scalar> attribute(attr_ref->concretize(attribute_substitution_map_));
 
     DCHECK_EQ(Scalar::kAttribute, attribute->getDataSource());
-    attributes->emplace_back(
+    attributes.emplace_back(
         static_cast<const ScalarAttribute*>(attribute.get())->getAttribute().getID());
   }
 
@@ -1085,7 +1097,8 @@ void ExecutionGenerator::convertInsertSelection(
                          destination_relation,
                          insert_destination_index,
                          QueryContext::kInvalidPredicateId,
-                         attributes.release(),
+                         move(attributes),
+                         QueryContext::kInvalidScalarGroupId,
                          selection_relation_info->isStoredRelation());
 
   const QueryPlan::DAGNodeIndex insert_selection_index =

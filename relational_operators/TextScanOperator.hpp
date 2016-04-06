@@ -48,6 +48,7 @@ namespace quickstep {
 class CatalogRelationSchema;
 class InsertDestination;
 class StorageManager;
+class WorkOrderProtosContainer;
 class WorkOrdersContainer;
 
 /** \addtogroup RelationalOperators
@@ -159,6 +160,8 @@ class TextScanOperator : public RelationalOperator {
                         const tmb::client_id foreman_client_id,
                         const tmb::client_id agent_client_id,
                         tmb::MessageBus *bus) override;
+
+  bool getAllWorkOrderProtos(WorkOrderProtosContainer *container) override;
 
   QueryContext::insert_destination_id getInsertDestinationID() const override {
     return output_destination_index_;
@@ -327,7 +330,7 @@ class TextSplitWorkOrder : public WorkOrder {
    *        to Foreman.
    * @param bus A pointer to the TMB.
    */
-  TextSplitWorkOrder(const std::string filename,
+  TextSplitWorkOrder(const std::string &filename,
                      const bool process_escape_sequences,
                      StorageManager *storage_manager,
                      const std::size_t operator_index,
