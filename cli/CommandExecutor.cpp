@@ -49,7 +49,7 @@ namespace quickstep {
 const std::size_t  CommandExecutor::kInitMaxColumnWidth = 6;
 
 void CommandExecutor::executeCommand(const ParseStatement &statement,
-                                     const CatalogDatabase *catalog_database,
+                                     const CatalogDatabase &catalog_database,
                                      FILE *out) {
   const ParseCommand &command = static_cast<const ParseCommand &>(statement);
   const PtrVector<ParseString> *arguments = command.arguments();
@@ -69,24 +69,21 @@ void CommandExecutor::executeCommand(const ParseStatement &statement,
 
 void CommandExecutor::executeDescribeDatabase(
     const PtrVector<ParseString> *arguments,
-    const CatalogDatabase *catalog_database, FILE *out) {
-  std::size_t num_relations = 0;
+    const CatalogDatabase &catalog_database, FILE *out) {
   // Column width initialized to 6 to take into account the header name
   // and the column value table
   std::size_t max_column_width = CommandExecutor::kInitMaxColumnWidth;
   const CatalogRelation *relation;
   if (arguments->size() == 0) {
-    for (auto rel_it = catalog_database->begin();
-         rel_it != catalog_database->end(); ++rel_it) {
-      std::size_t column_width = rel_it->getName().length();
+    for (const CatalogRelation &rel : catalog_database) {
+      std::size_t column_width = rel.getName().length();
       max_column_width =
           max_column_width < column_width ? column_width : max_column_width;
-      num_relations++;
     }
   } else {
     const ParseString &table_name = arguments->front();
     const std::string &table_name_val = table_name.value();
-    relation = catalog_database->getRelationByName(table_name_val);
+    relation = catalog_database.getRelationByName(table_name_val);
 
     if (relation == nullptr) {
      THROW_SQL_ERROR_AT(&(arguments->front())) << " Unrecognized relation "  <<table_name_val;
@@ -94,10 +91,9 @@ void CommandExecutor::executeDescribeDatabase(
     std::size_t column_width = relation->getName().length();
     max_column_width =
         max_column_width < column_width ? column_width : max_column_width;
-    ++num_relations;
   }
   // Only if we have relations work on the printing logic.
-  if (num_relations > 0) {
+  if (catalog_database.size() > 0) {
     vector<std::size_t> column_widths;
     column_widths.push_back(max_column_width);
     column_widths.push_back(CommandExecutor::kInitMaxColumnWidth);
@@ -108,9 +104,8 @@ void CommandExecutor::executeDescribeDatabase(
     //  If there are no argument print the entire list of tables
     //  else print the particular table only.
     if (arguments->size() == 0) {
-      for (auto rel_it = catalog_database->begin();
-           rel_it != catalog_database->end(); ++rel_it) {
-        fprintf(out, " %-*s|", static_cast<int>(max_column_width), rel_it->getName().c_str());
+      for (const CatalogRelation &rel : catalog_database) {
+        fprintf(out, " %-*s|", static_cast<int>(max_column_width), rel.getName().c_str());
         fprintf(out, " %-*s\n", static_cast<int>(CommandExecutor::kInitMaxColumnWidth), "table");
       }
     } else {
@@ -123,27 +118,24 @@ void CommandExecutor::executeDescribeDatabase(
 
 void CommandExecutor::executeDescribeTable(
     const PtrVector<ParseString> *arguments,
-    const CatalogDatabase *catalog_database, FILE *out) {
+    const CatalogDatabase &catalog_database, FILE *out) {
   const ParseString &table_name = arguments->front();
   const std::string &table_name_val = table_name.value();
   const CatalogRelation *relation =
-      catalog_database->getRelationByName(table_name_val);
+      catalog_database.getRelationByName(table_name_val);
   if (relation == nullptr) {
      THROW_SQL_ERROR_AT(&(arguments->front())) << " Unrecognized relation "  <<table_name_val;
-  }    
+  }
   vector<std::size_t> column_widths;
   std::size_t max_attr_column_width = CommandExecutor::kInitMaxColumnWidth;
   std::size_t max_type_column_width = CommandExecutor::kInitMaxColumnWidth-1;
 
-  for (CatalogRelation::const_iterator attr_it = relation->begin();
-       attr_it != relation->end(); ++attr_it) {
+  for (const CatalogAttribute &attr : *relation) {
     // Printed column needs to be wide enough to print:
     //   1. The attribute name (in the printed "header").
     //   2. Any value of the attribute's Type.
-    //   3. If the attribute's Type is nullable, the 4-character string "NULL".
-    // We pick the largest of these 3 widths as the column width.
-    std::size_t attr_column_width = attr_it->getDisplayName().length();
-    std::size_t type_column_width = attr_it->getType().getName().length();
+    std::size_t attr_column_width = attr.getDisplayName().length();
+    std::size_t type_column_width = attr.getType().getName().length();
     max_attr_column_width = std::max(max_attr_column_width, attr_column_width);
     max_type_column_width = std::max(max_type_column_width, type_column_width);
   }
@@ -154,13 +146,11 @@ void CommandExecutor::executeDescribeTable(
   fprintf(out, "%-*s|", static_cast<int>(max_attr_column_width)+1, " Column");
   fprintf(out, "%-*s", static_cast<int>(max_type_column_width)+1, " Type\n");
   PrintToScreen::printHBar(column_widths, out);
-  for (CatalogRelation::const_iterator attr_it = relation->begin();
-       attr_it != relation->end();
-       ++attr_it) {
-    fprintf(out, " %-*s|", static_cast<int>(max_attr_column_width), 
-            attr_it->getDisplayName().c_str());
+  for (const CatalogAttribute &attr : *relation) {
+    fprintf(out, " %-*s|", static_cast<int>(max_attr_column_width),
+            attr.getDisplayName().c_str());
     fprintf(out, " %-*s\n", static_cast<int>(max_type_column_width),
-            attr_it->getType().getName().c_str());
+            attr.getType().getName().c_str());
   }
   // TODO(rogers): Add handlers for partitioning information.
   if (relation->hasIndexScheme()) {
@@ -175,17 +165,13 @@ void CommandExecutor::executeDescribeTable(
                   .c_str());
       fputc(' ', out);
       fputc('(', out);
-      auto indexed_fields_it = index_it->second.indexed_attribute_ids().begin();
-      ++indexed_fields_it;
-      fprintf(out, "%s", relation->getAttributeById(*indexed_fields_it)
+      fprintf(out, "%s", relation->getAttributeById(index_it->second.indexed_attribute_ids(0))
                                ->getDisplayName()
                                .c_str());
-      for (;
-           indexed_fields_it != index_it->second.indexed_attribute_ids().end();
-           ++indexed_fields_it) {
-        fprintf(out, ", %s", relation->getAttributeById(*indexed_fields_it)
-                                 ->getDisplayName()
-                                 .c_str());
+      for (std::size_t i = 1; i < index_it->second.indexed_attribute_ids_size(); ++i) {
+        fprintf(out, ", %s", relation->getAttributeById(index_it->second.indexed_attribute_ids(i))
+                               ->getDisplayName()
+                               .c_str());
       }
       fputc(')', out);
       fputc('\n', out);

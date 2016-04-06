@@ -53,7 +53,7 @@ class CommandExecutor {
    * @param out The stream where the output of the command has to be redirected to.      
    */
   static void executeCommand(const ParseStatement &statement,
-                             const CatalogDatabase *catalog_database,
+                             const CatalogDatabase &catalog_database,
                              FILE *out);
 
  private:
@@ -71,7 +71,7 @@ class CommandExecutor {
    * @param out The stream where the output of the command has to be redirected to.      
    */
   static void executeDescribeTable(const PtrVector<ParseString>* arguments,
-                                   const CatalogDatabase *catalog_database,
+                                   const CatalogDatabase &catalog_database,
                                    FILE *out);
 
   /**
@@ -84,7 +84,7 @@ class CommandExecutor {
    * @param out The stream where the output of the command has to be redirected to.      
    */
   static void executeDescribeDatabase(const PtrVector<ParseString>* arguments,
-                                      const CatalogDatabase *catalog_database,
+                                      const CatalogDatabase &catalog_database,
                                       FILE *out);
 
   DISALLOW_COPY_AND_ASSIGN(CommandExecutor);
