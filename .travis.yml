@@ -11,21 +11,21 @@ compiler:
   - gcc
 
 env:
-  - BUILD_TYPE=Debug VECTOR_COPY_ELISION_LEVEL=none
-  - BUILD_TYPE=Release VECTOR_COPY_ELISION_LEVEL=none
-  - BUILD_TYPE=Debug VECTOR_COPY_ELISION_LEVEL=joinwithbinaryexpressions
+#  - BUILD_TYPE=Debug VECTOR_COPY_ELISION_LEVEL=none
+#  - BUILD_TYPE=Release VECTOR_COPY_ELISION_LEVEL=none
+#  - BUILD_TYPE=Debug VECTOR_COPY_ELISION_LEVEL=joinwithbinaryexpressions
   - BUILD_TYPE=Release VECTOR_COPY_ELISION_LEVEL=joinwithbinaryexpressions
 
 install:
   - if [ "$VECTOR_COPY_ELISION_LEVEL" = "joinwithbinaryexpressions" ] && [ "$CC" = "gcc" ]; then
-      export MAKE_JOBS=1;
-    else
       export MAKE_JOBS=2;
+    else
+      export MAKE_JOBS=4;
     fi
   - export TEST_JOBS=2;
   - if [ "$CC" = "gcc" ]; then
-      export CC="gcc-4.9";
-      export CXX="g++-4.9";
+      export CC="gcc-4.9.3";
+      export CXX="g++-4.9.3";
     elif [ "$CC" = "clang" ]; then
       export CC="clang-3.7";
       export CXX="clang++-3.7";
