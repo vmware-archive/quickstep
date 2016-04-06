@@ -239,7 +239,7 @@ int main(int argc, char* argv[]) {
     LOG(FATAL) << "FATAL ERROR DURING STARTUP: "
                << e.what()
                << "\nIf you intended to create a new database, "
-               << please use the \"-initialize_db=true\" command line option.";
+               << "please use the \"-initialize_db=true\" command line option.";
   } catch (...) {
     LOG(FATAL) << "NON-STANDARD EXCEPTION DURING STARTUP";
   }
