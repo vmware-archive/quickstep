@@ -298,6 +298,14 @@ target_link_libraries(BitVector_unittest
                       ${LIBS})
 add_test(BitVector_unittest BitVector_unittest)
 
+add_executable(CalculateInstalledMemory_unittest "${CMAKE_CURRENT_SOURCE_DIR}/tests/CalculateInstalledMemory_unittest.cpp")
+target_link_libraries(CalculateInstalledMemory_unittest
+                      gtest
+                      gtest_main
+                      quickstep_utility_CalculateInstalledMemory
+                      ${LIBS})
+add_test(CalculateInstalledMemory_unittest CalculateInstalledMemory_unittest)
+
 add_executable(DAG_unittest "${CMAKE_CURRENT_SOURCE_DIR}/tests/DAG_unittest.cpp")
 target_link_libraries(DAG_unittest
                       gtest
