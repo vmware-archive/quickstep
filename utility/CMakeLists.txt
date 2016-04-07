@@ -128,7 +128,7 @@ CHECK_CXX_SOURCE_COMPILES("
   }
 " QUICKSTEP_HAVE_SYSCONF)
 if (NOT QUICKSTEP_HAVE_SYSCONF)
-check_include_files("windows.h" QUICKSTEP_HAVE_WINDOWS)
+  check_include_files("windows.h" QUICKSTEP_HAVE_WINDOWS)
 endif()
 
 include(CheckIncludeFileCXX)
@@ -302,8 +302,7 @@ add_executable(CalculateInstalledMemory_unittest "${CMAKE_CURRENT_SOURCE_DIR}/te
 target_link_libraries(CalculateInstalledMemory_unittest
                       gtest
                       gtest_main
-                      quickstep_utility_CalculateInstalledMemory
-                      ${LIBS})
+                      quickstep_utility_CalculateInstalledMemory)
 add_test(CalculateInstalledMemory_unittest CalculateInstalledMemory_unittest)
 
 add_executable(DAG_unittest "${CMAKE_CURRENT_SOURCE_DIR}/tests/DAG_unittest.cpp")
