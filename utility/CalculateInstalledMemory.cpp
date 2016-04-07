@@ -30,13 +30,13 @@ namespace quickstep {
 namespace utility {
 namespace system {
 
-  int calculateAvailableMemoryInBytes(std::uint64_t& available_memory) {
+  int calculateTotalMemoryInBytes(std::uint64_t &available_memory) {
 #if defined(QUICKSTEP_HAVE_SYSCONF)
     std::uint64_t num_pages = static_cast<std::uint64_t>(sysconf(_SC_PHYS_PAGES));
     std::uint64_t page_size = static_cast<std::uint64_t>(sysconf(_SC_PAGE_SIZE));
     if (num_pages > 0 &&  page_size > 0) {
       available_memory = static_cast<std::uint64_t>(num_pages * page_size);
-      LOG(INFO) << "Available memory is " << available_memory << " bytes\n";
+      LOG(INFO) << "Total memory is " << available_memory << " bytes\n";
       return 0;
     }
     LOG(INFO) << "Could not compute the available memory using sysconf\n";
@@ -47,10 +47,10 @@ namespace system {
     GlobalMemoryStatusEx(&mem_status);
     if (mem_status.ullTotalPhys > 0) {
       available_memory = static_cast<std::uint64_t>(mem_status.ullTotalPhys);
-      LOG(INFO) << "Available memory is " << available_memory << " bytes\n";
+      LOG(INFO) << "Total memory is " << available_memory << " bytes\n";
       return 0;
     }
-    LOG(INFO) << "Could not compute the available memory using GlobalMemoryStatusEx\n";
+    LOG(INFO) << "Could not compute the total installed memory using GlobalMemoryStatusEx\n";
     return -1;
 #else
     // TODO(jmp): Expand to find other ways to calculate the installed memory.

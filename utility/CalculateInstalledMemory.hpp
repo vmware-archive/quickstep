@@ -14,11 +14,10 @@
  *   limitations under the License.
  **/
 
-#ifndef QUICKSTEP_CALCULATE_INSTALLED_MEMORY_HPP_
-#define QUICKSTEP_CALCULATE_INSTALLED_MEMORY_HPP_
+#ifndef QUICKSTEP_UTILITY_SYSTEM_CALCULATE_INSTALLED_MEMORY_HPP_
+#define QUICKSTEP_UTILITY_SYSTEM_CALCULATE_INSTALLED_MEMORY_HPP_
 
-#include <cstddef>
-#include <functional>
+#include <cstdint>
 
 namespace quickstep {
 namespace utility {
@@ -29,10 +28,10 @@ namespace system {
    * @param available_memory return the available memory in bytes.
    * @return 0 on success, -1 otherwise.
    */
-  int calculateAvailableMemoryInBytes(std::uint64_t& available_memory);
+  int calculateTotalMemoryInBytes(std::uint64_t &available_memory);
 
 }  // namespace system
 }  // namespace utility
 }  // namespace quickstep
 
-#endif  // QUICKSTEP_CALCULATE_INSTALLED_MEMORY_HPP_
+#endif  // QUICKSTEP_UTILITY_SYSTEM_CALCULATE_INSTALLED_MEMORY_HPP_

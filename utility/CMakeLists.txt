@@ -122,10 +122,10 @@ endif()
 include(CheckIncludeFileCXX)
 include(CheckCXXSourceCompiles)
 CHECK_CXX_SOURCE_COMPILES("
-#include <unistd.h>
-int main() {
-return (sysconf(_SC_PAGE_SIZE) > 0 && sysconf(_SC_PHYS_PAGES) > 0);
-}
+  #include <unistd.h>
+  int main() {
+  return (sysconf(_SC_PAGE_SIZE) > 0 && sysconf(_SC_PHYS_PAGES) > 0);
+  }
 " QUICKSTEP_HAVE_SYSCONF)
 if (NOT QUICKSTEP_HAVE_SYSCONF)
 check_include_files("windows.h" QUICKSTEP_HAVE_WINDOWS)
