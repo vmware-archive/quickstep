@@ -18,10 +18,16 @@
 #ifndef QUICKSTEP_STORAGE_COUNTED_REFERENCE_HPP_
 #define QUICKSTEP_STORAGE_COUNTED_REFERENCE_HPP_
 
+#include <execinfo.h>
+#include <cstdio>
+#include <cstdlib>
+#include <unistd.h>
+
 #include <type_traits>
 
 #include "storage/EvictionPolicy.hpp"
 #include "storage/StorageBlockBase.hpp"
+#include "threading/SpinSharedMutex.hpp"
 #include "utility/Macros.hpp"
 
 namespace quickstep {
@@ -67,6 +73,16 @@ class CountedReference {
     eviction_policy_->blockReferenced(block_->getID());
 #ifdef QUICKSTEP_DEBUG
     block_->ref();
+
+    {
+      SpinSharedMutexExclusiveLock<false> print_lock(mutex_);
+      std::cerr << "Ref: (" << (block_->getID() >> 48) << ", "
+                << (block_->getID() & static_cast<std::uint64_t>(0xFFFFFFFFFFFFULL)) << ")\n";
+      void *array[20];
+      std::size_t size = backtrace(array, 20);
+      backtrace_symbols_fd(array, size, STDERR_FILENO);
+      std::cerr << "\n";
+    }
 #endif
   }
 
@@ -108,6 +124,16 @@ class CountedReference {
       if (block_ != nullptr) {
 #ifdef QUICKSTEP_DEBUG
         block_->unref();
+
+    {
+      SpinSharedMutexExclusiveLock<false> print_lock(mutex_);
+      std::cerr << "Unref: (" << (block_->getID() >> 48) << ", "
+                << (block_->getID() & static_cast<std::uint64_t>(0xFFFFFFFFFFFFULL)) << ")\n";
+      void *array[20];
+      std::size_t size = backtrace(array, 20);
+      backtrace_symbols_fd(array, size, STDERR_FILENO);
+      std::cerr << "\n";
+    }
 #endif
         eviction_policy_->blockUnreferenced(block_->getID());
       }
@@ -166,8 +192,14 @@ class CountedReference {
 
   T *block_;
   EvictionPolicy *eviction_policy_;
+
+  static SpinSharedMutex<false> mutex_;
+
   DISALLOW_COPY_AND_ASSIGN(CountedReference<T>);
 };
+
+template<class T>
+SpinSharedMutex<false> CountedReference<T>::mutex_;
 
 }  // namespace quickstep
 
