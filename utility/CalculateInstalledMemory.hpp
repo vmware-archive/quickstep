@@ -23,12 +23,12 @@ namespace quickstep {
 namespace utility {
 namespace system {
 
-  /**
-   * @brief Compute the amount of (DRAM) memory installed on the machine.
-   * @param total_memory Returns the total installed system memory in bytes.
-   * @return true on success, false otherwise.
-   */
-  bool calculateTotalMemoryInBytes(std::uint64_t &total_memory);
+/**
+ * @brief Compute the amount of (DRAM) memory installed on the machine.
+ * @param total_memory Returns the total installed system memory in bytes.
+ * @return true on success, false otherwise.
+ */
+bool calculateTotalMemoryInBytes(std::uint64_t &total_memory);
 
 }  // namespace system
 }  // namespace utility
