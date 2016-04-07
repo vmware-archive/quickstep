@@ -19,10 +19,10 @@
 #define QUICKSTEP_STORAGE_COUNTED_REFERENCE_HPP_
 
 #include <execinfo.h>
-#include <cstdio>
-#include <cstdlib>
 #include <unistd.h>
 
+#include <cstdio>
+#include <cstdlib>
 #include <type_traits>
 
 #include "storage/EvictionPolicy.hpp"

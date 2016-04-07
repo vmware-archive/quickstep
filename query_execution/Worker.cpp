@@ -59,10 +59,10 @@ void Worker::run() {
         DCHECK(message.getWorkOrder() != nullptr);
         message.getWorkOrder()->execute();
 
+        delete message.getWorkOrder();
         sendWorkOrderCompleteMessage(annotated_msg.sender,
                                      message.getRelationalOpIndex(),
                                      tagged_message.message_type() == kRebuildWorkOrderMessage);
-        delete message.getWorkOrder();
         break;
       }
       case kPoisonMessage: {
