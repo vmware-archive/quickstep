@@ -53,7 +53,7 @@ bool calculateTotalMemoryInBytes(std::uint64_t &total_memory) {
   LOG(INFO) << "Could not compute the total installed memory using GlobalMemoryStatusEx\n";
   return false;
 #else
-    // TODO(jmp): Expand to find other ways to calculate the installed memory.
+// TODO(jmp): Expand to find other ways to calculate the installed memory.
 #error "No implementation available to calculate the total installed memory."
 #endif
 }
