@@ -21,6 +21,7 @@
 
 #include "query_optimizer/tests/ExecutionGeneratorTestRunner.hpp"
 #include "utility/textbased_test/TextBasedTestDriver.hpp"
+#include "storage/CountedReference.hpp"
 
 #include "glog/logging.h"
 
@@ -35,6 +36,8 @@ int main(int argc, char** argv) {
     LOG(ERROR) << "Must have at least 3 arguments, but " << argc - 1
                << " are provided";
   }
+
+  quickstep::countedreference_print_stacktrace = true;
 
   std::ifstream input_file(argv[1]);
   CHECK(input_file.is_open()) << argv[1];

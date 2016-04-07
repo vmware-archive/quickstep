@@ -155,7 +155,7 @@ add_library(quickstep_storage_CompressedStoreUtil CompressedStoreUtil.cpp Compre
 add_library(quickstep_storage_CompressedTupleStorageSubBlock
             CompressedTupleStorageSubBlock.cpp
             CompressedTupleStorageSubBlock.hpp)
-add_library(quickstep_storage_CountedReference ../empty_src.cpp CountedReference.hpp)
+add_library(quickstep_storage_CountedReference CountedReference.cpp CountedReference.hpp)
 add_library(quickstep_storage_CSBTreeIndexSubBlock CSBTreeIndexSubBlock.cpp CSBTreeIndexSubBlock.hpp)
 add_library(quickstep_storage_EvictionPolicy EvictionPolicy.cpp EvictionPolicy.hpp)
 add_library(quickstep_storage_FileManager ../empty_src.cpp FileManager.hpp)
@@ -439,6 +439,7 @@ target_link_libraries(quickstep_storage_CompressedTupleStorageSubBlock
 target_link_libraries(quickstep_storage_CountedReference
                       quickstep_storage_EvictionPolicy
                       quickstep_storage_StorageBlockBase
+                      quickstep_threading_SpinSharedMutex
                       quickstep_utility_Macros)
 target_link_libraries(quickstep_storage_CSBTreeIndexSubBlock
                       quickstep_catalog_CatalogAttribute

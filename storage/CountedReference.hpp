@@ -32,6 +32,9 @@
 
 namespace quickstep {
 
+extern SpinSharedMutex<false> countedreference_print_mutex;
+extern bool countedreference_print_stacktrace;
+
 /** \addtogroup Storage
  *  @{
  */
@@ -74,8 +77,8 @@ class CountedReference {
 #ifdef QUICKSTEP_DEBUG
     block_->ref();
 
-    {
-      SpinSharedMutexExclusiveLock<false> print_lock(mutex_);
+    if (countedreference_print_stacktrace) {
+      SpinSharedMutexExclusiveLock<false> print_lock(countedreference_print_mutex);
       std::cerr << "Ref: (" << (block_->getID() >> 48) << ", "
                 << (block_->getID() & static_cast<std::uint64_t>(0xFFFFFFFFFFFFULL)) << ")\n";
       void *array[20];
@@ -125,8 +128,8 @@ class CountedReference {
 #ifdef QUICKSTEP_DEBUG
         block_->unref();
 
-    {
-      SpinSharedMutexExclusiveLock<false> print_lock(mutex_);
+    if (countedreference_print_stacktrace) {
+      SpinSharedMutexExclusiveLock<false> print_lock(countedreference_print_mutex);
       std::cerr << "Unref: (" << (block_->getID() >> 48) << ", "
                 << (block_->getID() & static_cast<std::uint64_t>(0xFFFFFFFFFFFFULL)) << ")\n";
       void *array[20];
@@ -192,14 +195,8 @@ class CountedReference {
 
   T *block_;
   EvictionPolicy *eviction_policy_;
-
-  static SpinSharedMutex<false> mutex_;
-
   DISALLOW_COPY_AND_ASSIGN(CountedReference<T>);
 };
-
-template<class T>
-SpinSharedMutex<false> CountedReference<T>::mutex_;
 
 }  // namespace quickstep
 
