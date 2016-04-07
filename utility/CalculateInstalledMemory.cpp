@@ -30,17 +30,17 @@ namespace quickstep {
 namespace utility {
 namespace system {
 
-  int calculateTotalMemoryInBytes(std::uint64_t &total_memory) {
+  bool calculateTotalMemoryInBytes(std::uint64_t &total_memory) {
 #if defined(QUICKSTEP_HAVE_SYSCONF)
     std::uint64_t num_pages = static_cast<std::uint64_t>(sysconf(_SC_PHYS_PAGES));
     std::uint64_t page_size = static_cast<std::uint64_t>(sysconf(_SC_PAGE_SIZE));
     if (num_pages > 0 &&  page_size > 0) {
       total_memory = static_cast<std::uint64_t>(num_pages * page_size);
       LOG(INFO) << "Total memory is " << total_memory << " bytes\n";
-      return 0;
+      return true;
     }
     LOG(INFO) << "Could not compute the total available memory using sysconf\n";
-    return -1;
+    return false;
 #elif defined(QUICKSTEP_HAVE_WINDOWS)
     MEMORYSTATUSEX mem_status;
     mem_status.dwLength = sizeof(mem_status);
@@ -48,10 +48,10 @@ namespace system {
     if (mem_status.ullTotalPhys > 0) {
       total_memory = static_cast<std::uint64_t>(mem_status.ullTotalPhys);
       LOG(INFO) << "Total memory is " << total_memory << " bytes\n";
-      return 0;
+      return true;
     }
     LOG(INFO) << "Could not compute the total installed memory using GlobalMemoryStatusEx\n";
-    return -1;
+    return false;
 #else
     // TODO(jmp): Expand to find other ways to calculate the installed memory.
 #error "No implementation available to calculate the total installed memory."

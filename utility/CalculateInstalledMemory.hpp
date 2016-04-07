@@ -26,9 +26,9 @@ namespace system {
   /**
    * @brief Compute the amount of (DRAM) memory installed on the machine.
    * @param total_memory Returns the total installed system memory in bytes.
-   * @return 0 on success, -1 otherwise.
+   * @return true on success, false otherwise.
    */
-  int calculateTotalMemoryInBytes(std::uint64_t &total_memory);
+  bool calculateTotalMemoryInBytes(std::uint64_t &total_memory);
 
 }  // namespace system
 }  // namespace utility

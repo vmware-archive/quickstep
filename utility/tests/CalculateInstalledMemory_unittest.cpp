@@ -28,7 +28,7 @@ namespace system {
 TEST(CalculateInstalledMemoryTest, BasicCheck) {
   std::uint64_t installed_memory_in_bytes;
 
-  EXPECT_EQ(0u, calculateTotalMemoryInBytes(installed_memory_in_bytes));
+  EXPECT_EQ(true, calculateTotalMemoryInBytes(installed_memory_in_bytes));
   EXPECT_GT(installed_memory_in_bytes, 0u);
 }
 
