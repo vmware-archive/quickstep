@@ -76,7 +76,7 @@ class SelectOperator : public RelationalOperator {
                  const QueryContext::insert_destination_id output_destination_index,
                  const QueryContext::predicate_id predicate_index,
                  const QueryContext::scalar_group_id selection_index,
-                 bool input_relation_is_stored)
+                 const bool input_relation_is_stored)
       : input_relation_(input_relation),
         output_relation_(output_relation),
         output_destination_index_(output_destination_index),
@@ -112,7 +112,7 @@ class SelectOperator : public RelationalOperator {
                  const QueryContext::insert_destination_id output_destination_index,
                  const QueryContext::predicate_id predicate_index,
                  std::vector<attribute_id> &&selection,
-                 bool input_relation_is_stored)
+                 const bool input_relation_is_stored)
       : input_relation_(input_relation),
         output_relation_(output_relation),
         output_destination_index_(output_destination_index),

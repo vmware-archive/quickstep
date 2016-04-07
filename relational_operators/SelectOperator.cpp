@@ -98,7 +98,7 @@ void SelectWorkOrder::execute() {
                         predicate_,
                         output_destination_);
   } else {
-    block->select(*selection_,
+    block->select(*DCHECK_NOTNULL(selection_),
                   predicate_,
                   output_destination_);
   }
