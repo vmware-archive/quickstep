@@ -1,0 +1,42 @@
+CREATE TABLE FOO (col1 INT,
+                  col2 LONG,
+                  col3 DOUBLE,
+                  col4 FLOAT,
+                  col5 CHAR(5));
+CREATE TABLE FOO2 (col1 INT,
+                   col2 LONG,
+                   col3 DOUBLE,
+                   col4 FLOAT,
+                   averyverylongcolumnnamefortest CHAR(5));
+CREATE TABLE FOO3 (col1 INT,
+                   col2 LONG,
+                   col3 DOUBLE,
+                   col4 FLOAT,
+                   col5 CHAR(5));
+CREATE TABLE FOO4 (col1 INT,
+                   col2 LONG,
+                   col3 DOUBLE,
+                   col4 FLOAT,
+                   col5 CHAR(5));
+CREATE TABLE AVERYLONGTABLENAMETHATSEEMSTONEVEREND (col1 INT);
+--
+==
+\dt
+--
+       List of relations
+
+ Name                                 | Type 
++-------------------------------------+------+
+ Test                                 | table 
+ FOO                                  | table 
+ FOO2                                 | table 
+ FOO3                                 | table 
+ FOO4                                 | table 
+ AVERYLONGTABLENAMETHATSEEMSTONEVEREND| table 
+
+==
+\dt invalidtable
+--
+ERROR:  Unrecognized relation invalidtable (1 : 5)
+\dt invalidtable
+    ^

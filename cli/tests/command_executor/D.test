@@ -1,0 +1,109 @@
+#   Copyright 2016, Quickstep Research Group, Computer Sciences Department,
+#     University of Wisconsin—Madison.
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+CREATE TABLE FOO (col1 INT,
+                  col2 LONG,
+                  col3 DOUBLE,
+                  col4 FLOAT,
+                  col5 CHAR(5));
+CREATE TABLE FOO2 (col1 INT,
+                   col2 LONG,
+                   col3 DOUBLE,
+                   col4 FLOAT,
+                   averyverylongcolumnnamefortest CHAR(5));
+CREATE TABLE FOO3 (col1 INT,
+                   col2 LONG,
+                   col3 DOUBLE,
+                   col4 FLOAT,
+                   col5 CHAR(5));
+CREATE INDEX FOO3_INDEX_1 on FOO3 (col1) USING CSBTREE;
+CREATE TABLE FOO4 (col1 INT,
+                   col2 LONG,
+                   col3 DOUBLE,
+                   col4 FLOAT,
+                   col5 CHAR(5));
+CREATE INDEX FOO4_INDEX_1 on FOO4 (col1, col2) USING CSBTREE; 
+CREATE INDEX FOO4_INDEX_2 on FOO4 (col3, col4) USING CSBTREE; 
+CREATE TABLE AVERYLONGTABLENAMETHATSEEMSTONEVEREND (col1 INT);
+--
+==
+\d FOO
+--
+ Table "FOO"
+ Column| Type   
++------+-------+
+ col1  | Int    
+ col2  | Long   
+ col3  | Double 
+ col4  | Float  
+ col5  | Char(5)
+==
+\d FOO2                   
+--
+ Table "FOO2"
+ Column                        | Type   
++------------------------------+-------+
+ col1                          | Int    
+ col2                          | Long   
+ col3                          | Double 
+ col4                          | Float  
+ averyverylongcolumnnamefortest| Char(5)
+==
+\d FOO3
+--
+ Table "FOO3"
+ Column| Type   
++------+-------+
+ col1  | Int    
+ col2  | Long   
+ col3  | Double 
+ col4  | Float  
+ col5  | Char(5)
+ Indexes
+  "FOO3_INDEX_1" CSB_TREE (col1)
+==                    
+\d FOO4
+--
+ Table "FOO4"
+ Column| Type   
++------+-------+
+ col1  | Int    
+ col2  | Long   
+ col3  | Double 
+ col4  | Float  
+ col5  | Char(5)
+ Indexes
+  "FOO4_INDEX_2" CSB_TREE (col3, col4)
+  "FOO4_INDEX_1" CSB_TREE (col1, col2)
+==
+\d
+--
+       List of relations
+
+ Name                                 | Type 
++-------------------------------------+------+
+ Test                                 | table 
+ FOO                                  | table 
+ FOO2                                 | table 
+ FOO3                                 | table 
+ FOO4                                 | table 
+ AVERYLONGTABLENAMETHATSEEMSTONEVEREND| table 
+
+==
+\d invalidtable
+--
+ERROR:  Unrecognized relation invalidtable (1 : 4)
+\d invalidtable
+   ^

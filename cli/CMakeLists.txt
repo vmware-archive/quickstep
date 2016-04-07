@@ -14,6 +14,7 @@
 #   limitations under the License.
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
+add_subdirectory(tests)
 
 if (WIN32)
   set(QUICKSTEP_OS_WINDOWS TRUE)

@@ -128,7 +128,7 @@ void CommandExecutor::executeDescribeTable(
   }
   vector<std::size_t> column_widths;
   std::size_t max_attr_column_width = CommandExecutor::kInitMaxColumnWidth;
-  std::size_t max_type_column_width = CommandExecutor::kInitMaxColumnWidth-1;
+  std::size_t max_type_column_width = CommandExecutor::kInitMaxColumnWidth;
 
   for (const CatalogAttribute &attr : *relation) {
     // Printed column needs to be wide enough to print:
@@ -144,7 +144,7 @@ void CommandExecutor::executeDescribeTable(
 
   fprintf(out, "%*s \"%s\"\n", static_cast<int>(CommandExecutor::kInitMaxColumnWidth), "Table", table_name_val.c_str());
   fprintf(out, "%-*s|", static_cast<int>(max_attr_column_width)+1, " Column");
-  fprintf(out, "%-*s", static_cast<int>(max_type_column_width)+1, " Type\n");
+  fprintf(out, "%-*s\n", static_cast<int>(max_type_column_width)+1, " Type");
   PrintToScreen::printHBar(column_widths, out);
   for (const CatalogAttribute &attr : *relation) {
     fprintf(out, " %-*s|", static_cast<int>(max_attr_column_width),
@@ -154,11 +154,11 @@ void CommandExecutor::executeDescribeTable(
   }
   // TODO(rogers): Add handlers for partitioning information.
   if (relation->hasIndexScheme()) {
-    fputs("Indexes:\n", out);
+    fprintf(out, "%*s\n", static_cast<int>(CommandExecutor::kInitMaxColumnWidth)+2, " Indexes");
     const quickstep::IndexScheme &index_scheme = relation->getIndexScheme();
     for (auto index_it = index_scheme.begin(); index_it != index_scheme.end();
          ++index_it) {
-      fprintf(out, "\"%-*s\" %s", static_cast<int>(index_it->first.length()),
+      fprintf(out, "  \"%-*s\" %s", static_cast<int>(index_it->first.length()),
               index_it->first.c_str(),
               index_it->second.IndexSubBlockType_Name(
                                   index_it->second.sub_block_type())
