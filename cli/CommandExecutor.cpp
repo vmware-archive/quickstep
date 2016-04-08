@@ -71,7 +71,7 @@ void executeDescribeDatabase(
     if (relation == nullptr) {
      THROW_SQL_ERROR_AT(&(arguments->front())) << " Unrecognized relation "  <<table_name_val;
     }
-    std::size_t column_width = relation->getName().length();
+    int column_width = static_cast<int>(relation->getName().length());
     max_column_width =
         max_column_width < column_width ? column_width : max_column_width;
   }
@@ -150,7 +150,7 @@ void executeDescribeTable(
       fputc('(', out);
       fprintf(out, "%s", relation->getAttributeById(index_it->second.indexed_attribute_ids(0))
                              ->getDisplayName().c_str());
-      for (std::size_t i = 1; i < index_it->second.indexed_attribute_ids_size(); ++i) {
+      for (std::size_t i = 1; i < static_cast<std::size_t>(index_it->second.indexed_attribute_ids_size()); ++i) {
         const char *attribute_display_name = relation->getAttributeById(
                                                  index_it->second.indexed_attribute_ids(i))
                                                  ->getDisplayName().c_str();
