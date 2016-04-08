@@ -68,9 +68,7 @@ class RelationalOperator {
    *        generated WorkOrders.
    * @param query_context The QueryContext that stores query execution states.
    * @param storage_manager The StorageManager to use.
-   * @param foreman_client_id The TMB client ID of the Foreman thread.
-   * @param agent_client_id The TMB client ID of the agent that sends messages
-   *        to Foreman.
+   * @param scheduler_client_id The TMB client ID of the scheduler thread.
    * @param bus A pointer to the TMB.
    *
    * @return Whether the operator has finished generating work orders. If \c
@@ -80,8 +78,7 @@ class RelationalOperator {
   virtual bool getAllWorkOrders(WorkOrdersContainer *container,
                                 QueryContext *query_context,
                                 StorageManager *storage_manager,
-                                const tmb::client_id foreman_client_id,
-                                const tmb::client_id agent_client_id,
+                                const tmb::client_id scheduler_client_id,
                                 tmb::MessageBus *bus) = 0;
 
   /**

@@ -320,6 +320,7 @@ endif()
 
 add_library(quickstep_threading_SpinMutex ../empty_src.cpp SpinMutex.hpp)
 add_library(quickstep_threading_SpinSharedMutex ../empty_src.cpp SpinSharedMutex.hpp)
+add_library(quickstep_threading_ThreadIDBasedMap ../empty_src.cpp ThreadIDBasedMap.hpp)
 add_library(quickstep_threading_ThreadUtil ../empty_src.cpp ThreadUtil.hpp)
 
 # Link dependencies:
@@ -352,6 +353,13 @@ target_link_libraries(quickstep_threading_SpinSharedMutex
                       quickstep_utility_Macros)
 target_link_libraries(quickstep_threading_Thread
                       quickstep_utility_Macros)
+target_link_libraries(quickstep_threading_ThreadIDBasedMap
+                      glog
+                      quickstep_storage_StorageConstants
+                      quickstep_threading_Mutex
+                      quickstep_threading_SharedMutex
+                      quickstep_threading_SpinSharedMutex
+                      quickstep_utility_Macros)
 target_link_libraries(quickstep_threading_ThreadUtil
                       quickstep_utility_Macros)
 
@@ -364,6 +372,7 @@ target_link_libraries(quickstep_threading
                       quickstep_threading_SpinMutex
                       quickstep_threading_SpinSharedMutex
                       quickstep_threading_Thread
+                      quickstep_threading_ThreadIDBasedMap
                       quickstep_threading_ThreadUtil)
 
 # Tests:

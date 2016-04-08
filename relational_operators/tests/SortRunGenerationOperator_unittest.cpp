@@ -54,6 +54,7 @@
 #include "storage/TupleStorageSubBlock.hpp"
 #include "storage/ValueAccessor.hpp"
 #include "storage/ValueAccessorUtil.hpp"
+#include "threading/ThreadIDBasedMap.hpp"
 #include "types/IntType.hpp"
 #include "types/Type.hpp"
 #include "types/TypeID.hpp"
@@ -151,9 +152,14 @@ class SortRunGenerationOperatorTest : public ::testing::Test {
     bus_.RegisterClientAsReceiver(foreman_client_id_, kCatalogRelationNewBlockMessage);
     bus_.RegisterClientAsReceiver(foreman_client_id_, kDataPipelineMessage);
 
-    agent_client_id_ = bus_.Connect();
-    bus_.RegisterClientAsSender(agent_client_id_, kCatalogRelationNewBlockMessage);
-    bus_.RegisterClientAsSender(agent_client_id_, kDataPipelineMessage);
+    const tmb::client_id worker_thread_client_id = bus_.Connect();
+    bus_.RegisterClientAsSender(worker_thread_client_id, kCatalogRelationNewBlockMessage);
+    bus_.RegisterClientAsSender(worker_thread_client_id, kDataPipelineMessage);
+
+    thread_id_map_ = ClientIDMap::Instance();
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    thread_id_map_->addValue(worker_thread_client_id);
 
     storage_manager_.reset(new StorageManager(kStoragePath));
 
@@ -181,6 +187,12 @@ class SortRunGenerationOperatorTest : public ::testing::Test {
     ASSERT_EQ(null_col2_, result_table_->getAttributeByName("null-col-2")->getID());
     ASSERT_EQ(null_col3_, result_table_->getAttributeByName("null-col-3")->getID());
     ASSERT_EQ(tid_col_, result_table_->getAttributeByName("tid")->getID());
+  }
+
+  virtual void TearDown() {
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    thread_id_map_->removeValue();
   }
 
   // Helper method to create catalog relation.
@@ -276,7 +288,6 @@ class SortRunGenerationOperatorTest : public ::testing::Test {
                          query_context_.get(),
                          storage_manager_.get(),
                          foreman_client_id_,
-                         agent_client_id_,
                          &bus_);
     while (container.hasNormalWorkOrder(kOpIndex)) {
       std::unique_ptr<WorkOrder> order(container.getNormalWorkOrder(kOpIndex));
@@ -344,7 +355,6 @@ class SortRunGenerationOperatorTest : public ::testing::Test {
                                           *db_,
                                           storage_manager_.get(),
                                           foreman_client_id_,
-                                          agent_client_id_,
                                           &bus_));
 
     executeOperator(run_gen.get());
@@ -395,7 +405,11 @@ class SortRunGenerationOperatorTest : public ::testing::Test {
   tuple_id expect_num_tuples_;
 
   MessageBusImpl bus_;
-  tmb::client_id foreman_client_id_, agent_client_id_;
+  tmb::client_id foreman_client_id_;
+  // This map is needed for InsertDestination and some operators that send
+  // messages to Foreman directly. To know the reason behind the design of this
+  // map, see the note in InsertDestination.hpp.
+  ClientIDMap *thread_id_map_;
 };
 
 const char SortRunGenerationOperatorTest::kTableName[] = "table";

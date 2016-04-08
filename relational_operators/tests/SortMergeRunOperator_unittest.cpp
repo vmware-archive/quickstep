@@ -58,6 +58,7 @@
 #include "storage/TupleStorageSubBlock.hpp"
 #include "storage/ValueAccessor.hpp"
 #include "storage/ValueAccessorUtil.hpp"
+#include "threading/ThreadIDBasedMap.hpp"
 #include "types/IntType.hpp"
 #include "types/Type.hpp"
 #include "types/TypeID.hpp"
@@ -157,13 +158,19 @@ class RunTest : public ::testing::Test {
     // Initialize the TMB, register this thread as sender and receiver for
     // appropriate types of messages.
     bus_.Initialize();
+
     foreman_client_id_ = bus_.Connect();
     bus_.RegisterClientAsReceiver(foreman_client_id_, kCatalogRelationNewBlockMessage);
     bus_.RegisterClientAsReceiver(foreman_client_id_, kDataPipelineMessage);
 
-    agent_client_id_ = bus_.Connect();
-    bus_.RegisterClientAsSender(agent_client_id_, kCatalogRelationNewBlockMessage);
-    bus_.RegisterClientAsSender(agent_client_id_, kDataPipelineMessage);
+    const tmb::client_id worker_thread_client_id = bus_.Connect();
+    bus_.RegisterClientAsSender(worker_thread_client_id, kCatalogRelationNewBlockMessage);
+    bus_.RegisterClientAsSender(worker_thread_client_id, kDataPipelineMessage);
+
+    thread_id_map_ = ClientIDMap::Instance();
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    thread_id_map_->addValue(worker_thread_client_id);
 
     storage_manager_.reset(new StorageManager(kStoragePath));
     table_.reset(new CatalogRelation(nullptr, kTableName, kTableId));
@@ -182,8 +189,13 @@ class RunTest : public ::testing::Test {
                                        storage_manager_.get(),
                                        kOpIndex,
                                        foreman_client_id_,
-                                       agent_client_id_,
                                        &bus_));
+  }
+
+  virtual void TearDown() {
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    thread_id_map_->removeValue();
   }
 
   // Helper method to insert test tuples.
@@ -204,7 +216,12 @@ class RunTest : public ::testing::Test {
   merge_run_operator::Run run_;
 
   MessageBusImpl bus_;
-  tmb::client_id foreman_client_id_, agent_client_id_;
+  tmb::client_id foreman_client_id_;
+
+  // This map is needed for InsertDestination and some operators that send
+  // messages to Foreman directly. To know the reason behind the design of this
+  // map, see the note in InsertDestination.hpp.
+  ClientIDMap *thread_id_map_;
 };
 
 const char RunTest::kTableName[] = "table";
@@ -365,12 +382,17 @@ class RunMergerTest : public ::testing::Test {
     // appropriate types of messages.
     bus_.Initialize();
     foreman_client_id_ = bus_.Connect();
-    bus_.RegisterClientAsReceiver(foreman_client_id_, kCatalogRelationNewBlockMessage);
     bus_.RegisterClientAsReceiver(foreman_client_id_, kDataPipelineMessage);
+    bus_.RegisterClientAsReceiver(foreman_client_id_, kCatalogRelationNewBlockMessage);
 
-    agent_client_id_ = bus_.Connect();
-    bus_.RegisterClientAsSender(agent_client_id_, kCatalogRelationNewBlockMessage);
-    bus_.RegisterClientAsSender(agent_client_id_, kDataPipelineMessage);
+    const tmb::client_id worker_thread_client_id = bus_.Connect();
+    bus_.RegisterClientAsSender(worker_thread_client_id, kCatalogRelationNewBlockMessage);
+    bus_.RegisterClientAsSender(worker_thread_client_id, kDataPipelineMessage);
+
+    thread_id_map_ = ClientIDMap::Instance();
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    thread_id_map_->addValue(worker_thread_client_id);
 
     storage_manager_.reset(new StorageManager(kStoragePath));
 
@@ -400,8 +422,13 @@ class RunMergerTest : public ::testing::Test {
                                        storage_manager_.get(),
                                        kOpIndex,
                                        foreman_client_id_,
-                                       agent_client_id_,
                                        &bus_));
+  }
+
+  virtual void TearDown() {
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    thread_id_map_->removeValue();
   }
 
   // Helper method to create test tuples.
@@ -606,7 +633,12 @@ class RunMergerTest : public ::testing::Test {
   std::unique_ptr<Tuple> last_expected_tuple_;  // This is only populated for top-k tests.
 
   MessageBusImpl bus_;
-  tmb::client_id foreman_client_id_, agent_client_id_;
+  tmb::client_id foreman_client_id_;
+
+  // This map is needed for InsertDestination and some operators that send
+  // messages to Foreman directly. To know the reason behind the design of this
+  // map, see the note in InsertDestination.hpp.
+  ClientIDMap *thread_id_map_;
 };
 
 const char RunMergerTest::kTableName[] = "table";
@@ -1170,15 +1202,20 @@ class SortMergeRunOperatorTest : public ::testing::Test {
     // appropriate types of messages.
     bus_.Initialize();
 
+    const tmb::client_id worker_thread_client_id = bus_.Connect();
+    bus_.RegisterClientAsSender(worker_thread_client_id, kCatalogRelationNewBlockMessage);
+    bus_.RegisterClientAsSender(worker_thread_client_id, kDataPipelineMessage);
+    bus_.RegisterClientAsSender(worker_thread_client_id, kWorkOrderFeedbackMessage);
+
+    thread_id_map_ = ClientIDMap::Instance();
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    thread_id_map_->addValue(worker_thread_client_id);
+
     foreman_client_id_ = bus_.Connect();
     bus_.RegisterClientAsReceiver(foreman_client_id_, kCatalogRelationNewBlockMessage);
     bus_.RegisterClientAsReceiver(foreman_client_id_, kDataPipelineMessage);
     bus_.RegisterClientAsReceiver(foreman_client_id_, kWorkOrderFeedbackMessage);
-
-    agent_client_id_ = bus_.Connect();
-    bus_.RegisterClientAsSender(agent_client_id_, kCatalogRelationNewBlockMessage);
-    bus_.RegisterClientAsSender(agent_client_id_, kDataPipelineMessage);
-    bus_.RegisterClientAsSender(agent_client_id_, kWorkOrderFeedbackMessage);
 
     storage_manager_.reset(new StorageManager(kStoragePath));
 
@@ -1241,8 +1278,13 @@ class SortMergeRunOperatorTest : public ::testing::Test {
                                           *db_,
                                           storage_manager_.get(),
                                           foreman_client_id_,
-                                          agent_client_id_,
                                           &bus_));
+  }
+
+  virtual void TearDown() {
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    thread_id_map_->removeValue();
   }
 
   CatalogRelation *createTable(const char *name, const relation_id rel_id) {
@@ -1414,7 +1456,6 @@ class SortMergeRunOperatorTest : public ::testing::Test {
                                          query_context_.get(),
                                          storage_manager_.get(),
                                          foreman_client_id_,
-                                         agent_client_id_,
                                          &bus_);
       while (container.hasNormalWorkOrder(kOpIndex)) {
         std::unique_ptr<WorkOrder> order(container.getNormalWorkOrder(kOpIndex));
@@ -1435,7 +1476,6 @@ class SortMergeRunOperatorTest : public ::testing::Test {
                                            query_context_.get(),
                                            storage_manager_.get(),
                                            foreman_client_id_,
-                                           agent_client_id_,
                                            &bus_);
       }
 
@@ -1503,7 +1543,6 @@ class SortMergeRunOperatorTest : public ::testing::Test {
                                           *db_,
                                           storage_manager_.get(),
                                           foreman_client_id_,
-                                          agent_client_id_,
                                           &bus_));
 
     executeOperatorUntilDone();
@@ -1547,7 +1586,6 @@ class SortMergeRunOperatorTest : public ::testing::Test {
                                           *db_,
                                           storage_manager_.get(),
                                           foreman_client_id_,
-                                          agent_client_id_,
                                           &bus_));
 
     std::vector<block_id> blocks = input_table_->getBlocksSnapshot();
@@ -1632,7 +1670,12 @@ class SortMergeRunOperatorTest : public ::testing::Test {
   std::unique_ptr<Tuple> last_actual_tuple_;
 
   MessageBusImpl bus_;
-  tmb::client_id foreman_client_id_, agent_client_id_;
+  tmb::client_id foreman_client_id_;
+
+  // This map is needed for InsertDestination and some operators that send
+  // messages to Foreman directly. To know the reason behind the design of this
+  // map, see the note in InsertDestination.hpp.
+  ClientIDMap *thread_id_map_;
 };
 
 const char SortMergeRunOperatorTest::kTableName[] = "table";

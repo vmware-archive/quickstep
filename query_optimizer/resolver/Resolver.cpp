@@ -102,6 +102,7 @@
 #include "types/operations/comparisons/Comparison.hpp"
 #include "types/operations/comparisons/ComparisonFactory.hpp"
 #include "types/operations/comparisons/ComparisonID.hpp"
+#include "types/operations/unary_operations/DateExtractOperation.hpp"
 #include "types/operations/unary_operations/UnaryOperation.hpp"
 #include "utility/PtrList.hpp"
 #include "utility/PtrVector.hpp"
@@ -1877,6 +1878,44 @@ E::ScalarPtr Resolver::resolveExpression(
       THROW_SQL_ERROR_AT(&parse_expression)
           << "Subquery expression in a non-FROM clause is not supported yet";
     }
+    case ParseExpression::kExtract: {
+      const ParseExtractFunction &parse_extract =
+          static_cast<const ParseExtractFunction&>(parse_expression);
+
+      const ParseString &extract_field = *parse_extract.extract_field();
+      const std::string lowered_unit = ToLower(extract_field.value());
+      DateExtractUnit extract_unit;
+      if (lowered_unit == "year") {
+        extract_unit = DateExtractUnit::kYear;
+      } else if (lowered_unit == "month") {
+        extract_unit = DateExtractUnit::kMonth;
+      } else if (lowered_unit == "day") {
+        extract_unit = DateExtractUnit::kDay;
+      } else if (lowered_unit == "hour") {
+        extract_unit = DateExtractUnit::kHour;
+      } else if (lowered_unit == "minute") {
+        extract_unit = DateExtractUnit::kMinute;
+      } else if (lowered_unit == "second") {
+        extract_unit = DateExtractUnit::kSecond;
+      } else {
+        THROW_SQL_ERROR_AT(&extract_field)
+            << "Invalid extract unit: " << extract_field.value();
+      }
+
+      const DateExtractOperation &op = DateExtractOperation::Instance(extract_unit);
+      const E::ScalarPtr argument = resolveExpression(
+          *parse_extract.date_expression(),
+          op.pushDownTypeHint(type_hint),
+          expression_resolution_info);
+
+      if (!op.canApplyToType(argument->getValueType())) {
+        THROW_SQL_ERROR_AT(parse_extract.date_expression())
+            << "Can not extract from argument of type: "
+            << argument->getValueType().getName();
+      }
+
+      return E::UnaryExpression::Create(op, argument);
+    }
     default:
       LOG(FATAL) << "Unknown scalar type: "
                  << parse_expression.getExpressionType();
@@ -1974,7 +2013,8 @@ E::ScalarPtr Resolver::resolveFunctionCall(
   const E::AggregateFunctionPtr aggregate_function
       = E::AggregateFunction::Create(*aggregate,
                                      resolved_arguments,
-                                     expression_resolution_info->query_aggregation_info->has_group_by);
+                                     expression_resolution_info->query_aggregation_info->has_group_by,
+                                     parse_function_call.is_distinct());
   const std::string internal_alias = GenerateAggregateAttributeAlias(
       expression_resolution_info->query_aggregation_info->aggregate_expressions.size());
   const E::AliasPtr aggregate_alias = E::Alias::Create(context_->nextExprId(),

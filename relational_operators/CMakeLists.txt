@@ -117,6 +117,7 @@ target_link_libraries(quickstep_relationaloperators_DeleteOperator
                       quickstep_storage_StorageBlock
                       quickstep_storage_StorageBlockInfo
                       quickstep_storage_StorageManager
+                      quickstep_threading_ThreadIDBasedMap
                       quickstep_utility_Macros
                       tmb)
 target_link_libraries(quickstep_relationaloperators_DestroyHashOperator
@@ -213,6 +214,7 @@ target_link_libraries(quickstep_relationaloperators_RebuildWorkOrder
                       quickstep_queryexecution_QueryExecutionUtil
                       quickstep_relationaloperators_WorkOrder
                       quickstep_storage_StorageBlock
+                      quickstep_threading_ThreadIDBasedMap
                       quickstep_utility_Macros
                       tmb)
 target_link_libraries(quickstep_relationaloperators_RelationalOperator
@@ -273,6 +275,7 @@ target_link_libraries(quickstep_relationaloperators_SortMergeRunOperator
                       quickstep_relationaloperators_SortMergeRunOperator_proto
                       quickstep_relationaloperators_WorkOrder
                       quickstep_storage_StorageBlockInfo
+                      quickstep_threading_ThreadIDBasedMap
                       quickstep_utility_Macros
                       quickstep_utility_SortConfiguration
                       tmb)
@@ -347,6 +350,7 @@ target_link_libraries(quickstep_relationaloperators_TextScanOperator
                       quickstep_storage_StorageBlob
                       quickstep_storage_StorageBlockInfo
                       quickstep_storage_StorageManager
+                      quickstep_threading_ThreadIDBasedMap
                       quickstep_types_Type
                       quickstep_types_TypedValue
                       quickstep_types_containers_Tuple
@@ -370,6 +374,7 @@ target_link_libraries(quickstep_relationaloperators_UpdateOperator
                       quickstep_storage_StorageBlock
                       quickstep_storage_StorageBlockInfo
                       quickstep_storage_StorageManager
+                      quickstep_threading_ThreadIDBasedMap
                       quickstep_utility_Macros
                       tmb)
 target_link_libraries(quickstep_relationaloperators_WorkOrder
@@ -444,6 +449,7 @@ target_link_libraries(AggregationOperator_unittest
                       quickstep_storage_StorageBlockLayout
                       quickstep_storage_StorageManager
                       quickstep_storage_TupleStorageSubBlock
+                      quickstep_threading_ThreadIDBasedMap
                       quickstep_types_DoubleType
                       quickstep_types_FloatType
                       quickstep_types_IntType
@@ -494,6 +500,7 @@ target_link_libraries(HashJoinOperator_unittest
                       quickstep_storage_StorageBlockLayout_proto
                       quickstep_storage_StorageManager
                       quickstep_storage_TupleStorageSubBlock
+                      quickstep_threading_ThreadIDBasedMap
                       quickstep_types_CharType
                       quickstep_types_IntType
                       quickstep_types_LongType
@@ -546,6 +553,7 @@ target_link_libraries(SortMergeRunOperator_unittest
                       quickstep_storage_TupleStorageSubBlock
                       quickstep_storage_ValueAccessor
                       quickstep_storage_ValueAccessorUtil
+                      quickstep_threading_ThreadIDBasedMap
                       quickstep_types_IntType
                       quickstep_types_Type
                       quickstep_types_TypeID
@@ -594,6 +602,7 @@ target_link_libraries(SortRunGenerationOperator_unittest
                       quickstep_storage_TupleStorageSubBlock
                       quickstep_storage_ValueAccessor
                       quickstep_storage_ValueAccessorUtil
+                      quickstep_threading_ThreadIDBasedMap
                       quickstep_types_IntType
                       quickstep_types_Type
                       quickstep_types_TypeID
@@ -626,6 +635,7 @@ target_link_libraries(TextScanOperator_unittest
                       quickstep_relationaloperators_WorkOrder
                       quickstep_storage_InsertDestination_proto
                       quickstep_storage_StorageManager
+                      quickstep_threading_ThreadIDBasedMap
                       quickstep_types_TypeFactory
                       quickstep_types_TypeID
                       quickstep_utility_MemStream

@@ -56,6 +56,7 @@
 #include "storage/StorageBlockLayout.pb.h"
 #include "storage/StorageManager.hpp"
 #include "storage/TupleStorageSubBlock.hpp"
+#include "threading/ThreadIDBasedMap.hpp"
 #include "types/CharType.hpp"
 #include "types/IntType.hpp"
 #include "types/LongType.hpp"
@@ -98,13 +99,20 @@ constexpr int kOpIndex = 0;
 class HashJoinOperatorTest : public ::testing::TestWithParam<HashTableImplType> {
  protected:
   virtual void SetUp() {
+    thread_id_map_ = ClientIDMap::Instance();
+
     bus_.Initialize();
 
-    foreman_client_id_ = bus_.Connect();
-    bus_.RegisterClientAsReceiver(foreman_client_id_, kCatalogRelationNewBlockMessage);
+    const tmb::client_id worker_thread_client_id = bus_.Connect();
+    bus_.RegisterClientAsSender(worker_thread_client_id, kCatalogRelationNewBlockMessage);
 
-    agent_client_id_ = bus_.Connect();
-    bus_.RegisterClientAsSender(agent_client_id_, kCatalogRelationNewBlockMessage);
+    // Usually the worker thread makes the following call. In this test setup,
+    // we don't have a worker thread hence we have to explicitly make the call.
+    thread_id_map_->addValue(worker_thread_client_id);
+
+    foreman_client_id_ = bus_.Connect();
+    bus_.RegisterClientAsSender(foreman_client_id_, kCatalogRelationNewBlockMessage);
+    bus_.RegisterClientAsReceiver(foreman_client_id_, kCatalogRelationNewBlockMessage);
 
     storage_manager_.reset(new StorageManager("./test_data/"));
 
@@ -183,6 +191,10 @@ class HashJoinOperatorTest : public ::testing::TestWithParam<HashTableImplType> 
     }
   }
 
+  virtual void TearDown() {
+    thread_id_map_->removeValue();
+  }
+
   StorageBlockLayout* createStorageLayout(const CatalogRelation &relation) {
     StorageBlockLayout *layout = new StorageBlockLayout(relation);
     StorageBlockLayoutDescription *layout_desc = layout->getDescriptionMutable();
@@ -242,7 +254,6 @@ class HashJoinOperatorTest : public ::testing::TestWithParam<HashTableImplType> 
                          query_context_.get(),
                          storage_manager_.get(),
                          foreman_client_id_,
-                         agent_client_id_,
                          &bus_);
 
     while (container.hasNormalWorkOrder(op_index)) {
@@ -252,8 +263,13 @@ class HashJoinOperatorTest : public ::testing::TestWithParam<HashTableImplType> 
     }
   }
 
+  // This map is needed for InsertDestination and some WorkOrders that send
+  // messages to Foreman directly. To know the reason behind the design of this
+  // map, see the note in InsertDestination.hpp.
+  ClientIDMap *thread_id_map_;
+
   MessageBusImpl bus_;
-  tmb::client_id foreman_client_id_, agent_client_id_;
+  tmb::client_id foreman_client_id_;
 
   unique_ptr<QueryContext> query_context_;
   std::unique_ptr<StorageManager> storage_manager_;
@@ -348,7 +364,6 @@ TEST_P(HashJoinOperatorTest, LongKeyHashJoinTest) {
                                         *db_,
                                         storage_manager_.get(),
                                         foreman_client_id_,
-                                        agent_client_id_,
                                         &bus_));
 
   // Execute the operators.
@@ -491,7 +506,6 @@ TEST_P(HashJoinOperatorTest, IntDuplicateKeyHashJoinTest) {
                                         *db_,
                                         storage_manager_.get(),
                                         foreman_client_id_,
-                                        agent_client_id_,
                                         &bus_));
 
   // Execute the operators.
@@ -642,7 +656,6 @@ TEST_P(HashJoinOperatorTest, CharKeyCartesianProductHashJoinTest) {
                                         *db_,
                                         storage_manager_.get(),
                                         foreman_client_id_,
-                                        agent_client_id_,
                                         &bus_));
 
   // Execute the operators.
@@ -778,7 +791,6 @@ TEST_P(HashJoinOperatorTest, VarCharDuplicateKeyHashJoinTest) {
                                         *db_,
                                         storage_manager_.get(),
                                         foreman_client_id_,
-                                        agent_client_id_,
                                         &bus_));
 
   // Execute the operators.
@@ -948,7 +960,6 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinTest) {
                                         *db_,
                                         storage_manager_.get(),
                                         foreman_client_id_,
-                                        agent_client_id_,
                                         &bus_));
 
   // Execute the operators.
@@ -1129,7 +1140,6 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinWithResidualPredicateTest) {
                                         *db_,
                                         storage_manager_.get(),
                                         foreman_client_id_,
-                                        agent_client_id_,
                                         &bus_));
 
   // Execute the operators.

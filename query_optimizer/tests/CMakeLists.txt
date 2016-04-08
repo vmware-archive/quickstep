@@ -63,6 +63,7 @@ target_link_libraries(quickstep_queryoptimizer_tests_TestDatabaseLoader
                       quickstep_storage_InsertDestination
                       quickstep_storage_StorageBlockInfo
                       quickstep_storage_StorageManager
+                      quickstep_threading_ThreadIDBasedMap
                       quickstep_types_CharType
                       quickstep_types_TypeFactory
                       quickstep_types_TypeID
@@ -107,6 +108,7 @@ target_link_libraries(quickstep_queryoptimizer_tests_ExecutionGeneratorTest
                       quickstep_queryoptimizer_QueryPlan
                       quickstep_queryoptimizer_physical_Physical
                       quickstep_queryoptimizer_tests_TestDatabaseLoader
+                      quickstep_threading_ThreadIDBasedMap
                       quickstep_utility_Macros
                       quickstep_utility_MemStream
                       quickstep_utility_SqlError
