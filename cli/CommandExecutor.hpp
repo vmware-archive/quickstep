@@ -43,8 +43,8 @@ namespace cli {
 // This is used while describing the table.
 constexpr int kInitMaxColumnWidth = 6;
 
-static const char *kDescribeDatabaseCommand = "\\dt";
-static const char *kDescribeTableCommand = "\\d";
+static const char kDescribeDatabaseCommand[] = "\\dt";
+static const char kDescribeTableCommand[] = "\\d";
 
 /**
   * @brief Executes the command by calling the command handler.
@@ -54,8 +54,8 @@ static const char *kDescribeTableCommand = "\\d";
   * @param out The stream where the output of the command has to be redirected to.      
 */
 void executeCommand(const ParseStatement &statement,
-                           const CatalogDatabase &catalog_database,
-                           FILE *out);
+                    const CatalogDatabase &catalog_database,
+                    FILE *out);
 /** @} */
 
 }  // namespace cli
