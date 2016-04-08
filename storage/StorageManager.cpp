@@ -112,7 +112,7 @@ static const bool block_domain_dummy
 static bool SetOrValidateBufferPoolSlots(const char *flagname,
                                          std::uint64_t value) {
   if (value != 0) {
-    // TODO(jmp): Check if this value  is safe and warn the user if it is not.
+    // TODO(jmp): Check if this value is safe and warn the user if it is not.
     return true;  // User supplied value is > 0 and we simply use that value.
   }
 
