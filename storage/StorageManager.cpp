@@ -124,11 +124,11 @@ static bool SetOrValidateBufferPoolSlots(const char *flagname,
     if (total_memory/kAGigaByte < kLargeMemorySystemThresholdInGB) {
       // This is a "small" system. Leave a litte more memory for others.
       FLAGS_buffer_pool_slots
-        = (total_memory*kPercentageToGrabForSmallSystems)/(kSlotSizeBytes*100);
+          = (total_memory*kPercentageToGrabForSmallSystems)/(kSlotSizeBytes*100);
     } else {
       // This is a "large" system. Grab nearly all of the installed memory.
       FLAGS_buffer_pool_slots
-        = (total_memory*kPercentageToGrabForLargeSystems)/(kSlotSizeBytes*100);
+          = (total_memory*kPercentageToGrabForLargeSystems)/(kSlotSizeBytes*100);
     }
     return true;
   }
