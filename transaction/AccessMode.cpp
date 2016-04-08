@@ -15,24 +15,20 @@
  *   limitations under the License.
  **/
 
-#include "relational_operators/CreateIndexOperator.hpp"
-
-#include <utility>
-
-#include "tmb/id_typedefs.h"
+#include "AccessMode.hpp"
 
 namespace quickstep {
+namespace transaction {
 
-bool CreateIndexOperator::getAllWorkOrders(WorkOrdersContainer *container,
-                                           QueryContext *query_context,
-                                           StorageManager *storage_manager,
-                                           const tmb::client_id foreman_client_id,
-                                           tmb::MessageBus *bus) {
-  return true;
-}
+const bool AccessMode::kLockCompatibilityMatrix[kNumberLocks][kNumberLocks] = {
+/*           NL     IS     IX      S     SIX     X    */
+/*  NL  */ {true , true , true , true , true , true },
+/*  IS  */ {true , true , true , true , true , false},
+/*  IX  */ {true , true , true , false, false, false},
+/*  S   */ {true , true , false, true , false, false},
+/*  SIX */ {true , true , false, false, false, false},
+/*  X   */ {true , false, false, false, false, false}
+};
 
-void CreateIndexOperator::updateCatalogOnCompletion() {
-  relation_->addIndex(index_name_, std::move(index_description_));
-}
-
+}  // namespace transaction
 }  // namespace quickstep

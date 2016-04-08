@@ -15,24 +15,34 @@
  *   limitations under the License.
  **/
 
-#include "relational_operators/CreateIndexOperator.hpp"
+#include "transaction/Transaction.hpp"
 
-#include <utility>
-
-#include "tmb/id_typedefs.h"
+#include <functional>
 
 namespace quickstep {
 
-bool CreateIndexOperator::getAllWorkOrders(WorkOrdersContainer *container,
-                                           QueryContext *query_context,
-                                           StorageManager *storage_manager,
-                                           const tmb::client_id foreman_client_id,
-                                           tmb::MessageBus *bus) {
-  return true;
+namespace transaction {
+
+TransactionId Transaction::getTransactionId() const {
+  return tid_;
 }
 
-void CreateIndexOperator::updateCatalogOnCompletion() {
-  relation_->addIndex(index_name_, std::move(index_description_));
+void Transaction::setStatus(TransactionStatus status) {
+  status_ = status;
 }
+
+TransactionStatus Transaction::getStatus() const {
+  return status_;
+}
+
+bool Transaction::operator==(const Transaction &other) const {
+  return tid_ == other.tid_;
+}
+
+std::size_t Transaction::TransactionHasher::operator()(const Transaction &transaction) const {
+  return std::hash<TransactionId>()(transaction.tid_);
+}
+
+}  // namespace transaction
 
 }  // namespace quickstep

@@ -83,6 +83,8 @@ class Foreman final : public ForemanLite {
         num_numa_nodes_(num_numa_nodes) {
     bus_->RegisterClientAsSender(foreman_client_id_, kWorkOrderMessage);
     bus_->RegisterClientAsSender(foreman_client_id_, kRebuildWorkOrderMessage);
+    // NOTE(zuyu): For the single-node version, act as the sender on behalf of InsertDestinations.
+    bus_->RegisterClientAsSender(foreman_client_id_, kCatalogRelationNewBlockMessage);
     // NOTE : Right now, foreman thread doesn't send poison messages. In the
     // future if foreman needs to abort a worker thread, this registration
     // should be useful.
@@ -98,12 +100,6 @@ class Foreman final : public ForemanLite {
                                    kWorkOrdersAvailableMessage);
     bus_->RegisterClientAsReceiver(foreman_client_id_,
                                    kWorkOrderFeedbackMessage);
-
-    agent_client_id_ = bus_->Connect();
-    bus_->RegisterClientAsSender(agent_client_id_, kCatalogRelationNewBlockMessage);
-    bus_->RegisterClientAsSender(agent_client_id_, kDataPipelineMessage);
-    bus_->RegisterClientAsSender(agent_client_id_, kWorkOrderFeedbackMessage);
-    bus_->RegisterClientAsSender(agent_client_id_, kWorkOrdersAvailableMessage);
   }
 
   ~Foreman() override {}
@@ -124,7 +120,7 @@ class Foreman final : public ForemanLite {
    **/
   inline void reconstructQueryContextFromProto(const serialization::QueryContext &proto) {
     query_context_.reset(
-        new QueryContext(proto, *catalog_database_, storage_manager_, foreman_client_id_, agent_client_id_, bus_));
+        new QueryContext(proto, *catalog_database_, storage_manager_, foreman_client_id_, bus_));
   }
 
   /**
@@ -235,21 +231,22 @@ class Foreman final : public ForemanLite {
    *
    * @param node_index The index of the specified operator node in the query DAG
    *        for the completed WorkOrder.
-   * @param worker_id The logical ID of the worker for the completed WorkOrder.
+   * @param worker_thread_index The logical index of the worker thread in
+   *        WorkerDirectory for the completed WorkOrder.
    **/
   void processWorkOrderCompleteMessage(const dag_node_index op_index,
-                                       const std::size_t worker_id);
+                                       const std::size_t worker_thread_index);
 
   /**
    * @brief Process the received RebuildWorkOrder complete message.
    *
    * @param node_index The index of the specified operator node in the query DAG
    *        for the completed RebuildWorkOrder.
-   * @param worker_id The logical ID of the worker for the completed
-   *        RebuildWorkOrder.
+   * @param worker_thread_index The logical index of the worker thread in
+   *        WorkerDirectory for the completed RebuildWorkOrder.
    **/
   void processRebuildWorkOrderCompleteMessage(const dag_node_index op_index,
-                                              const std::size_t worker_id);
+                                              const std::size_t worker_thread_index);
 
   /**
    * @brief Process the received data pipeline message.
@@ -308,10 +305,11 @@ class Foreman final : public ForemanLite {
   /**
    * @brief Send the given message to the specified worker.
    *
-   * @param worker_id The logical ID of the recipient worker.
+   * @param worker_thread_index The logical index of the recipient worker thread
+   *        in WorkerDirectory.
    * @param message The WorkerMessage to be sent.
    **/
-  void sendWorkerMessage(const std::size_t worker_id, const WorkerMessage &message);
+  void sendWorkerMessage(const std::size_t worker_thread_index, const WorkerMessage &message);
 
   /**
    * @brief Fetch all work orders currently available in relational operator and
@@ -436,10 +434,6 @@ class Foreman final : public ForemanLite {
 
   CatalogDatabaseLite *catalog_database_;
   StorageManager *storage_manager_;
-
-  // The sender agent to send messages to Foreman on behalf of
-  // InsertDestinations and some WorkOrders.
-  tmb::client_id agent_client_id_;
 
   DAG<RelationalOperator, bool> *query_dag_;
 
