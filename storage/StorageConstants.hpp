@@ -19,7 +19,7 @@
 #define QUICKSTEP_STORAGE_STORAGE_CONSTANTS_HPP_
 
 #include <cstddef>
-#include <cstint>
+#include <cstdint>
 
 namespace quickstep {
 
