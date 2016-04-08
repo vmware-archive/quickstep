@@ -34,6 +34,24 @@ namespace quickstep {
 // different large page sizes.
 const std::size_t kSlotSizeBytes = 0x200000;
 
+// A GigaByte.
+const std::uint64_t kAGigaByte = (1 << 30);
+
+// To determine the size of a buffer pool, we use a threshold (see below)
+// to check if the system has "large" amounts of installed memory. This
+// constant defines that threshold. We may need to change this value over time.
+const std::uint64_t kLargeMemorySystemThresholdInGB = 32;
+
+// When setting the buffer pool size automatically, for "large" systems
+// we grab a bigger fraction of the installed memory than for a "small" system.
+// The two constants below define the percentages to grab in each case.
+// TODO(jmp): May need to generalize this to more than two levels in the future.
+const std::uint64_t kPercentageToGrabForSmallSystems = 80;
+const std::uint64_t kPercentageToGrabForLargeSystems = 90;
+
+// The default size of the buffer pool (in terms of the number of slots).
+const std::uint64_t kDefaultBufferPoolSizeInSlots = 1024;
+
 // The assumed size of a cache-line. 64 bytes is correct for pretty much any
 // modern x86 CPU, and many other architectures as well. This constant may be
 // used to try and align memory nicely for performance, but should not be

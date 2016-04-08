@@ -111,38 +111,35 @@ static const bool block_domain_dummy
  **/
 static bool SetOrValidateBufferPoolSlots(const char *flagname,
                                          std::uint64_t value) {
-  // Magic constants which may change in over time. The key idea is to leave
-  //   more memory (20%) on "small" systems for other processes.
-  const std::uint64_t a_giga_byte = (1<<30);
-  const std::uint64_t threshold_for_a_large_memory_system = 32;  // in GB.
-  const std::uint64_t percentage_to_grab_for_small_systems = 80;
-  const std::uint64_t percentage_to_grab_for_large_systems = 90;
-
-  if (value == 0) {
-    std::uint64_t total_memory;
-    if (utility::system::calculateTotalMemoryInBytes(&total_memory)) {
-      // Detected the total installed memory. Now set the buffer pool size to
-      //   80-90% of that value.
-      if (total_memory/a_giga_byte < threshold_for_a_large_memory_system) {
-        // This is a "small" system. Leave 20% of the memory for others.
-        FLAGS_buffer_pool_slots
-          = (total_memory*percentage_to_grab_for_small_systems)/(kSlotSizeBytes*100);
-      } else {
-        // This is a "large" system. Use 90% for the buffer pool.
-        FLAGS_buffer_pool_slots
-          = (total_memory*percentage_to_grab_for_large_systems)/(kSlotSizeBytes*100);
-      }
-      return true;
-    }
-    // Could not calculate the installed memory. Use a default value of 1k slots.
-    LOG(INFO) << "Unable to determine an appropriate buffer pool size. "
-              << "Using a default value of 2GB.\n";
-    FLAGS_buffer_pool_slots = 1024;
-    return true;
-  } else {
-    return true;  // User supplied value is > 0 and will be used.
+  if (value != 0) {
+    // TODO(jmp): Check if this value  is safe and warn the user if it is not.
+    return true;  // User supplied value is > 0 and we simply use that value.
   }
+
+  // Need to automatically pick the buffer pool size.
+  std::uint64_t total_memory;
+  if (utility::system::calculateTotalMemoryInBytes(&total_memory)) {
+    // Detected the total installed memory. Now set the buffer pool size
+    //   based on whether the system is large or small.
+    if (total_memory/kAGigaByte < kLargeMemorySystemThresholdInGB) {
+      // This is a "small" system. Leave a litte more memory for others.
+      FLAGS_buffer_pool_slots
+        = (total_memory*kPercentageToGrabForSmallSystems)/(kSlotSizeBytes*100);
+    } else {
+      // This is a "large" system. Grab nearly all of the installed memory.
+      FLAGS_buffer_pool_slots
+        = (total_memory*kPercentageToGrabForLargeSystems)/(kSlotSizeBytes*100);
+    }
+    return true;
+  }
+
+  // Could not calculate the installed memory. Use a default value of 1k slots.
+  LOG(INFO) << "Unable to determine an appropriate buffer pool size. "
+            << "Using a default value of 2GB.\n";
+  FLAGS_buffer_pool_slots = kDefaultBufferPoolSizeInSlots;
+  return true;
 }
+
 DEFINE_uint64(buffer_pool_slots, 0,
               "By default the value is 0 and the system automatically sets the "
               "buffer pool size/slots at 80-90% of the total installed memory. "
