@@ -84,7 +84,6 @@ using std::vector;
 
 using quickstep::Address;
 using quickstep::CatalogRelation;
-using quickstep::CommandExecutor;
 using quickstep::DefaultsConfigurator;
 using quickstep::DropRelation;
 using quickstep::Foreman;
@@ -292,7 +291,7 @@ int main(int argc, char* argv[]) {
 
         if (result.parsed_statement->getStatementType() == ParseStatement::kCommand) {
           try {
-            CommandExecutor::executeCommand(
+            quickstep::cli::executeCommand(
                 *result.parsed_statement,
                 *(query_processor->getDefaultDatabase()), stdout);
           } catch (const quickstep::SqlError &sql_error) {

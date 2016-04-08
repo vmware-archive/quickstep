@@ -24,8 +24,6 @@
 #include "storage/StorageBlockInfo.hpp"
 #include "utility/Macros.hpp"
 
-using std::size_t;
-
 namespace quickstep {
 
 class CatalogRelation;
@@ -45,7 +43,7 @@ class PrintToScreen {
   static void PrintRelation(const CatalogRelation &relation,
                             StorageManager *storage_manager,
                             FILE *out);
-  static void printHBar(const std::vector<std::size_t> &column_widths,
+  static void printHBar(const std::vector<int> &column_widths,
                         FILE *out);
  private:
   // Undefined default constructor. Class is all-static and should not be
@@ -54,7 +52,7 @@ class PrintToScreen {
 
   static void printTuple(const TupleStorageSubBlock &tuple_store,
                          const tuple_id tid,
-                         const std::vector<std::size_t> &column_widths,
+                         const std::vector<int> &column_widths,
                          FILE *out);
 
   DISALLOW_COPY_AND_ASSIGN(PrintToScreen);

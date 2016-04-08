@@ -45,38 +45,21 @@ using std::string;
 using std::vector;
 
 namespace quickstep {
+namespace cli {
+namespace {
 
-const std::size_t  CommandExecutor::kInitMaxColumnWidth = 6;
+namespace C = ::quickstep::cli;
 
-void CommandExecutor::executeCommand(const ParseStatement &statement,
-                                     const CatalogDatabase &catalog_database,
-                                     FILE *out) {
-  const ParseCommand &command = static_cast<const ParseCommand &>(statement);
-  const PtrVector<ParseString> *arguments = command.arguments();
-  std::string command_str = command.command()->value();
-  if (command_str.compare("\\dt") == 0) {
-    executeDescribeDatabase(arguments, catalog_database, out);
-  } else if (command_str.compare("\\d") == 0) {
-    if (arguments->size() == 0) {
-      executeDescribeDatabase(arguments, catalog_database, out);
-    } else {
-      executeDescribeTable(arguments, catalog_database, out);
-    }
-  } else {
-    THROW_SQL_ERROR_AT(command.command()) << "Invalid Command";
-  }
-}
-
-void CommandExecutor::executeDescribeDatabase(
+void executeDescribeDatabase(
     const PtrVector<ParseString> *arguments,
     const CatalogDatabase &catalog_database, FILE *out) {
   // Column width initialized to 6 to take into account the header name
   // and the column value table
-  std::size_t max_column_width = CommandExecutor::kInitMaxColumnWidth;
+  int max_column_width = C::kInitMaxColumnWidth;
   const CatalogRelation *relation;
   if (arguments->size() == 0) {
     for (const CatalogRelation &rel : catalog_database) {
-      std::size_t column_width = rel.getName().length();
+      int column_width = static_cast<int>(rel.getName().length());
       max_column_width =
           max_column_width < column_width ? column_width : max_column_width;
     }
@@ -94,29 +77,29 @@ void CommandExecutor::executeDescribeDatabase(
   }
   // Only if we have relations work on the printing logic.
   if (catalog_database.size() > 0) {
-    vector<std::size_t> column_widths;
-    column_widths.push_back(max_column_width);
-    column_widths.push_back(CommandExecutor::kInitMaxColumnWidth);
+    vector<int> column_widths;
+    column_widths.push_back(max_column_width+1);
+    column_widths.push_back(C::kInitMaxColumnWidth+1);
     fputs("       List of relations\n\n", out);
-    fprintf(out, "%-*s|", static_cast<int>(max_column_width)+1, " Name");
-    fprintf(out, "%-*s\n", static_cast<int>(CommandExecutor::kInitMaxColumnWidth), " Type");
+    fprintf(out, "%-*s |", max_column_width+1, " Name");
+    fprintf(out, "%-*s\n", C::kInitMaxColumnWidth, " Type");
     PrintToScreen::printHBar(column_widths, out);
     //  If there are no argument print the entire list of tables
     //  else print the particular table only.
     if (arguments->size() == 0) {
       for (const CatalogRelation &rel : catalog_database) {
-        fprintf(out, " %-*s|", static_cast<int>(max_column_width), rel.getName().c_str());
-        fprintf(out, " %-*s\n", static_cast<int>(CommandExecutor::kInitMaxColumnWidth), "table");
+        fprintf(out, " %-*s |", max_column_width, rel.getName().c_str());
+        fprintf(out, " %-*s\n", C::kInitMaxColumnWidth, "table");
       }
     } else {
-      fprintf(out, " %-*s|", static_cast<int>(max_column_width), relation->getName().c_str());
-      fprintf(out, " %-*s\n", static_cast<int>(CommandExecutor::kInitMaxColumnWidth), "table");
+      fprintf(out, " %-*s |", max_column_width, relation->getName().c_str());
+      fprintf(out, " %-*s\n", C::kInitMaxColumnWidth, "table");
     }
     fputc('\n', out);
   }
 }
 
-void CommandExecutor::executeDescribeTable(
+void executeDescribeTable(
     const PtrVector<ParseString> *arguments,
     const CatalogDatabase &catalog_database, FILE *out) {
   const ParseString &table_name = arguments->front();
@@ -126,57 +109,77 @@ void CommandExecutor::executeDescribeTable(
   if (relation == nullptr) {
      THROW_SQL_ERROR_AT(&(arguments->front())) << " Unrecognized relation "  <<table_name_val;
   }
-  vector<std::size_t> column_widths;
-  std::size_t max_attr_column_width = CommandExecutor::kInitMaxColumnWidth;
-  std::size_t max_type_column_width = CommandExecutor::kInitMaxColumnWidth;
+  vector<int> column_widths;
+  int max_attr_column_width = C::kInitMaxColumnWidth;
+  int max_type_column_width = C::kInitMaxColumnWidth;
 
   for (const CatalogAttribute &attr : *relation) {
     // Printed column needs to be wide enough to print:
     //   1. The attribute name (in the printed "header").
     //   2. Any value of the attribute's Type.
-    std::size_t attr_column_width = attr.getDisplayName().length();
-    std::size_t type_column_width = attr.getType().getName().length();
+    int attr_column_width = attr.getDisplayName().length();
+    int type_column_width = attr.getType().getName().length();
     max_attr_column_width = std::max(max_attr_column_width, attr_column_width);
     max_type_column_width = std::max(max_type_column_width, type_column_width);
   }
-  column_widths.push_back(max_attr_column_width);
-  column_widths.push_back(max_type_column_width);
+  // Add room for one extra character to allow spacing between the column ending and the vertical bar
+  column_widths.push_back(max_attr_column_width+1);
+  column_widths.push_back(max_type_column_width+1);
 
-  fprintf(out, "%*s \"%s\"\n", static_cast<int>(CommandExecutor::kInitMaxColumnWidth), "Table", table_name_val.c_str());
-  fprintf(out, "%-*s|", static_cast<int>(max_attr_column_width)+1, " Column");
-  fprintf(out, "%-*s\n", static_cast<int>(max_type_column_width)+1, " Type");
+  fprintf(out, "%*s \"%s\"\n", C::kInitMaxColumnWidth, "Table", table_name_val.c_str());
+  fprintf(out, "%-*s |", max_attr_column_width+1, " Column");
+  fprintf(out, "%-*s\n", max_type_column_width+1, " Type");
   PrintToScreen::printHBar(column_widths, out);
   for (const CatalogAttribute &attr : *relation) {
-    fprintf(out, " %-*s|", static_cast<int>(max_attr_column_width),
+    fprintf(out, " %-*s |", max_attr_column_width,
             attr.getDisplayName().c_str());
-    fprintf(out, " %-*s\n", static_cast<int>(max_type_column_width),
+    fprintf(out, " %-*s\n", max_type_column_width,
             attr.getType().getName().c_str());
   }
   // TODO(rogers): Add handlers for partitioning information.
   if (relation->hasIndexScheme()) {
-    fprintf(out, "%*s\n", static_cast<int>(CommandExecutor::kInitMaxColumnWidth)+2, " Indexes");
+    fprintf(out, "%*s\n", C::kInitMaxColumnWidth+2, " Indexes");
     const quickstep::IndexScheme &index_scheme = relation->getIndexScheme();
     for (auto index_it = index_scheme.begin(); index_it != index_scheme.end();
          ++index_it) {
       fprintf(out, "  \"%-*s\" %s", static_cast<int>(index_it->first.length()),
               index_it->first.c_str(),
               index_it->second.IndexSubBlockType_Name(
-                                  index_it->second.sub_block_type())
-                  .c_str());
+                  index_it->second.sub_block_type()).c_str());
       fputc(' ', out);
       fputc('(', out);
       fprintf(out, "%s", relation->getAttributeById(index_it->second.indexed_attribute_ids(0))
-                               ->getDisplayName()
-                               .c_str());
+                             ->getDisplayName().c_str());
       for (std::size_t i = 1; i < index_it->second.indexed_attribute_ids_size(); ++i) {
-        fprintf(out, ", %s", relation->getAttributeById(index_it->second.indexed_attribute_ids(i))
-                               ->getDisplayName()
-                               .c_str());
+        const char *attribute_display_name = relation->getAttributeById(
+                                                 index_it->second.indexed_attribute_ids(i))
+                                                 ->getDisplayName().c_str();
+        fprintf(out, ", %s", attribute_display_name);
       }
       fputc(')', out);
       fputc('\n', out);
     }
   }
 }
+}  // namespace
+void executeCommand(const ParseStatement &statement,
+                                     const CatalogDatabase &catalog_database,
+                                     FILE *out) {
+  const ParseCommand &command = static_cast<const ParseCommand &>(statement);
+  const PtrVector<ParseString> *arguments = command.arguments();
+  const std::string command_str = command.command()->value();
+  if (command_str == C::kDescribeDatabaseCommand) {
+    executeDescribeDatabase(arguments, catalog_database, out);
+  } else if (command_str == C::kDescribeTableCommand) {
+    if (arguments->size() == 0) {
+      executeDescribeDatabase(arguments, catalog_database, out);
+    } else {
+      executeDescribeTable(arguments, catalog_database, out);
+    }
+  } else {
+    THROW_SQL_ERROR_AT(command.command()) << "Invalid Command";
+  }
+}
+}  // namespace cli
 }  // namespace quickstep
 

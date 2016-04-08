@@ -84,7 +84,7 @@ void CommandExecutorTestRunner::runTestCase(
       std::printf("%s\n", result.parsed_statement->toString().c_str());
       try {
         if (result.parsed_statement->getStatementType() == ParseStatement::kCommand) {
-          CommandExecutor::executeCommand(
+          quickstep::cli::executeCommand(
               *result.parsed_statement,
               *(test_database_loader_.catalog_database()),
               output_stream.file());

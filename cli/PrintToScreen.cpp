@@ -53,7 +53,7 @@ void PrintToScreen::PrintRelation(const CatalogRelation &relation,
     return;
   }
 
-  vector<std::size_t> column_widths;
+  vector<int> column_widths;
   column_widths.reserve(relation.size());
 
   for (CatalogRelation::const_iterator attr_it = relation.begin();
@@ -64,7 +64,7 @@ void PrintToScreen::PrintRelation(const CatalogRelation &relation,
     //   2. Any value of the attribute's Type.
     //   3. If the attribute's Type is nullable, the 4-character string "NULL".
     // We pick the largest of these 3 widths as the column width.
-    size_t column_width = attr_it->getDisplayName().length();
+    int column_width = static_cast<int>(attr_it->getDisplayName().length());
     column_width = column_width < attr_it->getType().getPrintWidth()
                    ? attr_it->getType().getPrintWidth()
                    : column_width;
@@ -77,12 +77,12 @@ void PrintToScreen::PrintRelation(const CatalogRelation &relation,
   printHBar(column_widths, out);
 
   fputc('|', out);
-  vector<std::size_t>::const_iterator width_it = column_widths.begin();
+  vector<int>::const_iterator width_it = column_widths.begin();
   CatalogRelation::const_iterator attr_it = relation.begin();
   for (; width_it != column_widths.end(); ++width_it, ++attr_it) {
     fprintf(out,
             "%-*s|",
-            static_cast<int>(*width_it),
+            *width_it,
             attr_it->getDisplayName().c_str());
   }
   fputc('\n', out);
@@ -109,11 +109,11 @@ void PrintToScreen::PrintRelation(const CatalogRelation &relation,
   printHBar(column_widths, out);
 }
 
-void PrintToScreen::printHBar(const vector<std::size_t> &column_widths,
+void PrintToScreen::printHBar(const vector<int> &column_widths,
                               FILE *out) {
   fputc('+', out);
-  for (const std::size_t width : column_widths) {
-    for (std::size_t i = 0; i < width; ++i) {
+  for (const int width : column_widths) {
+    for (int i = 0; i < width; ++i) {
       fputc('-', out);
     }
     fputc('+', out);
@@ -123,20 +123,20 @@ void PrintToScreen::printHBar(const vector<std::size_t> &column_widths,
 
 void PrintToScreen::printTuple(const TupleStorageSubBlock &tuple_store,
                                const tuple_id tid,
-                               const vector<std::size_t> &column_widths,
+                               const vector<int> &column_widths,
                                FILE *out) {
   DEBUG_ASSERT(tuple_store.hasTupleWithID(tid));
   fputc('|', out);
 
   const CatalogRelationSchema &relation = tuple_store.getRelation();
-  vector<std::size_t>::const_iterator width_it = column_widths.begin();
+  vector<int>::const_iterator width_it = column_widths.begin();
   CatalogRelation::const_iterator attr_it = relation.begin();
   for (; attr_it != relation.end(); ++attr_it, ++width_it) {
     TypedValue value(tuple_store.getAttributeValueTyped(tid, attr_it->getID()));
     if (value.isNull()) {
       fprintf(out,
               "%*s",
-              static_cast<int>(*width_it),
+              *width_it,
               "NULL");
     } else {
       attr_it->getType().printValueToFile(value, out, *width_it);
