@@ -65,6 +65,7 @@
 #include "storage/StorageErrors.hpp"
 #include "threading/SpinSharedMutex.hpp"
 #include "utility/Alignment.hpp"
+#include "utility/CalculateInstalledMemory.hpp"
 
 #ifdef QUICKSTEP_HAVE_FILE_MANAGER_HDFS
 #include "storage/FileManagerHdfs.hpp"
@@ -96,23 +97,63 @@ DEFINE_int32(block_domain, 1,
 static const bool block_domain_dummy
     = gflags::RegisterFlagValidator(&FLAGS_block_domain, &ValidateBlockDomain);
 
-static bool ValidateBufferPoolSlots(const char *flagname,
-                                    std::uint64_t value) {
+/**
+ * @brief Set or validate the buffer pool slots. When automatically picking a
+ *        default value, check if the system is "small" or "large." Set the 
+ *        buffer pool space to 80% of the installed main memory for small
+ *        and 90% otherwise. 
+ *        This method follows the signature that is set by the gflags module.
+ * @param flagname The name of the buffer pool flag. 
+ * @param value The value of this flag from the command line, or default (0)
+ * @return True if the value was set to a legimate value, false otherwise. 
+ *         Currently this method aims to always find some legitimate value,
+ *         and never returns false.
+ **/
+static bool SetOrValidateBufferPoolSlots(const char *flagname,
+                                         std::uint64_t value) {
+  // Magic constants which may change in over time. The key idea is to leave
+  //   more memory (20%) on "small" systems for other processes.
+  const std::uint64_t a_giga_byte = (1<<30);
+  const std::uint64_t threshold_for_a_large_memory_system = 32;  // in GB.
+  const std::uint64_t percentage_to_grab_for_small_systems = 80;
+  const std::uint64_t percentage_to_grab_for_large_systems = 90;
+
   if (value == 0) {
-    std::fprintf(stderr, "--%s must be nonzero\n", flagname);
-    return false;
-  } else {
+    std::uint64_t total_memory;
+    if (utility::system::calculateTotalMemoryInBytes(&total_memory)) {
+      // Detected the total installed memory. Now set the buffer pool size to
+      //   80-90% of that value.
+      if (total_memory/a_giga_byte < threshold_for_a_large_memory_system) {
+        // This is a "small" system. Leave 20% of the memory for others.
+        FLAGS_buffer_pool_slots
+          = (total_memory*percentage_to_grab_for_small_systems)/(kSlotSizeBytes*100);
+      } else {
+        // This is a "large" system. Use 90% for the buffer pool.
+        FLAGS_buffer_pool_slots
+          = (total_memory*percentage_to_grab_for_large_systems)/(kSlotSizeBytes*100);
+      }
+      return true;
+    }
+    // Could not calculate the installed memory. Use a default value of 1k slots.
+    LOG(INFO) << "Unable to determine an appropriate buffer pool size. "
+              << "Using a default value of 2GB.\n";
+    FLAGS_buffer_pool_slots = 1024;
     return true;
+  } else {
+    return true;  // User supplied value is > 0 and will be used.
   }
 }
-DEFINE_uint64(buffer_pool_slots, 1024,
-              "The number of 2-megabyte slots which may be allocated in the "
-              "buffer pool. This is a \"soft\" limit: the buffer pool may "
-              "temporarily grow larger than this size if the buffer manager "
-              "is unable to evict enough unreferenced blocks to make room for "
-              "a new allocation.");
+DEFINE_uint64(buffer_pool_slots, 0,
+              "By default the value is 0 and the system automatically sets the "
+              "buffer pool size/slots at 80-90% of the total installed memory. "
+              "The user can also explicity define the number of slots. "
+              "The units for this variable is the number of 2-megabyte slots "
+              "that is allocated in the buffer pool. This is a \"soft\" limit: "
+              "the buffer pool may temporarily grow larger than this size "
+              "if the buffer manager is unable to evict enough unreferenced "
+              "blocks to make room for a new allocation.");
 static const bool buffer_pool_slots_dummy
-    = gflags::RegisterFlagValidator(&FLAGS_buffer_pool_slots, &ValidateBufferPoolSlots);
+    = gflags::RegisterFlagValidator(&FLAGS_buffer_pool_slots, &SetOrValidateBufferPoolSlots);
 
 #ifdef QUICKSTEP_HAVE_FILE_MANAGER_HDFS
 DEFINE_bool(use_hdfs, false, "Use HDFS as the persistent storage, instead of the local disk.");
