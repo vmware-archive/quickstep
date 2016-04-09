@@ -118,7 +118,7 @@ void executeDescribeTable(
     max_attr_column_width =
         std::max(max_attr_column_width,
             static_cast<int>(attr.getDisplayName().length()));
-    max_type_column_width = 
+    max_type_column_width =
         std::max(max_type_column_width,
             static_cast<int>(attr.getType().getName().length()));
   }
