@@ -15,9 +15,9 @@
  *   limitations under the License.
  **/
 
+#include <iostream>
 #include <fstream>
 #include <memory>
-#include <iostream>
 
 #include "cli/tests/CommandExecutorTestRunner.hpp"
 #include "utility/textbased_test/TextBasedTestDriver.hpp"
@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
       quickstep::CommandExecutorTestRunner::kResetOption);
 
   ::testing::InitGoogleTest(&argc, argv);
-  int success = RUN_ALL_TESTS();
+  const int success = RUN_ALL_TESTS();
   if (success != 0) {
     test_driver->writeActualOutputToFile(argv[2]);
   }

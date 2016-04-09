@@ -13,27 +13,27 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-CREATE TABLE FOO (col1 INT,
+CREATE TABLE foo (col1 INT,
                   col2 LONG,
                   col3 DOUBLE,
                   col4 FLOAT,
                   col5 CHAR(5));
-CREATE TABLE FOO2 (col1 INT,
+CREATE TABLE foo2 (col1 INT,
                    col2 LONG,
                    col3 DOUBLE,
                    col4 FLOAT,
                    averyverylongcolumnnamefortest CHAR(5));
-CREATE TABLE FOO3 (col1 INT,
+CREATE TABLE foo3 (col1 INT,
                    col2 LONG,
                    col3 DOUBLE,
                    col4 FLOAT,
                    col5 CHAR(5));
-CREATE TABLE FOO4 (col1 INT,
+CREATE TABLE foo4 (col1 INT,
                    col2 LONG,
                    col3 DOUBLE,
                    col4 FLOAT,
                    col5 CHAR(5));
-CREATE TABLE AVERYLONGTABLENAMETHATSEEMSTONEVEREND (col1 INT);
+CREATE TABLE averylongtablenamethatseemstoneverend (col1 INT);
 --
 ==
 \dt
@@ -43,11 +43,11 @@ CREATE TABLE AVERYLONGTABLENAMETHATSEEMSTONEVEREND (col1 INT);
  Name                                  | Type 
 +--------------------------------------+-------+
  Test                                  | table 
- FOO                                   | table 
- FOO2                                  | table 
- FOO3                                  | table 
- FOO4                                  | table 
- AVERYLONGTABLENAMETHATSEEMSTONEVEREND | table 
+ foo                                   | table 
+ foo2                                  | table 
+ foo3                                  | table 
+ foo4                                  | table 
+ averylongtablenamethatseemstoneverend | table 
 
 ==
 \dt invalidtable

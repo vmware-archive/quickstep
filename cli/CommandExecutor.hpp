@@ -38,13 +38,14 @@ namespace cli {
 /** \addtogroup CLI
  *  @{
  */
+
 // Adding the max column width as 6  as the default initializer
 // as the length of the word Column is 6 characters.
 // This is used while describing the table.
 constexpr int kInitMaxColumnWidth = 6;
 
-static const char kDescribeDatabaseCommand[] = "\\dt";
-static const char kDescribeTableCommand[] = "\\d";
+constexpr char kDescribeDatabaseCommand[] = "\\dt";
+constexpr char kDescribeTableCommand[] = "\\d";
 
 /**
   * @brief Executes the command by calling the command handler.
@@ -56,6 +57,7 @@ static const char kDescribeTableCommand[] = "\\d";
 void executeCommand(const ParseStatement &statement,
                     const CatalogDatabase &catalog_database,
                     FILE *out);
+
 /** @} */
 
 }  // namespace cli

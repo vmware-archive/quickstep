@@ -59,9 +59,8 @@ void executeDescribeDatabase(
   const CatalogRelation *relation;
   if (arguments->size() == 0) {
     for (const CatalogRelation &rel : catalog_database) {
-      int column_width = static_cast<int>(rel.getName().length());
       max_column_width =
-          max_column_width < column_width ? column_width : max_column_width;
+          std::max(static_cast<int>(rel.getName().length()), max_column_width);
     }
   } else {
     const ParseString &table_name = arguments->front();
@@ -69,11 +68,10 @@ void executeDescribeDatabase(
     relation = catalog_database.getRelationByName(table_name_val);
 
     if (relation == nullptr) {
-     THROW_SQL_ERROR_AT(&(arguments->front())) << " Unrecognized relation "  <<table_name_val;
+      THROW_SQL_ERROR_AT(&(arguments->front())) << " Unrecognized relation " << table_name_val;
     }
-    int column_width = static_cast<int>(relation->getName().length());
-    max_column_width =
-        max_column_width < column_width ? column_width : max_column_width;
+    max_column_width = std::max(static_cast<int>(relation->getName().length()),
+                                    max_column_width);
   }
   // Only if we have relations work on the printing logic.
   if (catalog_database.size() > 0) {
@@ -107,7 +105,7 @@ void executeDescribeTable(
   const CatalogRelation *relation =
       catalog_database.getRelationByName(table_name_val);
   if (relation == nullptr) {
-     THROW_SQL_ERROR_AT(&(arguments->front())) << " Unrecognized relation "  <<table_name_val;
+    THROW_SQL_ERROR_AT(&(arguments->front())) << " Unrecognized relation "  << table_name_val;
   }
   vector<int> column_widths;
   int max_attr_column_width = C::kInitMaxColumnWidth;
@@ -117,10 +115,11 @@ void executeDescribeTable(
     // Printed column needs to be wide enough to print:
     //   1. The attribute name (in the printed "header").
     //   2. Any value of the attribute's Type.
-    int attr_column_width = attr.getDisplayName().length();
-    int type_column_width = attr.getType().getName().length();
-    max_attr_column_width = std::max(max_attr_column_width, attr_column_width);
-    max_type_column_width = std::max(max_type_column_width, type_column_width);
+    max_attr_column_width =
+        std::max(max_attr_column_width,
+            static_cast<int>(attr.getDisplayName().length()));
+    max_type_column_width = std::max(max_type_column_width,
+                                static_cast<int>(attr.getType().getName().length()));
   }
   // Add room for one extra character to allow spacing between the column ending and the vertical bar
   column_widths.push_back(max_attr_column_width+1);
@@ -153,7 +152,7 @@ void executeDescribeTable(
       for (std::size_t i = 1; i < static_cast<std::size_t>(index_it->second.indexed_attribute_ids_size()); ++i) {
         const char *attribute_display_name = relation->getAttributeById(
                                                  index_it->second.indexed_attribute_ids(i))
-                                                 ->getDisplayName().c_str();
+                                                     ->getDisplayName().c_str();
         fprintf(out, ", %s", attribute_display_name);
       }
       fputc(')', out);
@@ -161,13 +160,15 @@ void executeDescribeTable(
     }
   }
 }
+
 }  // namespace
+
 void executeCommand(const ParseStatement &statement,
-                                     const CatalogDatabase &catalog_database,
-                                     FILE *out) {
+                    const CatalogDatabase &catalog_database,
+                    FILE *out) {
   const ParseCommand &command = static_cast<const ParseCommand &>(statement);
   const PtrVector<ParseString> *arguments = command.arguments();
-  const std::string command_str = command.command()->value();
+  const std::string &command_str = command.command()->value();
   if (command_str == C::kDescribeDatabaseCommand) {
     executeDescribeDatabase(arguments, catalog_database, out);
   } else if (command_str == C::kDescribeTableCommand) {
@@ -182,4 +183,3 @@ void executeCommand(const ParseStatement &statement,
 }
 }  // namespace cli
 }  // namespace quickstep
-

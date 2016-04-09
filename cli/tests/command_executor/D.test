@@ -13,35 +13,35 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-CREATE TABLE FOO (col1 INT,
+CREATE TABLE foo (col1 INT,
                   col2 LONG,
                   col3 DOUBLE,
                   col4 FLOAT,
                   col5 CHAR(5));
-CREATE TABLE FOO2 (col1 INT,
+CREATE TABLE foo2 (col1 INT,
                    col2 LONG,
                    col3 DOUBLE,
                    col4 FLOAT,
                    averyverylongcolumnnamefortest CHAR(5));
-CREATE TABLE FOO3 (col1 INT,
+CREATE TABLE foo3 (col1 INT,
                    col2 LONG,
                    col3 DOUBLE,
                    col4 FLOAT,
                    col5 CHAR(5));
-CREATE INDEX FOO3_INDEX_1 on FOO3 (col1) USING CSBTREE;
-CREATE TABLE FOO4 (col1 INT,
+CREATE INDEX foo3_index_1 ON foo3 (col1) USING CSBTREE;
+CREATE TABLE foo4 (col1 INT,
                    col2 LONG,
                    col3 DOUBLE,
                    col4 FLOAT,
                    col5 CHAR(5));
-CREATE INDEX FOO4_INDEX_1 on FOO4 (col1, col2) USING CSBTREE; 
-CREATE INDEX FOO4_INDEX_2 on FOO4 (col3, col4) USING CSBTREE; 
-CREATE TABLE AVERYLONGTABLENAMETHATSEEMSTONEVEREND (col1 INT);
+CREATE INDEX 4_index_1 ON foo4 (col1, col2) USING CSBTREE; 
+CREATE INDEX foo4_index_2 ON foo4 (col3, col4) USING CSBTREE; 
+CREATE TABLE averylongtablenamethatseemstoneverend (col1 INT);
 --
 ==
-\d FOO
+\d foo
 --
- Table "FOO"
+ Table "foo"
  Column | Type   
 +-------+--------+
  col1   | Int    
@@ -50,9 +50,9 @@ CREATE TABLE AVERYLONGTABLENAMETHATSEEMSTONEVEREND (col1 INT);
  col4   | Float  
  col5   | Char(5)
 ==
-\d FOO2                   
+\d foo2                   
 --
- Table "FOO2"
+ Table "foo2"
  Column                         | Type   
 +-------------------------------+--------+
  col1                           | Int    
@@ -61,9 +61,9 @@ CREATE TABLE AVERYLONGTABLENAMETHATSEEMSTONEVEREND (col1 INT);
  col4                           | Float  
  averyverylongcolumnnamefortest | Char(5)
 ==
-\d FOO3
+\d foo3
 --
- Table "FOO3"
+ Table "foo3"
  Column | Type   
 +-------+--------+
  col1   | Int    
@@ -72,11 +72,11 @@ CREATE TABLE AVERYLONGTABLENAMETHATSEEMSTONEVEREND (col1 INT);
  col4   | Float  
  col5   | Char(5)
  Indexes
-  "FOO3_INDEX_1" CSB_TREE (col1)
+  "foo3_index_1" CSB_TREE (col1)
 ==                    
-\d FOO4
+\d foo4
 --
- Table "FOO4"
+ Table "foo4"
  Column | Type   
 +-------+--------+
  col1   | Int    
@@ -85,8 +85,8 @@ CREATE TABLE AVERYLONGTABLENAMETHATSEEMSTONEVEREND (col1 INT);
  col4   | Float  
  col5   | Char(5)
  Indexes
-  "FOO4_INDEX_2" CSB_TREE (col3, col4)
-  "FOO4_INDEX_1" CSB_TREE (col1, col2)
+  "foo4_index_2" CSB_TREE (col3, col4)
+  "foo4_index_1" CSB_TREE (col1, col2)
 ==
 \d
 --
@@ -95,11 +95,11 @@ CREATE TABLE AVERYLONGTABLENAMETHATSEEMSTONEVEREND (col1 INT);
  Name                                  | Type 
 +--------------------------------------+-------+
  Test                                  | table 
- FOO                                   | table 
- FOO2                                  | table 
- FOO3                                  | table 
- FOO4                                  | table 
- AVERYLONGTABLENAMETHATSEEMSTONEVEREND | table 
+ foo                                   | table 
+ foo2                                  | table 
+ foo3                                  | table 
+ foo4                                  | table 
+ averylongtablenamethatseemstoneverend | table 
 
 ==
 \d invalidtable

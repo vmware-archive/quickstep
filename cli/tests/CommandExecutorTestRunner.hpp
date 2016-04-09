@@ -45,7 +45,7 @@ class CommandExecutorTestRunner : public TextBasedTestRunner {
    * @brief If this option is enabled, recreate the entire database and
    * repopulate the data before every test.
    */
-  static const std::string kResetOption;
+  static const char kResetOption[];
 
   /**
    * @brief Constructor.
@@ -111,7 +111,6 @@ class CommandExecutorTestRunner : public TextBasedTestRunner {
   DISALLOW_COPY_AND_ASSIGN(CommandExecutorTestRunner);
 };
 
-
 }  // namespace quickstep
 
-#endif /* QUICKSTEP_CLI_TESTS_COMMAND_EXECUTOR_TEST_RUNNER_HPP_ */
+#endif  //  QUICKSTEP_CLI_TESTS_COMMAND_EXECUTOR_TEST_RUNNER_HPP_

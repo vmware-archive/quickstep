@@ -43,6 +43,7 @@ class PrintToScreen {
   static void PrintRelation(const CatalogRelation &relation,
                             StorageManager *storage_manager,
                             FILE *out);
+
   static void printHBar(const std::vector<int> &column_widths,
                         FILE *out);
  private:

@@ -1,6 +1,6 @@
 /**
- *   Copyright 2011-2015 Quickstep Technologies LLC.
- *   Copyright 2015-2016 Pivotal Software, Inc.
+ *   Copyright 2016, Quickstep Research Group, Computer Sciences Department,
+ *     University of Wisconsin—Madison.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ namespace O = ::quickstep::optimizer;
 namespace P = ::quickstep::optimizer::physical;
 namespace L = ::quickstep::optimizer::logical;
 
-const std::string CommandExecutorTestRunner::kResetOption =
+const char CommandExecutorTestRunner::kResetOption[] =
     "reset_before_execution";
 
 void CommandExecutorTestRunner::runTestCase(
@@ -72,8 +72,8 @@ void CommandExecutorTestRunner::runTestCase(
     ParseResult result = sql_parser_.getNextStatement();
 
     O::OptimizerContext optimizer_context(0 /* query_id */,
-                                       test_database_loader_.catalog_database(),
-                                       test_database_loader_.storage_manager());
+                                          test_database_loader_.catalog_database(),
+                                          test_database_loader_.storage_manager());
 
     if (result.condition != ParseResult::kSuccess) {
       if (result.condition == ParseResult::kError) {
@@ -92,14 +92,13 @@ void CommandExecutorTestRunner::runTestCase(
           QueryHandle query_handle(optimizer_context.query_id());
           O::LogicalGenerator logical_generator(&optimizer_context);
           O::PhysicalGenerator physical_generator;
-          O::ExecutionGenerator execution_generator(&optimizer_context,
-                                               &query_handle);
+          O::ExecutionGenerator execution_generator(&optimizer_context, &query_handle);
           const P::PhysicalPtr physical_plan =
-            physical_generator.generatePlan(
-                logical_generator.generatePlan(*result.parsed_statement));
+              physical_generator.generatePlan(
+                  logical_generator.generatePlan(*result.parsed_statement));
           execution_generator.generatePlan(physical_plan);
           foreman_->setQueryPlan(
-            query_handle.getQueryPlanMutable()->getQueryPlanDAGMutable());
+              query_handle.getQueryPlanMutable()->getQueryPlanDAGMutable());
 
           foreman_->reconstructQueryContextFromProto(query_handle.getQueryContextProto());
 
