@@ -34,7 +34,7 @@ CREATE TABLE foo4 (col1 INT,
                    col3 DOUBLE,
                    col4 FLOAT,
                    col5 CHAR(5));
-CREATE INDEX 4_index_1 ON foo4 (col1, col2) USING CSBTREE; 
+CREATE INDEX foo4_index_1 ON foo4 (col1, col2) USING CSBTREE; 
 CREATE INDEX foo4_index_2 ON foo4 (col3, col4) USING CSBTREE; 
 CREATE TABLE averylongtablenamethatseemstoneverend (col1 INT);
 --

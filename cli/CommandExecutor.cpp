@@ -118,8 +118,9 @@ void executeDescribeTable(
     max_attr_column_width =
         std::max(max_attr_column_width,
             static_cast<int>(attr.getDisplayName().length()));
-    max_type_column_width = std::max(max_type_column_width,
-                                static_cast<int>(attr.getType().getName().length()));
+    max_type_column_width = 
+        std::max(max_type_column_width,
+            static_cast<int>(attr.getType().getName().length()));
   }
   // Add room for one extra character to allow spacing between the column ending and the vertical bar
   column_widths.push_back(max_attr_column_width+1);
