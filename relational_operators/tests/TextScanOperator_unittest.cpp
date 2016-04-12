@@ -104,7 +104,7 @@ class TextScanOperatorTest : public ::testing::Test {
   void fetchAndExecuteWorkOrders(RelationalOperator *op) {
     // Treat the single operator as the sole node in a query plan DAG.
     op->setOperatorIndex(kOpIndex);
-    WorkOrdersContainer container(1, 0);
+    WorkOrdersContainer container(1, 0, 0);
     const std::size_t op_index = 0;
     op->informAllBlockingDependenciesMet();
     op->getAllWorkOrders(&container,

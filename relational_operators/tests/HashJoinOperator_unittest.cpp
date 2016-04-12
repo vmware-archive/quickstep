@@ -248,7 +248,7 @@ class HashJoinOperatorTest : public ::testing::TestWithParam<HashTableImplType> 
     // index for each operator should be set, so that the WorkOrdersContainer
     // class' checks about operator index are successful.
     op->setOperatorIndex(kOpIndex);
-    WorkOrdersContainer container(1, 0);
+    WorkOrdersContainer container(1, 0, 0);
     const std::size_t op_index = 0;
     op->getAllWorkOrders(&container,
                          query_context_.get(),

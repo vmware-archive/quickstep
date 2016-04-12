@@ -292,7 +292,8 @@ void Foreman::initializeState() {
   blocking_dependencies_.resize(dag_size);
 
   query_exec_state_.reset(new QueryExecutionState(dag_size));
-  workorders_container_.reset(new WorkOrdersContainer(dag_size, num_numa_nodes_));
+  // Using dummy query ID for now.
+  workorders_container_.reset(new WorkOrdersContainer(dag_size, num_numa_nodes_, 0));
 
   for (dag_node_index node_index = 0; node_index < dag_size; ++node_index) {
     const QueryContext::insert_destination_id insert_destination_index =

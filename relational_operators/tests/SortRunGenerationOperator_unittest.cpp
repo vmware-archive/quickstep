@@ -283,7 +283,7 @@ class SortRunGenerationOperatorTest : public ::testing::Test {
   }
 
   void executeOperator(RelationalOperator *op) {
-    WorkOrdersContainer container(kOpIndex + 1, 0);
+    WorkOrdersContainer container(kOpIndex + 1, 0, 0);
     op->getAllWorkOrders(&container,
                          query_context_.get(),
                          storage_manager_.get(),

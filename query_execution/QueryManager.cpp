@@ -68,7 +68,7 @@ QueryManager::QueryManager(const tmb::client_id foreman_client_id,
 
   query_exec_state_.reset(new QueryExecutionState(num_operators_in_dag));
   workorders_container_.reset(
-      new WorkOrdersContainer(num_operators_in_dag, num_numa_nodes));
+      new WorkOrdersContainer(num_operators_in_dag, num_numa_nodes, query_id_));
 
   query_context_.reset(new QueryContext(query_handle->getQueryContextProto(),
                                         *catalog_database_,

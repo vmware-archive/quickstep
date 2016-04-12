@@ -1450,7 +1450,7 @@ class SortMergeRunOperatorTest : public ::testing::Test {
 
   void executeOperatorUntilDone() {
     bool done;
-    WorkOrdersContainer container(kOpIndex + 1, 0);
+    WorkOrdersContainer container(kOpIndex + 1, 0, 0);
     do {
       done = merge_op_->getAllWorkOrders(&container,
                                          query_context_.get(),
@@ -1467,7 +1467,7 @@ class SortMergeRunOperatorTest : public ::testing::Test {
 
   bool executeOperator() {
     bool done = false;
-    WorkOrdersContainer container(kOpIndex + 1, 0);
+    WorkOrdersContainer container(kOpIndex + 1, 0, 0);
     bool executed;
     do {
       if (!done) {
