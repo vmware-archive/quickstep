@@ -779,12 +779,12 @@ template <typename ValueT,
           bool force_key_copy,
           bool allow_duplicate_keys>
 bool SimpleScalarSeparateChainingHashTable<ValueT,
-                                      resizable,
-                                      serializable,
-                                      force_key_copy,
-                                      allow_duplicate_keys>
+                                           resizable,
+                                           serializable,
+                                           force_key_copy,
+                                           allow_duplicate_keys>
     ::hasKey(const TypedValue &key) const {
-  DCHECK(!allow_duplicate_keys);
+  DCHECK_EQ(1u, this->key_types_.size());
   DCHECK(key.isPlausibleInstanceOf(this->key_types_.front()->getSignature()));
 
   const std::size_t hash_code = key.getHashScalarLiteral();

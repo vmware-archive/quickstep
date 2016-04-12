@@ -1109,8 +1109,8 @@ template <typename ValueT,
           bool allow_duplicate_keys>
 bool LinearOpenAddressingHashTable<ValueT, resizable, serializable, force_key_copy, allow_duplicate_keys>
     ::hasKey(const TypedValue &key) const {
-  DEBUG_ASSERT(this->key_types_.size() == 1);
-  DEBUG_ASSERT(key.isPlausibleInstanceOf(this->key_types_.front()->getSignature()));
+  DCHECK_EQ(1u, this->key_types_.size());
+  DCHECK(key.isPlausibleInstanceOf(this->key_types_.front()->getSignature()));
 
   const std::size_t hash_code = this->AdjustHash(key.getHash());
   for (std::size_t bucket_num = hash_code % header_->num_buckets;
@@ -1127,7 +1127,7 @@ bool LinearOpenAddressingHashTable<ValueT, resizable, serializable, force_key_co
 
     // None of the get methods should be called while inserts are still taking
     // place.
-    DEBUG_ASSERT(bucket_hash != kPendingHash);
+    DCHECK(bucket_hash != kPendingHash);
 
     if ((bucket_hash == hash_code) && key_manager_.scalarKeyCollisionCheck(key, bucket)) {
       // Match located.
