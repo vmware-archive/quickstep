@@ -285,6 +285,22 @@ class WorkOrder {
         " receiver thread with TMB client ID " << receiver_id;
   }
 
+  /**
+   * @brief Get the ID of the query which this WorkOder belongs to.
+   **/
+  inline const std::size_t getQueryID() const {
+    return query_id_;
+  }
+
+  /**
+   * @brief Set the ID of the query which the WorkOrder belongs to.
+   *
+   * @param query_id The query ID.
+   **/
+  void setQueryID(const std::size_t query_id) {
+    query_id_ = query_id;
+  }
+
  protected:
   WorkOrder() {}
 
@@ -293,6 +309,8 @@ class WorkOrder {
   // workorder. Derived classes should ensure that there are no duplicate entries
   // in this vector.
   std::vector<int> preferred_numa_nodes_;
+
+  std::size_t query_id_;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(WorkOrder);
