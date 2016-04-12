@@ -108,14 +108,14 @@ class JoinGeneratorTest : public LogicalRuleTest {
         {join_attribute_pairs[0].first},
         {join_attribute_pairs[0].second},
         nullptr /* residual_predicate */,
-        L::HashJoin::kInnerJoin);
+        L::HashJoin::JoinType::kInnerJoin);
     for (size_t i = 2; i < join_operands.size(); ++i) {
       hash_join = L::HashJoin::Create(hash_join,
                                       join_operands[i],
                                       {join_attribute_pairs[i - 1].first},
                                       {join_attribute_pairs[i - 1].second},
                                       nullptr /* residual_predicate */,
-                                      L::HashJoin::kInnerJoin);
+                                      L::HashJoin::JoinType::kInnerJoin);
     }
     return hash_join;
   }
@@ -226,7 +226,7 @@ TEST_F(JoinGeneratorTest, MultiAttributesHashJoin) {
                                             {relation_attribute_reference_1_0_,
                                              relation_attribute_reference_1_1_},
                                             nullptr /* residual_predicate */,
-                                            L::HashJoin::kInnerJoin),
+                                            L::HashJoin::JoinType::kInnerJoin),
                         single_table_predicate);
   APPLY_RULE_AND_CHECK_OUTPUT();
 }

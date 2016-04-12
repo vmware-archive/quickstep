@@ -74,7 +74,7 @@ class JoinTest : public StrategyTest {
         {relation_attribute_reference_0_0_},
         {relation_attribute_reference_1_0_},
         nullptr /* residual_predicate */,
-        L::HashJoin::kInnerJoin);
+        L::HashJoin::JoinType::kInnerJoin);
 
 
     std::vector<E::NamedExpressionPtr> project_expressions(
@@ -97,7 +97,7 @@ class JoinTest : public StrategyTest {
                             {relation_attribute_reference_1_0_},
                             E::PredicatePtr(),
                             project_expressions,
-                            P::HashJoin::kInnerJoin);
+                            P::HashJoin::JoinType::kInnerJoin);
   }
 
   void setupStrategy(std::unique_ptr<Strategy> *strategy) override {
@@ -143,7 +143,7 @@ TEST_F(JoinTest, ProjectOnJoin) {
       {relation_attribute_reference_1_0_},
       E::PredicatePtr(),
       logical_project_0_->project_expressions(),
-      P::HashJoin::kInnerJoin);
+      P::HashJoin::JoinType::kInnerJoin);
   EXPECT_CORRECT_PHYSICAL();
 }
 
@@ -184,7 +184,7 @@ TEST_F(JoinTest, ProjectOnFilterOnHashJoin) {
        relation_attribute_reference_1_1_},
       filter_predicate_0_,
       logical_project_1_->project_expressions(),
-      P::HashJoin::kInnerJoin);
+      P::HashJoin::JoinType::kInnerJoin);
   EXPECT_CORRECT_PHYSICAL();
 }
 
@@ -213,7 +213,7 @@ TEST_F(JoinTest, FilterOnHashJoin) {
       {relation_attribute_reference_1_0_},
       filter_predicate_0_,
       physical_nested_loops_join_->project_expressions(),
-      P::HashJoin::kInnerJoin);
+      P::HashJoin::JoinType::kInnerJoin);
   EXPECT_CORRECT_PHYSICAL();
 }
 
@@ -226,7 +226,7 @@ TEST_F(JoinTest, HashJoinOnSelection) {
                           {relation_attribute_reference_0_0_},
                           {relation_attribute_reference_1_0_},
                           nullptr /* residual_predicate */,
-                          L::HashJoin::kInnerJoin);
+                          L::HashJoin::JoinType::kInnerJoin);
   // References an attribute created by the left underlying project of the hash
   // join.
   const E::AliasPtr alias_on_alias_reference = E::Alias::Create(
@@ -249,7 +249,7 @@ TEST_F(JoinTest, HashJoinOnSelection) {
       {relation_attribute_reference_1_0_},
       E::PredicatePtr(),
       {alias_on_alias_reference_after_pullup} /* project_expressions */,
-      P::HashJoin::kInnerJoin);
+      P::HashJoin::JoinType::kInnerJoin);
   EXPECT_CORRECT_PHYSICAL();
 
   // HashJoin -- Project
@@ -276,7 +276,7 @@ TEST_F(JoinTest, HashJoinOnSelection) {
                                        {E::ToRef(alias_add_literal_0_)},
                                        {relation_attribute_reference_1_0_},
                                        nullptr /* residual_predicate */,
-                                       L::HashJoin::kInnerJoin);
+                                       L::HashJoin::JoinType::kInnerJoin);
   std::vector<E::NamedExpressionPtr> project_expressions(
       E::ToNamedExpressions(physical_project_0_->getOutputAttributes()));
   project_expressions.push_back(alias_on_attribute_reference);
@@ -287,7 +287,7 @@ TEST_F(JoinTest, HashJoinOnSelection) {
                           {relation_attribute_reference_1_0_},
                           E::PredicatePtr(),
                           project_expressions,
-                          P::HashJoin::kInnerJoin);
+                          P::HashJoin::JoinType::kInnerJoin);
   EXPECT_CORRECT_PHYSICAL();
 }
 

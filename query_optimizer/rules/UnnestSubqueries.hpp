@@ -68,7 +68,7 @@ class UnnestSubqueries : public Rule<logical::Logical> {
 class UnnestSubqueriesForNonRootLogical : public Rule<logical::Logical> {
  public:
   UnnestSubqueriesForNonRootLogical(
-      bool scalar_query,
+      const bool scalar_query,
       const expressions::UnorderedNamedExpressionSet &visiable_attrs_from_outer_query,
       OptimizerContext *context,
       std::unordered_map<expressions::ExprId, logical::LogicalPtr> *uncorrelated_subqueries,
@@ -136,13 +136,13 @@ class UnnestSubqueriesForNonRootLogical : public Rule<logical::Logical> {
       expressions::UnorderedAttributeSet *inner_attributes,
       std::vector<expressions::AttributeReferencePtr> *probe_join_attributes,
       std::vector<expressions::AttributeReferencePtr> *build_join_attributes,
-      std::vector<expressions::PredicatePtr>* non_hash_join_predicates);
+      std::vector<expressions::PredicatePtr> *non_hash_join_predicates);
 
   void validateNonOuterAttributeReference(const expressions::ExpressionPtr &expression);
 
   bool isCorrelatedOuterAttribute(const expressions::AttributeReferencePtr &attribute) const;
 
-  bool scalar_query_;
+  const bool scalar_query_;
   OptimizerContext *context_;
   const expressions::UnorderedNamedExpressionSet &visiable_attrs_from_outer_query_;
   std::unordered_map<expressions::ExprId, logical::LogicalPtr> *uncorrelated_subqueries_;
@@ -176,10 +176,10 @@ class UnnestSubqueriesForExpession : public Rule<expressions::Expression> {
   const expressions::UnorderedNamedExpressionSet &visible_attributes_from_outer_query_;
 
   expressions::ExpressionPtr applyInternal(
-      bool allow_exists_or_in,
+      const bool allow_exists_or_in,
       const expressions::ExpressionPtr &node);
 
-  void transformExists(const expressions::Exists *exists_predicate);
+  void transformExists(const expressions::Exists &exists_predicate);
 
   OptimizerContext *context_;
   std::unordered_map<expressions::ExprId, logical::LogicalPtr> *uncorrelated_subqueries_;
@@ -191,7 +191,7 @@ class UnnestSubqueriesForExpession : public Rule<expressions::Expression> {
 class DeOuterAttributeReference : public BottomUpRule<expressions::Expression> {
  public:
   DeOuterAttributeReference(
-      bool allow_outer_reference,
+      const bool allow_outer_reference,
       const std::unordered_map<expressions::ExprId, logical::LogicalPtr> &uncorrelated_subqueries,
       const expressions::UnorderedNamedExpressionSet &visiable_attrs_from_outer_query)
       : allow_outer_reference_(allow_outer_reference),

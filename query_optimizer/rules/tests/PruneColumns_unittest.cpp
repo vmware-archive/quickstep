@@ -96,7 +96,7 @@ TEST_F(PruneColumnTest, PrimaryTest) {
                                                        {relation_attribute_reference_1_0_},
                                                        E::PredicatePtr(),
                                                        project_expressions_with_redundancy,
-                                                       P::HashJoin::kInnerJoin);
+                                                       P::HashJoin::JoinType::kInnerJoin);
 
   // alias_add_literal_0_: relation_attribute_reference_0_0_ + literal_0_.
   // filter_predicate_1_: relation_attribute_reference_1_0_ > literal_0_.
@@ -124,7 +124,7 @@ TEST_F(PruneColumnTest, PrimaryTest) {
       {relation_attribute_reference_1_0_},
       E::PredicatePtr(),
       pruned_project_expressions_for_join,
-      P::HashJoin::kInnerJoin);
+      P::HashJoin::JoinType::kInnerJoin);
   const P::SelectionPtr new_selection = std::static_pointer_cast<const P::Selection>(
       selection->copyWithNewChildren({new_hash_join} /* new_children */));
   expect_output_ = P::TopLevelPlan::Create(new_selection);

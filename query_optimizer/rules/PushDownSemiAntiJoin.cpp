@@ -32,15 +32,14 @@ namespace E = ::quickstep::optimizer::expressions;
 namespace L = ::quickstep::optimizer::logical;
 
 L::LogicalPtr PushDownSemiAntiJoin::applyToNode(const L::LogicalPtr &input) {
-  L::HashJoinPtr hash_join;
-
-  const std::vector<L::LogicalPtr> children = input->children();
   std::vector<L::LogicalPtr> new_children;
   bool has_changes = false;
-  for (const L::LogicalPtr& child : children) {
+
+  for (const L::LogicalPtr &child : input->children()) {
+    L::HashJoinPtr hash_join;
     if (L::SomeHashJoin::MatchesWithConditionalCast(child, &hash_join)) {
-      if (hash_join->join_type() == L::HashJoin::kLeftSemiJoin
-          || hash_join->join_type() == L::HashJoin::kLeftAntiJoin) {
+      if (hash_join->join_type() == L::HashJoin::JoinType::kLeftSemiJoin ||
+          hash_join->join_type() == L::HashJoin::JoinType::kLeftAntiJoin) {
         L::LogicalPtr new_child = pushDownSemiAntiJoin(hash_join);
         if (new_child != child) {
           has_changes = true;
@@ -61,12 +60,11 @@ L::LogicalPtr PushDownSemiAntiJoin::applyToNode(const L::LogicalPtr &input) {
 
 L::LogicalPtr PushDownSemiAntiJoin::pushDownSemiAntiJoin(
     const L::HashJoinPtr &semi_anti_join) {
-  const L::LogicalPtr left_input = semi_anti_join->left();
+  const L::LogicalPtr &left_input = semi_anti_join->left();
   std::vector<L::LogicalPtr> left_input_children = left_input->children();
 
   if (!left_input_children.empty()) {
-    // Cannot push down a Filter down the right child of LeftOuterJoin.
-    std::vector<L::LogicalPtr>::size_type last_input_index = left_input_children.size();
+    const std::vector<L::LogicalPtr>::size_type last_input_index = left_input_children.size();
 
     std::vector<L::LogicalPtr>::size_type input_index = 0;
     while (input_index < last_input_index) {
@@ -92,7 +90,7 @@ L::LogicalPtr PushDownSemiAntiJoin::pushDownSemiAntiJoin(
           E::GetAttributeReferencesWithinScope(
               semi_anti_join->residual_predicate()->getReferencedAttributes(),
               E::AttributeReferenceScope::kLocal);
-      for (const E::AttributeReferencePtr& referenced_attr : referenced_attrs_in_residual) {
+      for (const E::AttributeReferencePtr &referenced_attr : referenced_attrs_in_residual) {
         if (visible_attribute_set.find(referenced_attr) == visible_attribute_set.end()) {
           input_index = last_input_index;
           break;

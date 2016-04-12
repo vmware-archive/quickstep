@@ -15,8 +15,8 @@
  *   limitations under the License.
  **/
 
-#ifndef MACHINE_QUERY_OPTIMIZER_RULES_PUSH_DOWN_SEMI_ANTI_JOIN_HPP_
-#define MACHINE_QUERY_OPTIMIZER_RULES_PUSH_DOWN_SEMI_ANTI_JOIN_HPP_
+#ifndef QUICKSTEP_QUERY_OPTIMIZER_RULES_PUSH_DOWN_SEMI_ANTI_JOIN_HPP_
+#define QUICKSTEP_QUERY_OPTIMIZER_RULES_PUSH_DOWN_SEMI_ANTI_JOIN_HPP_
 
 #include <string>
 
@@ -38,7 +38,7 @@ class PushDownSemiAntiJoin : public TopDownRule<logical::Logical> {
   logical::LogicalPtr applyToNode(const logical::LogicalPtr &input) override;
 
  private:
-  logical::LogicalPtr pushDownSemiAntiJoin(const logical::HashJoinPtr& input);
+  logical::LogicalPtr pushDownSemiAntiJoin(const logical::HashJoinPtr &input);
 
   DISALLOW_COPY_AND_ASSIGN(PushDownSemiAntiJoin);
 };
@@ -46,4 +46,4 @@ class PushDownSemiAntiJoin : public TopDownRule<logical::Logical> {
 }  // namespace optimizer
 }  // namespace quickstep
 
-#endif /* MACHINE_QUERY_OPTIMIZER_RULES_PUSH_DOWN_SEMI_ANTI_JOIN_HPP_ */
+#endif /* QUICKSTEP_QUERY_OPTIMIZER_RULES_PUSH_DOWN_SEMI_ANTI_JOIN_HPP_ */

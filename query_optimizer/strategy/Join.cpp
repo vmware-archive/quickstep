@@ -89,7 +89,7 @@ bool Join::generatePlan(const L::LogicalPtr &logical_input,
       L::SomeFilter::MatchesWithConditionalCast(logical_project->input(), &logical_filter)) {
     if (L::SomeHashJoin::MatchesWithConditionalCast(logical_filter->input(),
                                                     &logical_hash_join)) {
-      if (logical_hash_join->join_type() == L::HashJoin::kInnerJoin) {
+      if (logical_hash_join->join_type() == L::HashJoin::JoinType::kInnerJoin) {
         addHashJoin(logical_project,
                     logical_filter,
                     logical_hash_join,
@@ -115,7 +115,7 @@ bool Join::generatePlan(const L::LogicalPtr &logical_input,
   if (L::SomeFilter::MatchesWithConditionalCast(logical_input, &logical_filter)) {
     if (L::SomeHashJoin::MatchesWithConditionalCast(logical_filter->input(),
                                                     &logical_hash_join)) {
-      if (logical_hash_join->join_type() == L::HashJoin::kInnerJoin) {
+      if (logical_hash_join->join_type() == L::HashJoin::JoinType::kInnerJoin) {
         addHashJoin(nullptr /* logical_project */,
                     logical_filter,
                     logical_hash_join,
@@ -305,14 +305,14 @@ void Join::addHashJoin(const logical::ProjectPtr &logical_project,
 
   P::HashJoin::JoinType join_type;
   switch (logical_hash_join->join_type()) {
-    case L::HashJoin::kInnerJoin:
-      join_type = P::HashJoin::kInnerJoin;
+    case L::HashJoin::JoinType::kInnerJoin:
+      join_type = P::HashJoin::JoinType::kInnerJoin;
       break;
-    case L::HashJoin::kLeftSemiJoin:
-      join_type = P::HashJoin::kLeftSemiJoin;
+    case L::HashJoin::JoinType::kLeftSemiJoin:
+      join_type = P::HashJoin::JoinType::kLeftSemiJoin;
       break;
-    case L::HashJoin::kLeftAntiJoin:
-      join_type = P::HashJoin::kLeftAntiJoin;
+    case L::HashJoin::JoinType::kLeftAntiJoin:
+      join_type = P::HashJoin::JoinType::kLeftAntiJoin;
       break;
     default:
       LOG(FATAL) << "Invalid logical::HashJoin::JoinType: "

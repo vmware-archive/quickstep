@@ -76,7 +76,7 @@ std::vector<E::AttributeReferencePtr> Aggregate::getReferencedAttributes() const
 }
 
 LogicalPtr Aggregate::copyWithNewInputExpressions(
-      const std::vector<E::ExpressionPtr>& input_expressions) const {
+    const std::vector<E::ExpressionPtr> &input_expressions) const {
   DCHECK_EQ(grouping_expressions_.size() + aggregate_expressions_.size(),
             input_expressions.size());
 

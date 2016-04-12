@@ -75,7 +75,7 @@ class Filter : public Logical {
   }
 
   LogicalPtr copyWithNewInputExpressions(
-      const std::vector<expressions::ExpressionPtr>& input_expressions) const override;
+      const std::vector<expressions::ExpressionPtr> &input_expressions) const override;
 
   std::vector<expressions::AttributeReferencePtr> getOutputAttributes() const override {
     return input()->getOutputAttributes();

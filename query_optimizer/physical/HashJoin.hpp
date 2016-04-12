@@ -53,7 +53,7 @@ typedef std::shared_ptr<const HashJoin> HashJoinPtr;
  */
 class HashJoin : public BinaryJoin {
  public:
-  enum JoinType {
+  enum class JoinType {
     kInnerJoin = 0,
     kLeftSemiJoin,
     kLeftAntiJoin
@@ -63,17 +63,16 @@ class HashJoin : public BinaryJoin {
 
   std::string getName() const override {
     switch (join_type_) {
-      case kInnerJoin:
+      case JoinType::kInnerJoin:
         return "HashJoin";
-      case kLeftSemiJoin:
+      case JoinType::kLeftSemiJoin:
         return "HashLeftSemiJoin";
-      case kLeftAntiJoin:
+      case JoinType::kLeftAntiJoin:
         return "HashLeftAntiJoin";
       default:
         LOG(FATAL) << "Invalid JoinType: "
                    << static_cast<typename std::underlying_type<JoinType>::type>(join_type_);
     }
-    QUICKSTEP_UNREACHABLE();
   }
 
   /**
@@ -181,7 +180,7 @@ class HashJoin : public BinaryJoin {
   std::vector<expressions::AttributeReferencePtr> left_join_attributes_;
   std::vector<expressions::AttributeReferencePtr> right_join_attributes_;
   expressions::PredicatePtr residual_predicate_;
-  const JoinType join_type_;
+  JoinType join_type_;
 
   DISALLOW_COPY_AND_ASSIGN(HashJoin);
 };

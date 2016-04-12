@@ -77,7 +77,7 @@ class Aggregate : public Logical {
       const std::vector<LogicalPtr> &new_children) const override;
 
   LogicalPtr copyWithNewInputExpressions(
-      const std::vector<expressions::ExpressionPtr>& input_expressions) const override;
+      const std::vector<expressions::ExpressionPtr> &input_expressions) const override;
 
   std::vector<expressions::AttributeReferencePtr> getOutputAttributes() const override;
 

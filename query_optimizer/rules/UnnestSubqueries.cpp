@@ -57,24 +57,24 @@ namespace E = ::quickstep::optimizer::expressions;
 namespace L = ::quickstep::optimizer::logical;
 
 struct CorrelatedQueryInfo {
-  enum QueryType {
-    kHashJoin,
-    kSemiJoin,
-    kAntiJoin
+  enum class JoinType {
+    kInnerJoin = 0,
+    kLeftSemiJoin,
+    kLeftAntiJoin
   };
 
-  CorrelatedQueryInfo(const QueryType query_type,
+  CorrelatedQueryInfo(const JoinType join_type_in,
                       const L::LogicalPtr &correlated_query_in,
                       std::vector<E::AttributeReferencePtr> &&probe_join_attributes_in,
                       std::vector<E::AttributeReferencePtr> &&build_join_attributes_in,
                       std::vector<E::PredicatePtr> &&non_hash_join_predicates_in)
-      : query_type_(query_type),
+      : join_type(join_type_in),
         correlated_query(correlated_query_in),
         probe_join_attributes(std::move(probe_join_attributes_in)),
         build_join_attributes(std::move(build_join_attributes_in)),
         non_hash_join_predicates(std::move(non_hash_join_predicates_in)) {}
 
-  QueryType query_type_;
+  JoinType join_type;
   L::LogicalPtr correlated_query;
   std::vector<E::AttributeReferencePtr> probe_join_attributes;
   std::vector<E::AttributeReferencePtr> build_join_attributes;
@@ -85,8 +85,7 @@ L::LogicalPtr UnnestSubqueries::apply(const L::LogicalPtr &input) {
   DCHECK(L::SomeTopLevelPlan::Matches(input))
       << "The input logical node must be of TopLevelPlan";
 
-  const L::TopLevelPlan* top_level_plan =
-      static_cast<const L::TopLevelPlan*>(input.get());
+  const L::TopLevelPlan &top_level_plan = static_cast<const L::TopLevelPlan&>(*input);
 
   bool has_changes = false;
 
@@ -108,7 +107,7 @@ L::LogicalPtr UnnestSubqueries::apply(const L::LogicalPtr &input) {
 
   // Unnest subqueries in each subplan and the main plan.
   std::vector<L::LogicalPtr> new_shared_subplans;
-  for (const L::LogicalPtr &shared_subplan : top_level_plan->shared_subplans()) {
+  for (const L::LogicalPtr &shared_subplan : top_level_plan.shared_subplans()) {
     const L::LogicalPtr new_shared_subplan = unnest_rule.apply(shared_subplan);
     if (new_shared_subplan != shared_subplan && !has_changes) {
       has_changes = true;
@@ -116,8 +115,8 @@ L::LogicalPtr UnnestSubqueries::apply(const L::LogicalPtr &input) {
     new_shared_subplans.emplace_back(new_shared_subplan);
   }
 
-  const L::LogicalPtr new_main_plan = unnest_rule.apply(top_level_plan->plan());
-  if (new_main_plan != top_level_plan->plan() && !has_changes) {
+  const L::LogicalPtr new_main_plan = unnest_rule.apply(top_level_plan.plan());
+  if (new_main_plan != top_level_plan.plan() && !has_changes) {
     has_changes = true;
   }
 
@@ -235,23 +234,23 @@ L::LogicalPtr UnnestSubqueriesForNonRootLogical::applyToNode(
             << "Non-equality join predicate with an outer query must be above any aggregate";
       }
 
-      const L::Aggregate *aggregate = static_cast<const L::Aggregate*>(input_with_no_subqueries.get());
+      const L::Aggregate &aggregate = static_cast<const L::Aggregate&>(*input_with_no_subqueries);
       DCHECK(!has_change);
       if (!inner_attributes->empty()) {
-        std::vector<E::NamedExpressionPtr> group_expressions = aggregate->grouping_expressions();
+        std::vector<E::NamedExpressionPtr> group_expressions = aggregate.grouping_expressions();
         group_expressions.insert(group_expressions.end(),
                                  inner_attributes->begin(),
                                  inner_attributes->end());
-        return L::Aggregate::Create(aggregate->input(),
+        return L::Aggregate::Create(aggregate.input(),
                                     group_expressions,
-                                    aggregate->aggregate_expressions());
+                                    aggregate.aggregate_expressions());
       }
       return input_with_no_subqueries;
     }
     case L::LogicalType::kFilter: {
       if (new_input_expressions.empty()) {
-        const L::Filter* filter = static_cast<const L::Filter*>(input_with_no_subqueries.get());
-        return filter->input();
+        const L::Filter &filter = static_cast<const L::Filter&>(*input_with_no_subqueries);
+        return filter.input();
       }
       if (has_change) {
         return input_with_no_subqueries->copyWithNewInputExpressions(new_input_expressions);
@@ -264,14 +263,14 @@ L::LogicalPtr UnnestSubqueriesForNonRootLogical::applyToNode(
             input_with_no_subqueries->copyWithNewInputExpressions(new_input_expressions);
       }
       if (!inner_attributes->empty()) {
-         const L::Project *project = static_cast<const L::Project*>(input_with_no_subqueries.get());
+         const L::Project &project = static_cast<const L::Project&>(*input_with_no_subqueries);
          // Insert those inner attributes into the front of the project expression
          // list rather than the back to help reduce unnecessary selection for
          // reordering output attributes, since those attributes are usually also
          // grouping attributes that proceed others in projection.
          std::vector<E::NamedExpressionPtr> new_project_expressions;
-         const E::UnorderedNamedExpressionSet project_expression_set(project->project_expressions().begin(),
-                                                                     project->project_expressions().end());
+         const E::UnorderedNamedExpressionSet project_expression_set(project.project_expressions().begin(),
+                                                                     project.project_expressions().end());
          for (const E::AttributeReferencePtr &inner_attribute : *inner_attributes) {
            if (project_expression_set.find(inner_attribute) == project_expression_set.end()) {
              new_project_expressions.emplace_back(inner_attribute);
@@ -280,8 +279,8 @@ L::LogicalPtr UnnestSubqueriesForNonRootLogical::applyToNode(
          new_project_expressions.insert(new_project_expressions.end(),
                                         project_expression_set.begin(),
                                         project_expression_set.end());
-         if (new_project_expressions.size() != project->project_expressions().size()) {
-           input_with_no_subqueries = L::Project::Create(project->input(),
+         if (new_project_expressions.size() != project.project_expressions().size()) {
+           input_with_no_subqueries = L::Project::Create(project.input(),
                                                          new_project_expressions);
          }
       }
@@ -300,19 +299,19 @@ E::ExpressionPtr UnnestSubqueriesForNonRootLogical::eliminateOuterAttributeRefer
     E::UnorderedAttributeSet *inner_attributes,
     std::vector<E::AttributeReferencePtr> *probe_join_attributes,
     std::vector<E::AttributeReferencePtr> *build_join_attributes,
-    std::vector<E::PredicatePtr>* non_hash_join_predicates) {
+    std::vector<E::PredicatePtr> *non_hash_join_predicates) {
   DCHECK(expression->getExpressionType() != E::ExpressionType::kExists);
   DCHECK(expression->getExpressionType() != E::ExpressionType::kSubqueryExpression);
 
   switch (expression->getExpressionType()) {
-    case E::ExpressionType::kPredicateLiteral:
+    case E::ExpressionType::kPredicateLiteral:  // Fall through
     case E::ExpressionType::kScalarLiteral:
       return expression;
     case E::ExpressionType::kLogicalAnd: {
-      const E::LogicalAnd* logical_and = static_cast<const E::LogicalAnd*>(expression.get());
+      const E::LogicalAnd &logical_and = static_cast<const E::LogicalAnd&>(*expression);
       bool has_change = false;
       std::vector<E::PredicatePtr> new_children;
-      for (const E::PredicatePtr &child : logical_and->operands()) {
+      for (const E::PredicatePtr &child : logical_and.operands()) {
         const E::ExpressionPtr new_child =
             eliminateOuterAttributeReference(child,
                                              inner_attributes,
@@ -344,10 +343,10 @@ E::ExpressionPtr UnnestSubqueriesForNonRootLogical::eliminateOuterAttributeRefer
       E::AttributeReferencePtr outer_attribute;
       E::AttributeReferencePtr inner_attribute;
       // Hash-join predicate.
-      if (E::SomeAttributeReference::MatchesWithConditionalCast(comparison_expression->left(),
-                                                                &outer_attribute) &&
-          E::SomeAttributeReference::MatchesWithConditionalCast(comparison_expression->right(),
-                                                                &inner_attribute) &&
+      if (E::SomeAttributeReference::MatchesWithConditionalCast(
+              comparison_expression->left(), &outer_attribute) &&
+          E::SomeAttributeReference::MatchesWithConditionalCast(
+              comparison_expression->right(), &inner_attribute) &&
           comparison_expression->comparison().getComparisonID() == ComparisonID::kEqual) {
         if (!isCorrelatedOuterAttribute(outer_attribute)) {
           if (!isCorrelatedOuterAttribute(inner_attribute)) {
@@ -419,8 +418,8 @@ void UnnestSubqueriesForNonRootLogical::validateNonOuterAttributeReference(
 
 bool UnnestSubqueriesForNonRootLogical::isCorrelatedOuterAttribute(
     const E::AttributeReferencePtr &attribute) const {
-  return attribute->scope() == E::AttributeReferenceScope::kOuter
-         && uncorrelated_subqueries_->find(attribute->id()) == uncorrelated_subqueries_->end();
+  return (attribute->scope() == E::AttributeReferenceScope::kOuter &&
+          uncorrelated_subqueries_->find(attribute->id()) == uncorrelated_subqueries_->end());
 }
 
 L::LogicalPtr UnnestSubqueriesForNonRootLogical::eliminateNestedScalarQueries(const L::LogicalPtr &node) {
@@ -435,7 +434,6 @@ L::LogicalPtr UnnestSubqueriesForNonRootLogical::eliminateNestedScalarQueries(co
   std::vector<E::ExpressionPtr> new_input_expressions;
   bool has_changed_expression = false;
   for (const E::ExpressionPtr &input_expression : input_expressions) {
-//    std::cerr << "to unnest expr: " << input_expression->toString();
     std::vector<E::PredicatePtr> correlated_predicates;
     UnnestSubqueriesForExpession unnest_rule_for_expr(
         input_attribute_set,
@@ -455,17 +453,17 @@ L::LogicalPtr UnnestSubqueriesForNonRootLogical::eliminateNestedScalarQueries(co
     if (!correlated_query_info_vec.empty()) {
       L::LogicalPtr new_child;
 
-      if (new_input_expressions[0] == nullptr
-          && node->getLogicalType() == L::LogicalType::kNestedLoopsJoin) {
+      if (new_input_expressions[0] == nullptr &&
+          node->getLogicalType() == L::LogicalType::kNestedLoopsJoin) {
         new_child = node;
       } else {
-        DCHECK_EQ(node->children().size(), 1u);
+        DCHECK_EQ(1u, node->children().size());
         new_child = node->children()[0];
       }
 
       for (CorrelatedQueryInfo &correlated_query_info : correlated_query_info_vec) {
         DCHECK(!correlated_query_info.probe_join_attributes.empty());
-        if (correlated_query_info.query_type_ == CorrelatedQueryInfo::kHashJoin) {
+        if (correlated_query_info.join_type == CorrelatedQueryInfo::JoinType::kInnerJoin) {
           DCHECK(correlated_query_info.non_hash_join_predicates.empty())
               << correlated_query_info.non_hash_join_predicates[0]->toString();
           new_child = L::HashJoin::Create(new_child,
@@ -473,7 +471,7 @@ L::LogicalPtr UnnestSubqueriesForNonRootLogical::eliminateNestedScalarQueries(co
                                           correlated_query_info.probe_join_attributes,
                                           correlated_query_info.build_join_attributes,
                                           nullptr, /* residual_predicate */
-                                          L::HashJoin::kInnerJoin);
+                                          L::HashJoin::JoinType::kInnerJoin);
         } else {
           E::PredicatePtr filter_predicate;
           if (correlated_query_info.non_hash_join_predicates.size() > 1u) {
@@ -483,9 +481,9 @@ L::LogicalPtr UnnestSubqueriesForNonRootLogical::eliminateNestedScalarQueries(co
           }
 
           L::HashJoin::JoinType join_type =
-              (correlated_query_info.query_type_ == CorrelatedQueryInfo::kSemiJoin)
-                  ? L::HashJoin::kLeftSemiJoin
-                  : L::HashJoin::kLeftAntiJoin;
+              (correlated_query_info.join_type == CorrelatedQueryInfo::JoinType::kLeftSemiJoin)
+                  ? L::HashJoin::JoinType::kLeftSemiJoin
+                  : L::HashJoin::JoinType::kLeftAntiJoin;
           new_child = L::HashJoin::Create(new_child,
                                           correlated_query_info.correlated_query,
                                           correlated_query_info.probe_join_attributes,
@@ -497,9 +495,9 @@ L::LogicalPtr UnnestSubqueriesForNonRootLogical::eliminateNestedScalarQueries(co
 
       // Special case for filter and nested loops join which may contain EXISTS and IN.
       if (new_input_expressions[0] == nullptr) {
-        DCHECK_EQ(new_input_expressions.size(), 1u);
-        DCHECK(node->getLogicalType() == L::LogicalType::kFilter
-               || node->getLogicalType() == L::LogicalType::kNestedLoopsJoin) << node->toString();
+        DCHECK_EQ(1u, new_input_expressions.size());
+        DCHECK(node->getLogicalType() == L::LogicalType::kFilter ||
+               node->getLogicalType() == L::LogicalType::kNestedLoopsJoin) << node->toString();
         LOG_APPLYING_RULE(node, new_child);
         return new_child;
       }
@@ -520,12 +518,12 @@ L::LogicalPtr UnnestSubqueriesForNonRootLogical::eliminateNestedScalarQueries(co
 }
 
 E::ExpressionPtr UnnestSubqueriesForExpession::applyInternal(
-    bool allow_exists_or_in,
+    const bool allow_exists_or_in,
     const E::ExpressionPtr &node) {
   switch (node->getExpressionType()) {
     case E::ExpressionType::kSubqueryExpression: {
-      const E::SubqueryExpression *subquery_expression =
-          static_cast<const E::SubqueryExpression*>(node.get());
+      const E::SubqueryExpression &subquery_expression =
+          static_cast<const E::SubqueryExpression&>(*node);
 
       std::vector<E::AttributeReferencePtr> probe_join_attributes;
       std::vector<E::AttributeReferencePtr> build_join_attributes;
@@ -537,7 +535,7 @@ E::ExpressionPtr UnnestSubqueriesForExpession::applyInternal(
                                                             &probe_join_attributes,
                                                             &build_join_attributes,
                                                             &non_hash_join_predicates);
-      const L::LogicalPtr subquery = subquery_expression->subquery();
+      const L::LogicalPtr subquery = subquery_expression.subquery();
       const L::LogicalPtr new_subquery = unnest_logical_rule.apply(subquery);
       const E::AttributeReferencePtr output_attribute = subquery->getOutputAttributes()[0];
       DCHECK(!new_subquery->getOutputAttributes().empty());
@@ -555,7 +553,7 @@ E::ExpressionPtr UnnestSubqueriesForExpession::applyInternal(
                                           new_subquery);
         return new_outer_attribute_reference;
       } else {
-        correlated_query_info_vec_->emplace_back(CorrelatedQueryInfo::kHashJoin,
+        correlated_query_info_vec_->emplace_back(CorrelatedQueryInfo::JoinType::kInnerJoin,
                                                  new_subquery,
                                                  std::move(probe_join_attributes),
                                                  std::move(build_join_attributes),
@@ -568,20 +566,18 @@ E::ExpressionPtr UnnestSubqueriesForExpession::applyInternal(
       if (!allow_exists_or_in) {
         THROW_SQL_ERROR() << "EXISTS can only appear in (un-nested) NOT, AND or by itself";
       }
-      const E::Exists *exists = static_cast<const E::Exists*>(node.get());
-      transformExists(exists);
+      transformExists(static_cast<const E::Exists&>(*node));
       return E::ExpressionPtr();
     }
     case E::ExpressionType::kLogicalNot: {
-      const E::LogicalNot *logical_not =
-          static_cast<const E::LogicalNot*>(node.get());
-      const E::PredicatePtr &operand = logical_not->operand();
+      const E::LogicalNot &logical_not = static_cast<const E::LogicalNot&>(*node);
+      const E::PredicatePtr &operand = logical_not.operand();
       if (operand->getExpressionType() == E::ExpressionType::kExists) {
         if (!allow_exists_or_in) {
           THROW_SQL_ERROR() << "EXISTS can only appear in (un-nested) NOT, AND or by itself";
         }
-        transformExists(static_cast<const E::Exists*>(operand.get()));
-        correlated_query_info_vec_->back().query_type_ = CorrelatedQueryInfo::kAntiJoin;
+        transformExists(static_cast<const E::Exists&>(*operand));
+        correlated_query_info_vec_->back().join_type = CorrelatedQueryInfo::JoinType::kLeftAntiJoin;
         return E::PredicatePtr();
       }
       const E::ExpressionPtr new_operand =
@@ -594,12 +590,11 @@ E::ExpressionPtr UnnestSubqueriesForExpession::applyInternal(
       }
     }
     case E::ExpressionType::kLogicalAnd: {
-      const E::LogicalAnd *logical_and =
-          static_cast<const E::LogicalAnd*>(node.get());
+      const E::LogicalAnd &logical_and = static_cast<const E::LogicalAnd&>(*node);
 
       std::vector<E::PredicatePtr> new_operands;
       bool has_change = false;
-      for (const E::PredicatePtr &operand : logical_and->operands()) {
+      for (const E::PredicatePtr &operand : logical_and.operands()) {
         const E::ExpressionPtr new_operand =
             applyInternal(allow_exists_or_in,
                           operand);
@@ -623,12 +618,11 @@ E::ExpressionPtr UnnestSubqueriesForExpession::applyInternal(
       return node;
     }
     case E::ExpressionType::kLogicalOr: {
-      const E::LogicalOr *logical_or =
-          static_cast<const E::LogicalOr*>(node.get());
+      const E::LogicalOr &logical_or = static_cast<const E::LogicalOr&>(*node);
 
       std::vector<E::PredicatePtr> new_operands;
       bool has_change = false;
-      for (const E::PredicatePtr &operand : logical_or->operands()) {
+      for (const E::PredicatePtr &operand : logical_or.operands()) {
         const E::ExpressionPtr new_operand =
             applyInternal(false,
                           operand);
@@ -665,7 +659,7 @@ E::ExpressionPtr UnnestSubqueriesForExpession::applyInternal(
 }
 
 void UnnestSubqueriesForExpession::transformExists(
-    const E::Exists *exists_predicate) {
+    const E::Exists &exists_predicate) {
   std::vector<E::AttributeReferencePtr> probe_join_attributes;
   std::vector<E::AttributeReferencePtr> build_join_attributes;
   std::vector<E::PredicatePtr> non_hash_join_predicates;
@@ -678,7 +672,7 @@ void UnnestSubqueriesForExpession::transformExists(
                                                         &non_hash_join_predicates);
   DCHECK_EQ(probe_join_attributes.size(), build_join_attributes.size());
   const L::LogicalPtr new_subquery =
-      unnest_logical_rule.apply(exists_predicate->exists_subquery()->subquery());
+      unnest_logical_rule.apply(exists_predicate.exists_subquery()->subquery());
 
   if (probe_join_attributes.empty()) {
     if (!non_hash_join_predicates.empty()) {
@@ -687,7 +681,7 @@ void UnnestSubqueriesForExpession::transformExists(
     THROW_SQL_ERROR() << "EXISTS subquery cannot be un-correlated with the outer query";
   }
 
-  correlated_query_info_vec_->emplace_back(CorrelatedQueryInfo::kSemiJoin,
+  correlated_query_info_vec_->emplace_back(CorrelatedQueryInfo::JoinType::kLeftSemiJoin,
                                            new_subquery,
                                            std::move(probe_join_attributes),
                                            std::move(build_join_attributes),
@@ -696,9 +690,9 @@ void UnnestSubqueriesForExpession::transformExists(
 
 E::ExpressionPtr DeOuterAttributeReference::applyToNode(const E::ExpressionPtr &input) {
   E::AttributeReferencePtr attr;
-  if (E::SomeAttributeReference::MatchesWithConditionalCast(input, &attr)
-      && attr->scope() == E::AttributeReferenceScope::kOuter
-      && uncorrelated_subqueries_.find(attr->id()) == uncorrelated_subqueries_.end()) {
+  if (E::SomeAttributeReference::MatchesWithConditionalCast(input, &attr) &&
+      attr->scope() == E::AttributeReferenceScope::kOuter &&
+      uncorrelated_subqueries_.find(attr->id()) == uncorrelated_subqueries_.end()) {
     if (!allow_outer_reference_) {
       THROW_SQL_ERROR() << "Non-equality join predicate is not allowed in scalar subqueries";
     }

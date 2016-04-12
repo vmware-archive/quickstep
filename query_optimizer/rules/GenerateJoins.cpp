@@ -299,7 +299,7 @@ L::LogicalPtr GenerateJoins::applyToNode(const L::LogicalPtr &input) {
             hash_join_predicate_info->left_join_attributes,
             hash_join_predicate_info->right_join_attributes,
             nullptr /* residual_predicate */,
-            L::HashJoin::kInnerJoin);
+            L::HashJoin::JoinType::kInnerJoin);
         UpdateLogicalVectors(left_logical,
                              right_logical,
                              logical_join,
