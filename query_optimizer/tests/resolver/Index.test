@@ -99,8 +99,6 @@ ERROR: syntax error (1 : 40)
 CREATE INDEX randomIndex ON test USING RANDOM;
                                        ^
 ==
-
-# SMA Index creation is not supported using CREATE INDEX
 CREATE INDEX smaIndex ON test USING SMA
 --
 TopLevelPlan

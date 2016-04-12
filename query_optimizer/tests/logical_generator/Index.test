@@ -52,8 +52,6 @@ TopLevelPlan
 +-output_attributes=
   +-AttributeReference[id=0,name=int_col,relation=test,type=Int NULL]
 ==
-
-# SMA Index creation is not supported using CREATE INDEX
 CREATE INDEX smaIndex ON test USING SMA
 --
 TopLevelPlan
