@@ -43,4 +43,5 @@ message DataPipelineMessage {
 
 message WorkOrdersAvailableMessage {
   required uint64 operator_index = 1;
+  required uint64 query_id = 2;
 }

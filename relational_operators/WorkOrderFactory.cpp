@@ -310,6 +310,7 @@ WorkOrder* WorkOrderFactory::ReconstructFromProto(const serialization::WorkOrder
           proto.GetExtension(serialization::TextSplitWorkOrder::process_escape_sequences),
           storage_manager,
           proto.GetExtension(serialization::TextSplitWorkOrder::operator_index),
+          query_context->getQueryID(),
           shiftboss_client_id,
           bus);
     }

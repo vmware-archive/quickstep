@@ -165,6 +165,7 @@ bool TextScanOperator::getAllWorkOrders(
                                      process_escape_sequences_,
                                      storage_manager,
                                      op_index_,
+                                     query_context->getQueryID(),
                                      scheduler_client_id,
                                      bus),
               op_index_);
@@ -664,6 +665,7 @@ void TextSplitWorkOrder::sendBlobInfoToOperator(const bool write_row_aligned) {
   // Notify Foreman for the avaiable work order on the blob.
   serialization::WorkOrdersAvailableMessage message_proto;
   message_proto.set_operator_index(operator_index_);
+  message_proto.set_query_id(query_id_);
 
   // NOTE(zuyu): Using the heap memory to serialize proto as a c-like string.
   const size_t message_proto_length = message_proto.ByteSize();

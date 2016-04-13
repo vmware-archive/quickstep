@@ -321,6 +321,7 @@ class TextSplitWorkOrder : public WorkOrder {
    * @param storage_manager The StorageManager to use.
    * @param operator_index Operator index of the current operator. This is used
    *                       to send new-work available message to Foreman.
+   * @param query_id The ID of this query.
    * @param scheduler_client_id The TMB client ID of the scheduler thread.
    * @param bus A pointer to the TMB.
    */
@@ -328,12 +329,14 @@ class TextSplitWorkOrder : public WorkOrder {
                      const bool process_escape_sequences,
                      StorageManager *storage_manager,
                      const std::size_t operator_index,
+                     const std::size_t query_id,
                      const tmb::client_id scheduler_client_id,
                      MessageBus *bus)
       : filename_(filename),
         process_escape_sequences_(process_escape_sequences),
         storage_manager_(DCHECK_NOTNULL(storage_manager)),
         operator_index_(operator_index),
+        query_id_(query_id),
         scheduler_client_id_(scheduler_client_id),
         bus_(DCHECK_NOTNULL(bus)) {}
 
@@ -369,6 +372,8 @@ class TextSplitWorkOrder : public WorkOrder {
   StorageManager *storage_manager_;
 
   const std::size_t operator_index_;  // Opeartor index.
+  const std::size_t query_id_;  // query ID.
+
   const tmb::client_id scheduler_client_id_;  // The scheduler's TMB client ID.
   MessageBus *bus_;
 
