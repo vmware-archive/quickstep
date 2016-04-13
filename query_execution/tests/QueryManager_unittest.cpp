@@ -249,6 +249,7 @@ class QueryManagerTest : public ::testing::Test {
 
     proto.set_block_id(0);  // dummy block ID
     proto.set_relation_id(0);  // dummy relation ID.
+    proto.set_query_id(0);  // dummy query ID.
 
     // NOTE(zuyu): Using the heap memory to serialize proto as a c-like string.
     const std::size_t proto_length = proto.ByteSize();
@@ -315,6 +316,7 @@ class QueryManagerTest : public ::testing::Test {
 
     proto.set_block_id(0);  // dummy block ID
     proto.set_relation_id(0);  // dummy relation ID.
+    proto.set_query_id(0);  // dummy query ID.
 
     // NOTE(zuyu): Using the heap memory to serialize proto as a c-like string.
     const std::size_t proto_length = proto.ByteSize();
@@ -713,11 +715,13 @@ TEST_F(QueryManagerTest, TwoNodesDAGPartiallyFilledBlocksTest) {
   // Setup the InsertDestination proto in the query context proto.
   serialization::QueryContext *query_context_proto =
       query_handle_->getQueryContextProtoMutable();
+  query_context_proto->set_query_id(0);  // dummy query ID.
 
   const QueryContext::insert_destination_id insert_destination_index =
       query_context_proto->insert_destinations_size();
   serialization::InsertDestination *insert_destination_proto =
       query_context_proto->add_insert_destinations();
+  insert_destination_proto->set_query_id(query_context_proto->query_id());
 
   insert_destination_proto->set_insert_destination_type(
       serialization::InsertDestinationType::BLOCK_POOL);

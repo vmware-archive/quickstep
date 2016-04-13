@@ -282,6 +282,7 @@ class HashJoinOperatorTest : public ::testing::TestWithParam<HashTableImplType> 
 TEST_P(HashJoinOperatorTest, LongKeyHashJoinTest) {
   // Setup the hash table proto in the query context proto.
   serialization::QueryContext query_context_proto;
+  query_context_proto.set_query_id(0);  // dummy query ID.
 
   const QueryContext::join_hash_table_id join_hash_table_index =
       query_context_proto.join_hash_tables_size();
@@ -342,6 +343,7 @@ TEST_P(HashJoinOperatorTest, LongKeyHashJoinTest) {
   const QueryContext::insert_destination_id output_destination_index =
       query_context_proto.insert_destinations_size();
   serialization::InsertDestination *insert_destination_proto = query_context_proto.add_insert_destinations();
+  insert_destination_proto->set_query_id(query_context_proto.query_id());
 
   insert_destination_proto->set_insert_destination_type(serialization::InsertDestinationType::BLOCK_POOL);
   insert_destination_proto->set_relation_id(output_relation_id);
@@ -416,6 +418,7 @@ TEST_P(HashJoinOperatorTest, LongKeyHashJoinTest) {
 TEST_P(HashJoinOperatorTest, IntDuplicateKeyHashJoinTest) {
   // Setup the hash table proto in the query context proto.
   serialization::QueryContext query_context_proto;
+  query_context_proto.set_query_id(0);  // dummy query ID.
 
   const QueryContext::join_hash_table_id join_hash_table_index =
       query_context_proto.join_hash_tables_size();
@@ -484,6 +487,7 @@ TEST_P(HashJoinOperatorTest, IntDuplicateKeyHashJoinTest) {
   const QueryContext::insert_destination_id output_destination_index =
       query_context_proto.insert_destinations_size();
   serialization::InsertDestination *insert_destination_proto = query_context_proto.add_insert_destinations();
+  insert_destination_proto->set_query_id(query_context_proto.query_id());
 
   insert_destination_proto->set_insert_destination_type(serialization::InsertDestinationType::BLOCK_POOL);
   insert_destination_proto->set_relation_id(output_relation_id);
@@ -579,6 +583,7 @@ TEST_P(HashJoinOperatorTest, IntDuplicateKeyHashJoinTest) {
 TEST_P(HashJoinOperatorTest, CharKeyCartesianProductHashJoinTest) {
   // Setup the hash table proto in the query context proto.
   serialization::QueryContext query_context_proto;
+  query_context_proto.set_query_id(0);  // dummy query ID.
 
   const QueryContext::join_hash_table_id join_hash_table_index =
       query_context_proto.join_hash_tables_size();
@@ -634,6 +639,7 @@ TEST_P(HashJoinOperatorTest, CharKeyCartesianProductHashJoinTest) {
   const QueryContext::insert_destination_id output_destination_index =
       query_context_proto.insert_destinations_size();
   serialization::InsertDestination *insert_destination_proto = query_context_proto.add_insert_destinations();
+  insert_destination_proto->set_query_id(query_context_proto.query_id());
 
   insert_destination_proto->set_insert_destination_type(serialization::InsertDestinationType::BLOCK_POOL);
   insert_destination_proto->set_relation_id(output_relation_id);
@@ -708,6 +714,7 @@ TEST_P(HashJoinOperatorTest, CharKeyCartesianProductHashJoinTest) {
 TEST_P(HashJoinOperatorTest, VarCharDuplicateKeyHashJoinTest) {
   // Setup the hash table proto in the query context proto.
   serialization::QueryContext query_context_proto;
+  query_context_proto.set_query_id(0);  // dummy query ID.
 
   const QueryContext::join_hash_table_id join_hash_table_index =
       query_context_proto.join_hash_tables_size();
@@ -769,6 +776,7 @@ TEST_P(HashJoinOperatorTest, VarCharDuplicateKeyHashJoinTest) {
   const QueryContext::insert_destination_id output_destination_index =
       query_context_proto.insert_destinations_size();
   serialization::InsertDestination *insert_destination_proto = query_context_proto.add_insert_destinations();
+  insert_destination_proto->set_query_id(query_context_proto.query_id());
 
   insert_destination_proto->set_insert_destination_type(serialization::InsertDestinationType::BLOCK_POOL);
   insert_destination_proto->set_relation_id(output_relation_id);
@@ -868,6 +876,7 @@ TEST_P(HashJoinOperatorTest, VarCharDuplicateKeyHashJoinTest) {
 TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinTest) {
   // Setup the hash table proto in the query context proto.
   serialization::QueryContext query_context_proto;
+  query_context_proto.set_query_id(0);  // dummy query ID.
 
   const QueryContext::join_hash_table_id join_hash_table_index =
       query_context_proto.join_hash_tables_size();
@@ -934,6 +943,7 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinTest) {
   const QueryContext::insert_destination_id output_destination_index =
       query_context_proto.insert_destinations_size();
   serialization::InsertDestination *insert_destination_proto = query_context_proto.add_insert_destinations();
+  insert_destination_proto->set_query_id(query_context_proto.query_id());
 
   insert_destination_proto->set_insert_destination_type(serialization::InsertDestinationType::BLOCK_POOL);
   insert_destination_proto->set_relation_id(output_relation_id);
@@ -1038,6 +1048,7 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinTest) {
 TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinWithResidualPredicateTest) {
   // Setup the hash table proto in the query context proto.
   serialization::QueryContext query_context_proto;
+  query_context_proto.set_query_id(0);  // dummy query ID.
 
   const QueryContext::join_hash_table_id join_hash_table_index =
       query_context_proto.join_hash_tables_size();
@@ -1104,6 +1115,7 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinWithResidualPredicateTest) {
   const QueryContext::insert_destination_id output_destination_index =
       query_context_proto.insert_destinations_size();
   serialization::InsertDestination *insert_destination_proto = query_context_proto.add_insert_destinations();
+  insert_destination_proto->set_query_id(query_context_proto.query_id());
 
   insert_destination_proto->set_insert_destination_type(serialization::InsertDestinationType::BLOCK_POOL);
   insert_destination_proto->set_relation_id(output_relation_id);

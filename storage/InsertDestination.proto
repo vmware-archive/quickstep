@@ -34,6 +34,7 @@ message InsertDestination {
   optional StorageBlockLayoutDescription layout = 3;
 
   required uint64 relational_op_index = 4;
+  required uint64 query_id = 5;
 
   // The convention for extension numbering is that extensions for a particular
   // tInsertDestinationType should begin from (insert_destination_type + 1) * 16.

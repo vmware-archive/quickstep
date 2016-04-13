@@ -406,6 +406,13 @@ class QueryContext {
     return update_groups_[id];
   }
 
+  /**
+   * @param Get the ID of this query.
+   **/
+  inline const std::size_t getQueryID() const {
+    return query_id_;
+  }
+
  private:
   std::vector<std::unique_ptr<AggregationOperationState>> aggregation_states_;
   std::vector<std::unique_ptr<const GeneratorFunctionHandle>> generator_functions_;
@@ -416,6 +423,8 @@ class QueryContext {
   std::vector<std::unique_ptr<const SortConfiguration>> sort_configs_;
   std::vector<std::unique_ptr<Tuple>> tuples_;
   std::vector<std::unordered_map<attribute_id, std::unique_ptr<const Scalar>>> update_groups_;
+
+  const std::size_t query_id_;
 
   DISALLOW_COPY_AND_ASSIGN(QueryContext);
 };

@@ -354,7 +354,7 @@ void ExecutionGenerator::convertSample(const P::SamplePtr &physical_sample) {
   const QueryContext::insert_destination_id insert_destination_index =
       query_context_proto_->insert_destinations_size();
   S::InsertDestination *insert_destination_proto =
-      query_context_proto_->add_insert_destinations();
+      addNewInsertDestinationToQueryContext();
   createTemporaryCatalogRelation(physical_sample,
                                  &output_relation,
                                  insert_destination_proto);
@@ -464,7 +464,7 @@ void ExecutionGenerator::convertSelection(
   const CatalogRelation *output_relation = nullptr;
   const QueryContext::insert_destination_id insert_destination_index =
       query_context_proto_->insert_destinations_size();
-  S::InsertDestination *insert_destination_proto = query_context_proto_->add_insert_destinations();
+  S::InsertDestination *insert_destination_proto = addNewInsertDestinationToQueryContext();
   createTemporaryCatalogRelation(physical_selection,
                                  &output_relation,
                                  insert_destination_proto);
@@ -642,7 +642,7 @@ void ExecutionGenerator::convertHashJoin(const P::HashJoinPtr &physical_plan) {
   const CatalogRelation *output_relation = nullptr;
   const QueryContext::insert_destination_id insert_destination_index =
       query_context_proto_->insert_destinations_size();
-  S::InsertDestination *insert_destination_proto = query_context_proto_->add_insert_destinations();
+  S::InsertDestination *insert_destination_proto = addNewInsertDestinationToQueryContext();
   createTemporaryCatalogRelation(physical_plan,
                                  &output_relation,
                                  insert_destination_proto);
@@ -732,7 +732,7 @@ void ExecutionGenerator::convertNestedLoopsJoin(
   const CatalogRelation *output_relation = nullptr;
   const QueryContext::insert_destination_id insert_destination_index =
       query_context_proto_->insert_destinations_size();
-  S::InsertDestination *insert_destination_proto = query_context_proto_->add_insert_destinations();
+  S::InsertDestination *insert_destination_proto = addNewInsertDestinationToQueryContext();
   createTemporaryCatalogRelation(physical_plan,
                                  &output_relation,
                                  insert_destination_proto);
@@ -778,7 +778,7 @@ void ExecutionGenerator::convertCopyFrom(
   // Create InsertDestination proto.
   const QueryContext::insert_destination_id insert_destination_index =
       query_context_proto_->insert_destinations_size();
-  S::InsertDestination *insert_destination_proto = query_context_proto_->add_insert_destinations();
+  S::InsertDestination *insert_destination_proto = addNewInsertDestinationToQueryContext();
 
   insert_destination_proto->set_insert_destination_type(S::InsertDestinationType::BLOCK_POOL);
   insert_destination_proto->set_relation_id(output_relation->getID());
@@ -992,7 +992,7 @@ void ExecutionGenerator::convertInsertTuple(
   // Create InsertDestination proto.
   const QueryContext::insert_destination_id insert_destination_index =
       query_context_proto_->insert_destinations_size();
-  S::InsertDestination *insert_destination_proto = query_context_proto_->add_insert_destinations();
+  S::InsertDestination *insert_destination_proto = addNewInsertDestinationToQueryContext();
 
   insert_destination_proto->set_insert_destination_type(S::InsertDestinationType::BLOCK_POOL);
   insert_destination_proto->set_relation_id(input_relation.getID());
@@ -1048,7 +1048,7 @@ void ExecutionGenerator::convertInsertSelection(
   // Create InsertDestination proto.
   const QueryContext::insert_destination_id insert_destination_index =
       query_context_proto_->insert_destinations_size();
-  S::InsertDestination *insert_destination_proto = query_context_proto_->add_insert_destinations();
+  S::InsertDestination *insert_destination_proto = addNewInsertDestinationToQueryContext();
 
   insert_destination_proto->set_insert_destination_type(S::InsertDestinationType::BLOCK_POOL);
   insert_destination_proto->set_relation_id(destination_relation.getID());
@@ -1118,7 +1118,7 @@ void ExecutionGenerator::convertUpdateTable(
   // Create InsertDestination proto.
   const QueryContext::insert_destination_id relocation_destination_index =
       query_context_proto_->insert_destinations_size();
-  S::InsertDestination *relocation_destination_proto = query_context_proto_->add_insert_destinations();
+  S::InsertDestination *relocation_destination_proto = addNewInsertDestinationToQueryContext();
 
   relocation_destination_proto->set_insert_destination_type(S::InsertDestinationType::BLOCK_POOL);
   relocation_destination_proto->set_relation_id(input_rel_id);
@@ -1266,7 +1266,7 @@ void ExecutionGenerator::convertAggregate(
   const CatalogRelation *output_relation = nullptr;
   const QueryContext::insert_destination_id insert_destination_index =
       query_context_proto_->insert_destinations_size();
-  S::InsertDestination *insert_destination_proto = query_context_proto_->add_insert_destinations();
+  S::InsertDestination *insert_destination_proto = addNewInsertDestinationToQueryContext();
   createTemporaryCatalogRelation(physical_plan,
                                  &output_relation,
                                  insert_destination_proto);
@@ -1314,7 +1314,7 @@ void ExecutionGenerator::convertSort(const P::SortPtr &physical_sort) {
   const QueryContext::insert_destination_id initial_runs_destination_id =
       query_context_proto_->insert_destinations_size();
   S::InsertDestination *initial_runs_destination_proto =
-      query_context_proto_->add_insert_destinations();
+      addNewInsertDestinationToQueryContext();
   createTemporaryCatalogRelation(
       physical_sort, &initial_runs_relation, initial_runs_destination_proto);
 
@@ -1359,7 +1359,7 @@ void ExecutionGenerator::convertSort(const P::SortPtr &physical_sort) {
   const QueryContext::insert_destination_id merged_runs_destination_id =
     query_context_proto_->insert_destinations_size();
   S::InsertDestination *merged_runs_destination_proto =
-    query_context_proto_->add_insert_destinations();
+    addNewInsertDestinationToQueryContext();
   createTemporaryCatalogRelation(physical_sort,
                                  &merged_runs_relation,
                                  merged_runs_destination_proto);
@@ -1367,7 +1367,7 @@ void ExecutionGenerator::convertSort(const P::SortPtr &physical_sort) {
   const QueryContext::insert_destination_id sorted_output_destination_id =
     query_context_proto_->insert_destinations_size();
   S::InsertDestination *sorted_output_destination_proto =
-    query_context_proto_->add_insert_destinations();
+    addNewInsertDestinationToQueryContext();
   createTemporaryCatalogRelation(physical_sort,
                                  &sorted_relation,
                                  sorted_output_destination_proto);
@@ -1420,7 +1420,7 @@ void ExecutionGenerator::convertTableGenerator(
   const QueryContext::insert_destination_id insert_destination_index =
       query_context_proto_->insert_destinations_size();
   S::InsertDestination *insert_destination_proto =
-      query_context_proto_->add_insert_destinations();
+      addNewInsertDestinationToQueryContext();
   createTemporaryCatalogRelation(physical_tablegen,
                                  &output_relation,
                                  insert_destination_proto);
@@ -1446,6 +1446,12 @@ void ExecutionGenerator::convertTableGenerator(
       std::forward_as_tuple(tablegen_index,
                             output_relation));
   temporary_relation_info_vec_.emplace_back(tablegen_index, output_relation);
+}
+
+S::InsertDestination* ExecutionGenerator::addNewInsertDestinationToQueryContext() {
+  std::unique_ptr<S::InsertDestination> insert_destination_proto(query_context_proto_->add_insert_destinations());
+  insert_destination_proto->set_query_id(query_context_proto_->query_id());
+  return insert_destination_proto.release();
 }
 
 }  // namespace optimizer

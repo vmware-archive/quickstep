@@ -53,7 +53,8 @@ QueryContext::QueryContext(const serialization::QueryContext &proto,
                            const CatalogDatabaseLite &database,
                            StorageManager *storage_manager,
                            const tmb::client_id scheduler_client_id,
-                           tmb::MessageBus *bus) {
+                           tmb::MessageBus *bus)
+    : query_id_(proto.query_id()) {
   DCHECK(ProtoIsValid(proto, database))
       << "Attempted to create QueryContext from an invalid proto description:\n"
       << proto.DebugString();

@@ -89,6 +89,7 @@ class ExecutionGenerator {
         query_handle_(query_handle),
         execution_plan_(query_handle->getQueryPlanMutable()),
         query_context_proto_(query_handle->getQueryContextProtoMutable()) {
+    query_context_proto_->set_query_id(query_handle->query_id());
     setupCostModel();
   }
 
@@ -362,6 +363,14 @@ class ExecutionGenerator {
    *        when some exception or error occurs.
    */
   void dropAllTemporaryRelations();
+
+  /**
+   * @brief Add a new InsertDesetination to the QueryContext and set the
+   *        query ID for the InsertDestination.
+   *
+   * @return A pointer to the serialized InsertDestination.
+   **/
+  serialization::InsertDestination* addNewInsertDestinationToQueryContext();
 
   OptimizerContext *optimizer_context_;
   QueryHandle *query_handle_;

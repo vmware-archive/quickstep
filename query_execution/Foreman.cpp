@@ -524,6 +524,7 @@ void Foreman::getRebuildWorkOrders(const dag_node_index index, WorkOrdersContain
                             index,
                             op.getOutputRelationID(),
                             foreman_client_id_,
+                            0,  // dummy query ID for now.
                             bus_),
         index);
   }
