@@ -2001,11 +2001,11 @@ void HashTable<ValueT,
         }
       }
       if (run_if_match_found) {
-        if (hasKey(key)) {
+        if (this->hasKey(key)) {
           (*functor)(*accessor);
         }
       } else {
-        if (!hasKey(key)) {
+        if (!this->hasKey(key)) {
           (*functor)(*accessor);
         }
       }
@@ -2049,10 +2049,10 @@ void HashTable<ValueT, resizable, serializable, force_key_copy, allow_duplicate_
       }
 
       if (run_if_match_found) {
-        if (hasCompositeKey(key_vector)) {
+        if (this->hasCompositeKey(key_vector)) {
           (*functor)(*accessor);
         }
-      } else if (!hasCompositeKey(key_vector)) {
+      } else if (!this->hasCompositeKey(key_vector)) {
         (*functor)(*accessor);
       }
     }
