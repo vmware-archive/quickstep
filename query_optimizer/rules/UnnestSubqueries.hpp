@@ -41,6 +41,7 @@ class OptimizerContext;
 namespace expressions {
 
 class Exists;
+class InTableQuery;
 
 }
 
@@ -180,6 +181,7 @@ class UnnestSubqueriesForExpession : public Rule<expressions::Expression> {
       const expressions::ExpressionPtr &node);
 
   void transformExists(const expressions::Exists &exists_predicate);
+  void transformInTableQuery(const expressions::InTableQuery &in_table_query);
 
   OptimizerContext *context_;
   std::unordered_map<expressions::ExprId, logical::LogicalPtr> *uncorrelated_subqueries_;
