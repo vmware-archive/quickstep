@@ -34,7 +34,6 @@ namespace expressions {
   return nullptr;
 }
 
-
 void Exists::getFieldStringItems(
     std::vector<std::string> *inline_field_names,
     std::vector<std::string> *inline_field_values,
@@ -45,7 +44,6 @@ void Exists::getFieldStringItems(
   non_container_child_field_names->push_back("exists_subquery");
   non_container_child_fields->push_back(exists_subquery_);
 }
-
 
 }  // namespace expressions
 }  // namespace optimizer

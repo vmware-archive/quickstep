@@ -67,7 +67,7 @@ class Exists : public Predicate {
 
   ExpressionPtr copyWithNewChildren(
       const std::vector<ExpressionPtr> &new_children) const override {
-    DCHECK_EQ(new_children.size(), 1u);
+    DCHECK_EQ(1u, new_children.size());
     return Create(std::static_pointer_cast<const SubqueryExpression>(new_children[0]));
   }
 

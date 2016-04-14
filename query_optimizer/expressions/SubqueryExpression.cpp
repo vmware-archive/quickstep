@@ -30,7 +30,7 @@ namespace optimizer {
 namespace expressions {
 
 ::quickstep::Scalar* SubqueryExpression::concretize(
-    const std::unordered_map<ExprId, const CatalogAttribute*>& substitution_map) const {
+    const std::unordered_map<ExprId, const CatalogAttribute*> &substitution_map) const {
   LOG(FATAL) << "SubqueryExpression should not be concretized";
   return nullptr;
 }
