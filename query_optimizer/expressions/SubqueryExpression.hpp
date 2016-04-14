@@ -20,9 +20,11 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "query_optimizer/expressions/AttributeReference.hpp"
+#include "query_optimizer/expressions/ExprId.hpp"
 #include "query_optimizer/expressions/Expression.hpp"
 #include "query_optimizer/expressions/ExpressionType.hpp"
 #include "query_optimizer/expressions/Scalar.hpp"
@@ -34,6 +36,8 @@
 
 namespace quickstep {
 
+class CatalogAttribute;
+class Scalar;
 class Type;
 
 namespace optimizer {

@@ -21,10 +21,15 @@
 #include <string>
 
 #include "query_optimizer/OptimizerTree.hpp"
+#include "query_optimizer/expressions/ExprId.hpp"
 
 #include "glog/logging.h"
 
 namespace quickstep {
+
+class CatalogAttribute;
+class Predicate;
+
 namespace optimizer {
 namespace expressions {
 
