@@ -267,6 +267,7 @@ unsigned_numeric_literal {exact_numeric_literal}|{approximate_numeric_literal}
   "when"             return TOKEN_WHEN;
   "where"            return TOKEN_WHERE;
   "with"             return TOKEN_WITH;
+  "year"             return TOKEN_YEAR;
   "yearmonth"        return TOKEN_YEARMONTH;
 
   "="                return TOKEN_EQ;

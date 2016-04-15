@@ -197,7 +197,7 @@ typedef void* yyscan_t;
   quickstep::ParseOrderBy *opt_order_by_clause_;
   bool *order_direction_;
   quickstep::ParseLimit *opt_limit_clause_;
-  
+
   quickstep::ParseSample *opt_sample_clause_;
 
   quickstep::PtrList<quickstep::ParseOrderByItem> *order_commalist_;
@@ -328,6 +328,7 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_WHEN;
 %token TOKEN_WHERE;
 %token TOKEN_WITH;
+%token TOKEN_YEAR;
 %token TOKEN_YEARMONTH;
 %token TOKEN_EOF;
 %token TOKEN_LEX_ERROR;
@@ -1627,6 +1628,16 @@ literal_value:
     } else {
       $$ = nullptr;
       quickstep_yyerror(&@2, yyscanner, nullptr, "Failed to parse literal as specified type");
+      YYERROR;
+    }
+  }
+  | TOKEN_INTERVAL TOKEN_STRING_SINGLE_QUOTED TOKEN_YEAR {
+    quickstep::StringParseLiteralValue *parse_value;
+    if (quickstep::StringParseLiteralValue::ParseAmbiguousInterval(&($2->append(" year", 5)), &parse_value)) {
+      $$ = parse_value;
+    } else {
+      $$ = nullptr;
+      quickstep_yyerror(&@3, yyscanner, nullptr, "Failed to parse literal as specified type");
       YYERROR;
     }
   }
