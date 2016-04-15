@@ -17,8 +17,8 @@
 
 #include "query_optimizer/expressions/InTableQuery.hpp"
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "query_optimizer/OptimizerTree.hpp"
 #include "query_optimizer/expressions/ExprId.hpp"
@@ -47,8 +47,6 @@ void InTableQuery::getFieldStringItems(
   non_container_child_field_names->push_back("table_query");
   non_container_child_fields->push_back(table_query_);
 }
-
-
 
 }  // namespace expressions
 }  // namespace optimizer

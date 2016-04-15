@@ -83,7 +83,7 @@ class InValueList : public Predicate {
 
   ExpressionPtr copyWithNewChildren(
       const std::vector<ExpressionPtr> &new_children) const override {
-    DCHECK_EQ(new_children.size(), children().size());
+    DCHECK_EQ(children().size(), new_children.size());
     std::vector<ScalarPtr> new_match_expressions;
     for (std::size_t idx = 1; idx < new_children.size(); ++idx) {
       new_match_expressions.emplace_back(
@@ -154,5 +154,4 @@ class InValueList : public Predicate {
 }  // namespace optimizer
 }  // namespace quickstep
 
-
-#endif /* QUICKSTEP_QUERY_OPTIMIZER_EXPRESSIONS_IN_VALUE_LIST_HPP_ */
+#endif  // QUICKSTEP_QUERY_OPTIMIZER_EXPRESSIONS_IN_VALUE_LIST_HPP_

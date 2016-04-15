@@ -17,8 +17,8 @@
 
 #include "query_optimizer/expressions/InValueList.hpp"
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "expressions/predicate/DisjunctionPredicate.hpp"
 #include "expressions/predicate/Predicate.hpp"

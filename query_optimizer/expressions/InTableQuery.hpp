@@ -140,4 +140,4 @@ class InTableQuery : public Predicate {
 }  // namespace optimizer
 }  // namespace quickstep
 
-#endif /* QUICKSTEP_QUERY_OPTIMIZER_EXPRESSIONS_IN_TABLE_QUERY_HPP_ */
+#endif  // QUICKSTEP_QUERY_OPTIMIZER_EXPRESSIONS_IN_TABLE_QUERY_HPP_

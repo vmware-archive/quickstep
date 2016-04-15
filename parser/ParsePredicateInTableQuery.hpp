@@ -107,4 +107,4 @@ class ParsePredicateInTableQuery : public ParsePredicate {
 
 }  // namespace quickstep
 
-#endif /* QUICKSTEP_PARSER_PARSE_PREDICATE_IN_TABLE_QUERY_HPP_ */
+#endif  // QUICKSTEP_PARSER_PARSE_PREDICATE_IN_TABLE_QUERY_HPP_

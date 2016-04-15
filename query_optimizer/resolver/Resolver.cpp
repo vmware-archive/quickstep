@@ -2554,7 +2554,7 @@ E::PredicatePtr Resolver::resolvePredicate(
       }
 
       ExpressionResolutionInfo table_query_resolution_info(*expression_resolution_info);
-      std::vector<const Type*> type_hints = { &test_expression->getValueType() };
+      const std::vector<const Type*> type_hints = { &test_expression->getValueType() };
       const E::SubqueryExpressionPtr table_query =
           resolveSubqueryExpression(*in_table_query.table_query(),
                                     &type_hints,
