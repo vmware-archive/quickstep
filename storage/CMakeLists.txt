@@ -138,6 +138,7 @@ add_library(quickstep_storage_BasicColumnStoreValueAccessor
             ../empty_src.cpp
             BasicColumnStoreValueAccessor.hpp)
 add_library(quickstep_storage_BloomFilterIndexSubBlock BloomFilterIndexSubBlock.cpp BloomFilterIndexSubBlock.hpp)
+# CMAKE_VALIDATE_IGNORE_BEGIN
 if(QUICKSTEP_HAVE_BITWEAVING)
   add_library(quickstep_storage_BitWeavingIndexSubBlock
               bitweaving/BitWeavingIndexSubBlock.cpp
@@ -149,6 +150,7 @@ if(QUICKSTEP_HAVE_BITWEAVING)
               bitweaving/BitWeavingVIndexSubBlock.cpp
               bitweaving/BitWeavingVIndexSubBlock.hpp)
 endif()
+# CMAKE_VALIDATE_IGNORE_END
 add_library(quickstep_storage_ColumnStoreUtil ColumnStoreUtil.cpp ColumnStoreUtil.hpp)
 add_library(quickstep_storage_CompressedBlockBuilder CompressedBlockBuilder.cpp CompressedBlockBuilder.hpp)
 add_library(quickstep_storage_CompressedColumnStoreTupleStorageSubBlock
@@ -327,6 +329,7 @@ target_link_libraries(quickstep_storage_BloomFilterIndexSubBlock
                       quickstep_types_operations_comparisons_ComparisonID
                       quickstep_utility_BloomFilter
                       quickstep_utility_Macros)
+# CMAKE_VALIDATE_IGNORE_BEGIN
 if(QUICKSTEP_HAVE_BITWEAVING)
   target_link_libraries(quickstep_storage_BitWeavingHIndexSubBlock
                         glog
@@ -393,6 +396,7 @@ if(QUICKSTEP_HAVE_BITWEAVING)
                         quickstep_types_operations_comparisons_ComparisonID
                         quickstep_utility_Macros)
 endif()
+# CMAKE_VALIDATE_IGNORE_END
 target_link_libraries(quickstep_storage_ColumnStoreUtil
                       quickstep_catalog_CatalogAttribute
                       quickstep_catalog_CatalogRelationSchema
@@ -872,12 +876,14 @@ target_link_libraries(quickstep_storage_StorageBlock
                       quickstep_types_operations_comparisons_ComparisonUtil
                       quickstep_utility_Macros
                       quickstep_utility_PtrVector)
+# CMAKE_VALIDATE_IGNORE_BEGIN
 if(QUICKSTEP_HAVE_BITWEAVING)
   target_link_libraries(quickstep_storage_StorageBlock
                         quickstep_storage_BitWeavingHIndexSubBlock
                         quickstep_storage_BitWeavingIndexSubBlock
                         quickstep_storage_BitWeavingVIndexSubBlock)
 endif()
+# CMAKE_VALIDATE_IGNORE_END
 target_link_libraries(quickstep_storage_StorageBlockBase
                       glog
                       quickstep_storage_StorageBlockInfo
@@ -1039,12 +1045,14 @@ elseif (QUICKSTEP_HAVE_FILE_MANAGER_WINDOWS)
   target_link_libraries(quickstep_storage
                         quickstep_storage_FileManagerWindows)
 endif()
+# CMAKE_VALIDATE_IGNORE_BEGIN
 if(QUICKSTEP_HAVE_BITWEAVING)
   target_link_libraries(quickstep_storage
                         quickstep_storage_BitWeavingHIndexSubBlock
                         quickstep_storage_BitWeavingIndexSubBlock
                         quickstep_storage_BitWeavingVIndexSubBlock)
 endif()
+# CMAKE_VALIDATE_IGNORE_END
 
 # Tests:
 include(CheckTypeSize)
