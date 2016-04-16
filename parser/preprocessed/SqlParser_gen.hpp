@@ -109,55 +109,56 @@ extern int quickstep_yydebug;
     TOKEN_GROUP = 319,
     TOKEN_HASH = 320,
     TOKEN_HAVING = 321,
-    TOKEN_INDEX = 322,
-    TOKEN_INNER = 323,
-    TOKEN_INSERT = 324,
-    TOKEN_INTEGER = 325,
-    TOKEN_INTERVAL = 326,
-    TOKEN_INTO = 327,
-    TOKEN_JOIN = 328,
-    TOKEN_KEY = 329,
-    TOKEN_LAST = 330,
-    TOKEN_LEFT = 331,
-    TOKEN_LIMIT = 332,
-    TOKEN_LONG = 333,
-    TOKEN_NULL = 334,
-    TOKEN_NULLS = 335,
-    TOKEN_OFF = 336,
-    TOKEN_ON = 337,
-    TOKEN_ORDER = 338,
-    TOKEN_OUTER = 339,
-    TOKEN_PARTITION = 340,
-    TOKEN_PARTITIONS = 341,
-    TOKEN_PERCENT = 342,
-    TOKEN_PRIMARY = 343,
-    TOKEN_QUIT = 344,
-    TOKEN_RANGE = 345,
-    TOKEN_REAL = 346,
-    TOKEN_REFERENCES = 347,
-    TOKEN_RIGHT = 348,
-    TOKEN_ROW_DELIMITER = 349,
-    TOKEN_SELECT = 350,
-    TOKEN_SET = 351,
-    TOKEN_SMA = 352,
-    TOKEN_SMALLINT = 353,
-    TOKEN_TABLE = 354,
-    TOKEN_THEN = 355,
-    TOKEN_TIME = 356,
-    TOKEN_TIMESTAMP = 357,
-    TOKEN_TRUE = 358,
-    TOKEN_TUPLESAMPLE = 359,
-    TOKEN_UNIQUE = 360,
-    TOKEN_UPDATE = 361,
-    TOKEN_USING = 362,
-    TOKEN_VALUES = 363,
-    TOKEN_VARCHAR = 364,
-    TOKEN_WHEN = 365,
-    TOKEN_WHERE = 366,
-    TOKEN_WITH = 367,
-    TOKEN_YEARMONTH = 368,
-    TOKEN_EOF = 369,
-    TOKEN_LEX_ERROR = 370
+    TOKEN_IN = 322,
+    TOKEN_INDEX = 323,
+    TOKEN_INNER = 324,
+    TOKEN_INSERT = 325,
+    TOKEN_INTEGER = 326,
+    TOKEN_INTERVAL = 327,
+    TOKEN_INTO = 328,
+    TOKEN_JOIN = 329,
+    TOKEN_KEY = 330,
+    TOKEN_LAST = 331,
+    TOKEN_LEFT = 332,
+    TOKEN_LIMIT = 333,
+    TOKEN_LONG = 334,
+    TOKEN_NULL = 335,
+    TOKEN_NULLS = 336,
+    TOKEN_OFF = 337,
+    TOKEN_ON = 338,
+    TOKEN_ORDER = 339,
+    TOKEN_OUTER = 340,
+    TOKEN_PARTITION = 341,
+    TOKEN_PARTITIONS = 342,
+    TOKEN_PERCENT = 343,
+    TOKEN_PRIMARY = 344,
+    TOKEN_QUIT = 345,
+    TOKEN_RANGE = 346,
+    TOKEN_REAL = 347,
+    TOKEN_REFERENCES = 348,
+    TOKEN_RIGHT = 349,
+    TOKEN_ROW_DELIMITER = 350,
+    TOKEN_SELECT = 351,
+    TOKEN_SET = 352,
+    TOKEN_SMA = 353,
+    TOKEN_SMALLINT = 354,
+    TOKEN_TABLE = 355,
+    TOKEN_THEN = 356,
+    TOKEN_TIME = 357,
+    TOKEN_TIMESTAMP = 358,
+    TOKEN_TRUE = 359,
+    TOKEN_TUPLESAMPLE = 360,
+    TOKEN_UNIQUE = 361,
+    TOKEN_UPDATE = 362,
+    TOKEN_USING = 363,
+    TOKEN_VALUES = 364,
+    TOKEN_VARCHAR = 365,
+    TOKEN_WHEN = 366,
+    TOKEN_WHERE = 367,
+    TOKEN_WITH = 368,
+    TOKEN_YEARMONTH = 369,
+    TOKEN_EOF = 370,
+    TOKEN_LEX_ERROR = 371
   };
 #endif
 
@@ -166,7 +167,7 @@ extern int quickstep_yydebug;
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 116 "../SqlParser.ypp" /* yacc.c:1909  */
+#line 117 "../SqlParser.ypp" /* yacc.c:1909  */
 
   quickstep::ParseString *string_value_;
 
@@ -256,7 +257,7 @@ union YYSTYPE
   quickstep::PtrVector<quickstep::ParseSubqueryTableReference> *with_list_;
   quickstep::ParseSubqueryTableReference *with_list_element_;
 
-#line 260 "SqlParser_gen.hpp" /* yacc.c:1909  */
+#line 261 "SqlParser_gen.hpp" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

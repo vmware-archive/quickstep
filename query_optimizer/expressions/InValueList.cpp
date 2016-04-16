@@ -15,45 +15,56 @@
  *   limitations under the License.
  **/
 
-#include "query_optimizer/expressions/SubqueryExpression.hpp"
+#include "query_optimizer/expressions/InValueList.hpp"
 
 #include <string>
 #include <vector>
 
+#include "expressions/predicate/DisjunctionPredicate.hpp"
+#include "expressions/predicate/Predicate.hpp"
 #include "query_optimizer/OptimizerTree.hpp"
-#include "query_optimizer/expressions/AttributeReference.hpp"
+#include "query_optimizer/expressions/ComparisonExpression.hpp"
 #include "query_optimizer/expressions/ExprId.hpp"
-
-#include "glog/logging.h"
+#include "query_optimizer/expressions/Predicate.hpp"
+#include "query_optimizer/expressions/Scalar.hpp"
+#include "types/operations/comparisons/ComparisonID.hpp"
+#include "types/operations/comparisons/ComparisonFactory.hpp"
+#include "utility/Cast.hpp"
 
 namespace quickstep {
-
-class CatalogAttribute;
-class Scalar;
-
 namespace optimizer {
 namespace expressions {
 
-::quickstep::Scalar* SubqueryExpression::concretize(
+::quickstep::Predicate* InValueList::concretize(
     const std::unordered_map<ExprId, const CatalogAttribute*> &substitution_map) const {
-  LOG(FATAL) << "SubqueryExpression should not be concretized";
+  std::unique_ptr<quickstep::DisjunctionPredicate>
+      disjunction_predicate(new quickstep::DisjunctionPredicate());
+  for (const ScalarPtr &match_expression : match_expressions_) {
+    const PredicatePtr match_predicate =
+        ComparisonExpression::Create(
+            quickstep::ComparisonFactory::GetComparison(quickstep::ComparisonID::kEqual),
+            test_expression_,
+            match_expression);
+
+    disjunction_predicate->addPredicate(
+        match_predicate->concretize(substitution_map));
+  }
+  return disjunction_predicate.release();
 }
 
-std::vector<AttributeReferencePtr> SubqueryExpression::getReferencedAttributes() const {
-  // SubqueryExpression should be eliminated before any place that needs
-  // a call of getReferencedAttributes.
-  LOG(FATAL) << "SubqueryExpression::getReferencedAttributes() is not implemented";
-}
-
-void SubqueryExpression::getFieldStringItems(
+void InValueList::getFieldStringItems(
     std::vector<std::string> *inline_field_names,
     std::vector<std::string> *inline_field_values,
     std::vector<std::string> *non_container_child_field_names,
     std::vector<OptimizerTreeBaseNodePtr> *non_container_child_fields,
     std::vector<std::string> *container_child_field_names,
     std::vector<std::vector<OptimizerTreeBaseNodePtr>> *container_child_fields) const {
-  non_container_child_field_names->push_back("subquery");
-  non_container_child_fields->push_back(subquery_);
+  non_container_child_field_names->push_back("test_expression");
+  non_container_child_fields->push_back(test_expression_);
+
+  container_child_field_names->push_back("match_expressions");
+  container_child_fields->push_back(
+      CastSharedPtrVector<OptimizerTreeBase>(match_expressions_));
 }
 
 }  // namespace expressions

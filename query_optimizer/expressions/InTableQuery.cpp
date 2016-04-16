@@ -15,45 +15,37 @@
  *   limitations under the License.
  **/
 
-#include "query_optimizer/expressions/SubqueryExpression.hpp"
+#include "query_optimizer/expressions/InTableQuery.hpp"
 
 #include <string>
 #include <vector>
 
 #include "query_optimizer/OptimizerTree.hpp"
-#include "query_optimizer/expressions/AttributeReference.hpp"
 #include "query_optimizer/expressions/ExprId.hpp"
 
 #include "glog/logging.h"
 
 namespace quickstep {
-
-class CatalogAttribute;
-class Scalar;
-
 namespace optimizer {
 namespace expressions {
 
-::quickstep::Scalar* SubqueryExpression::concretize(
+::quickstep::Predicate* InTableQuery::concretize(
     const std::unordered_map<ExprId, const CatalogAttribute*> &substitution_map) const {
-  LOG(FATAL) << "SubqueryExpression should not be concretized";
+  LOG(FATAL) << "InTableQuery predicate should not be concretized";
 }
 
-std::vector<AttributeReferencePtr> SubqueryExpression::getReferencedAttributes() const {
-  // SubqueryExpression should be eliminated before any place that needs
-  // a call of getReferencedAttributes.
-  LOG(FATAL) << "SubqueryExpression::getReferencedAttributes() is not implemented";
-}
-
-void SubqueryExpression::getFieldStringItems(
+void InTableQuery::getFieldStringItems(
     std::vector<std::string> *inline_field_names,
     std::vector<std::string> *inline_field_values,
     std::vector<std::string> *non_container_child_field_names,
     std::vector<OptimizerTreeBaseNodePtr> *non_container_child_fields,
     std::vector<std::string> *container_child_field_names,
     std::vector<std::vector<OptimizerTreeBaseNodePtr>> *container_child_fields) const {
-  non_container_child_field_names->push_back("subquery");
-  non_container_child_fields->push_back(subquery_);
+  non_container_child_field_names->push_back("test_expression");
+  non_container_child_fields->push_back(test_expression_);
+
+  non_container_child_field_names->push_back("table_query");
+  non_container_child_fields->push_back(table_query_);
 }
 
 }  // namespace expressions
