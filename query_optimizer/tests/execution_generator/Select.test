@@ -656,7 +656,7 @@ SELECT SUM(EXTRACT(SECOND FROM value))
 FROM dates;
 --
 +-------------------------------+
-|SUM(EXTRACT(SECOND FROM value))|
+|SUM(EXTRACT(second FROM value))|
 +-------------------------------+
 |                             93|
 +-------------------------------+
