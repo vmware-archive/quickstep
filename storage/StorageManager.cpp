@@ -361,6 +361,11 @@ block_id StorageManager::allocateNewBlockOrBlob(const std::size_t num_slots,
   DCHECK_GT(num_slots, 0u);
   DEBUG_ASSERT(handle != nullptr);
 
+  // Call a best-effort method to evict blocks or blobs until the size of our
+  // buffer pool falls below the current buffer pool size plus the size of the
+  // block we are going to allocate.
+  makeRoomForBlock(num_slots);
+
   handle->block_memory = allocateSlots(num_slots, numa_node, kInvalidBlockId);
   handle->block_memory_size = num_slots;
 
@@ -511,6 +516,11 @@ MutableBlockReference StorageManager::getBlockInternal(
   // doesn't know about the block until blockReferenced is called, so
   // chooseBlockToEvict shouldn't return the block.
   if (!ret.valid()) {
+    // Call a best-effort method to evict blocks or blobs until the size of our
+    // buffer pool falls below the current buffer pool size plus the size of the
+    // block we are going to retrieve.
+    makeRoomForBlock(num_slots);
+
     SpinSharedMutexExclusiveLock<false> io_lock(*lock_manager_.get(block));
     {
       // Check one more time if the block got loaded in memory by someone else.
@@ -523,25 +533,7 @@ MutableBlockReference StorageManager::getBlockInternal(
       }
     }
 
-    // Call a best-effort method to evict blocks until the size of our buffer
-    // pool falls below the current buffer pool size plus the size of the
-    // block we are going to retrieve.
-    makeRoomForBlock(num_slots);
-
     // No other thread loaded the block before us.
-    // But going forward be careful as there is a potential self-deadlock
-    // situation here -- we are holding an Exclusive lock (io_lock)
-    //   and getting ready to go into the call chain
-    //   "MutableBlockReference"/"loadBlock" -> "loadBlockOrBlob"
-    //       -> "allocateSlots" -> "makeRoomForBlock"
-    //   In "makeRoomForBlock," we will acquire an exclusive lock via the call
-    //   "eviction_lock(*lock_manager_.get(block_index))"
-    //   This situation could lead to a self-deadlock as block_index could
-    //   hash to the same position in the "ShardedLockManager" as "block."
-    //   To deal with this case, we pass the block information for "block"
-    //   though the call chain, and check for a collision in the the
-    //   "ShardedLockManager" in the function "makeRoomForBlock."
-    //   If a collision is detected we avoid a self-deadlock.
     ret = MutableBlockReference(loadBlock(block, relation, numa_node), eviction_policy_.get());
   }
 
@@ -550,6 +542,7 @@ MutableBlockReference StorageManager::getBlockInternal(
 
 MutableBlobReference StorageManager::getBlobInternal(const block_id blob,
                                                      const int numa_node) {
+  std::size_t num_slots = 0u;
   MutableBlobReference ret;
   {
     SpinSharedMutexSharedLock<false> eviction_lock(*lock_manager_.get(blob));
@@ -558,10 +551,19 @@ MutableBlobReference StorageManager::getBlobInternal(const block_id blob,
     if (it != blocks_.end()) {
       DCHECK(it->second.block->isBlob());
       ret = MutableBlobReference(static_cast<StorageBlob*>(it->second.block), eviction_policy_.get());
+    } else {
+      // The block was not loaded. Taking advantage of the shared lock on the
+      // buffer pool, retrieve the size of the block's file.
+      num_slots = file_manager_->numSlots(blob);
     }
   }
 
   if (!ret.valid()) {
+    // Call a best-effort method to evict blocks or blobs until the size of our
+    // buffer pool falls below the current buffer pool size plus the size of the
+    // blob we are going to retrieve.
+    makeRoomForBlock(num_slots);
+
     SpinSharedMutexExclusiveLock<false> io_lock(*lock_manager_.get(blob));
     // Note that there is no way for the block to be evicted between the call to
     // loadBlob and the call to EvictionPolicy::blockReferenced from
