@@ -1,5 +1,7 @@
 #   Copyright 2011-2015 Quickstep Technologies LLC.
 #   Copyright 2015 Pivotal Software, Inc.
+#   Copyright 2016, Quickstep Research Group, Computer Sciences Department,
+#     University of Wisconsin—Madison.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -86,17 +88,21 @@ add_library(quickstep_parser_ParseAssignment ../empty_src.cpp ParseAssignment.hp
 add_library(quickstep_parser_ParseAttributeDefinition ParseAttributeDefinition.cpp ParseAttributeDefinition.hpp)
 add_library(quickstep_parser_ParseBasicExpressions ParseBasicExpressions.cpp ParseBasicExpressions.hpp)
 add_library(quickstep_parser_ParseBlockProperties ParseBlockProperties.cpp ParseBlockProperties.hpp)
+add_library(quickstep_parser_ParseCaseExpressions ParseCaseExpressions.cpp ParseCaseExpressions.hpp)
 add_library(quickstep_parser_ParseExpression ../empty_src.cpp ParseExpression.hpp)
 add_library(quickstep_parser_ParseGeneratorTableReference ParseGeneratorTableReference.cpp ParseGeneratorTableReference.hpp)
 add_library(quickstep_parser_ParseGroupBy ParseGroupBy.cpp ParseGroupBy.hpp)
 add_library(quickstep_parser_ParseHaving ParseHaving.cpp ParseHaving.hpp)
 add_library(quickstep_parser_ParseIndexProperties ParseIndexProperties.cpp ParseIndexProperties.hpp)
+add_library(quickstep_parser_ParseJoinedTableReference ParseJoinedTableReference.cpp ParseJoinedTableReference.hpp)
 add_library(quickstep_parser_ParseKeyValue ../empty_src.cpp ParseKeyValue.hpp)
 add_library(quickstep_parser_ParseLimit ParseLimit.cpp ParseLimit.hpp)
 add_library(quickstep_parser_ParseLiteralValue ParseLiteralValue.cpp ParseLiteralValue.hpp)
 add_library(quickstep_parser_ParseOrderBy ParseOrderBy.cpp ParseOrderBy.hpp)
 add_library(quickstep_parser_ParsePartitionClause ../empty_src.cpp ParsePartitionClause.hpp)
 add_library(quickstep_parser_ParsePredicate ParsePredicate.cpp ParsePredicate.hpp)
+add_library(quickstep_parser_ParsePredicateExists ../empty_src.cpp ParsePredicateExists.hpp)
+add_library(quickstep_parser_ParsePredicateInTableQuery ../empty_src.cpp ParsePredicateInTableQuery.hpp)
 add_library(quickstep_parser_ParseSample ParseSample.cpp ParseSample.hpp)
 add_library(quickstep_parser_ParseSelect ../empty_src.cpp ParseSelect.hpp)
 add_library(quickstep_parser_ParseSelectionClause ParseSelectionClause.cpp ParseSelectionClause.hpp)
@@ -142,6 +148,12 @@ target_link_libraries(quickstep_parser_ParseBlockProperties
                       quickstep_utility_Macros
                       quickstep_utility_PtrList
                       quickstep_utility_StringUtil)
+target_link_libraries(quickstep_parser_ParseCaseExpressions
+                      quickstep_parser_ParseExpression
+                      quickstep_parser_ParsePredicate
+                      quickstep_parser_ParseTreeNode
+                      quickstep_utility_Macros
+                      quickstep_utility_PtrVector)
 target_link_libraries(quickstep_parser_ParseExpression
                       quickstep_parser_ParseTreeNode
                       quickstep_utility_Macros)
@@ -167,6 +179,10 @@ target_link_libraries(quickstep_parser_ParseIndexProperties
                       quickstep_utility_Macros
                       quickstep_utility_PtrList
                       quickstep_utility_StringUtil)
+target_link_libraries(quickstep_parser_ParseJoinedTableReference
+                      quickstep_parser_ParsePredicate
+                      quickstep_parser_ParseTableReference
+                      quickstep_utility_Macros)
 target_link_libraries(quickstep_parser_ParseLimit
                       quickstep_parser_ParseLiteralValue
                       quickstep_parser_ParseTreeNode
@@ -202,6 +218,15 @@ target_link_libraries(quickstep_parser_ParsePredicate
                       quickstep_types_operations_comparisons_Comparison
                       quickstep_utility_Macros
                       quickstep_utility_PtrList)
+target_link_libraries(quickstep_parser_ParsePredicateExists
+                      quickstep_parser_ParsePredicate
+                      quickstep_parser_ParseSubqueryExpression
+                      quickstep_utility_Macros)
+target_link_libraries(quickstep_parser_ParsePredicateInTableQuery
+                      quickstep_parser_ParseExpression
+                      quickstep_parser_ParsePredicate
+                      quickstep_parser_ParseSubqueryExpression
+                      quickstep_utility_Macros)
 target_link_libraries(quickstep_parser_ParseSample
                       quickstep_parser_ParseLiteralValue
                       quickstep_parser_ParseTreeNode
@@ -281,6 +306,7 @@ target_link_libraries(quickstep_parser_ParseWindow
                       quickstep_parser_ParseLiteralValue
                       quickstep_parser_ParseTreeNode)
 target_link_libraries(quickstep_parser_SqlLexer
+                      quickstep_parser_ParseJoinedTableReference
                       quickstep_parser_ParseLiteralValue
                       quickstep_parser_ParserUtil
                       quickstep_parser_ParseString
@@ -293,16 +319,20 @@ target_link_libraries(quickstep_parser_SqlParser
                       quickstep_parser_ParseAttributeDefinition
                       quickstep_parser_ParseBasicExpressions
                       quickstep_parser_ParseBlockProperties
+                      quickstep_parser_ParseCaseExpressions
                       quickstep_parser_ParseExpression
                       quickstep_parser_ParseGeneratorTableReference
                       quickstep_parser_ParseGroupBy
                       quickstep_parser_ParseHaving
+                      quickstep_parser_ParseJoinedTableReference
                       quickstep_parser_ParseKeyValue
                       quickstep_parser_ParseLimit
                       quickstep_parser_ParseLiteralValue
                       quickstep_parser_ParseOrderBy
                       quickstep_parser_ParsePartitionClause
                       quickstep_parser_ParsePredicate
+                      quickstep_parser_ParsePredicateExists
+                      quickstep_parser_ParsePredicateInTableQuery
                       quickstep_parser_ParseSample
                       quickstep_parser_ParseSelect
                       quickstep_parser_ParseSelectionClause
@@ -331,6 +361,7 @@ target_link_libraries(quickstep_parser_SqlParser
                       quickstep_utility_PtrVector)
 target_link_libraries(quickstep_parser_SqlParserWrapper
                       glog
+                      quickstep_parser_ParseJoinedTableReference
                       quickstep_parser_ParseStatement
                       quickstep_parser_SqlLexer
                       quickstep_parser_SqlParser
@@ -365,16 +396,20 @@ target_link_libraries(quickstep_parser
                       quickstep_parser_ParseAttributeDefinition
                       quickstep_parser_ParseBasicExpressions
                       quickstep_parser_ParseBlockProperties
+                      quickstep_parser_ParseCaseExpressions
                       quickstep_parser_ParseExpression
                       quickstep_parser_ParseGeneratorTableReference
                       quickstep_parser_ParseGroupBy
                       quickstep_parser_ParseHaving
                       quickstep_parser_ParseIndexProperties
+                      quickstep_parser_ParseJoinedTableReference
                       quickstep_parser_ParseLimit
                       quickstep_parser_ParseLiteralValue
                       quickstep_parser_ParseOrderBy
                       quickstep_parser_ParsePartitionClause
                       quickstep_parser_ParsePredicate
+                      quickstep_parser_ParsePredicateExists
+                      quickstep_parser_ParsePredicateInTableQuery
                       quickstep_parser_ParserUtil
                       quickstep_parser_ParseSample
                       quickstep_parser_ParseSelect

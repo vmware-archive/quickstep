@@ -71,10 +71,12 @@ typedef struct YYLTYPE {
 #include "parser/ParseAttributeDefinition.hpp"
 #include "parser/ParseBasicExpressions.hpp"
 #include "parser/ParseBlockProperties.hpp"
+#include "parser/ParseCaseExpressions.hpp"
 #include "parser/ParseExpression.hpp"
 #include "parser/ParseGeneratorTableReference.hpp"
 #include "parser/ParseGroupBy.hpp"
 #include "parser/ParseHaving.hpp"
+#include "parser/ParseJoinedTableReference.hpp"
 #include "parser/ParseKeyValue.hpp"
 #include "parser/ParseLimit.hpp"
 #include "parser/ParseWindow.hpp"
@@ -82,6 +84,8 @@ typedef struct YYLTYPE {
 #include "parser/ParseOrderBy.hpp"
 #include "parser/ParsePartitionClause.hpp"
 #include "parser/ParsePredicate.hpp"
+#include "parser/ParsePredicateExists.hpp"
+#include "parser/ParsePredicateInTableQuery.hpp"
 #include "parser/ParserUtil.hpp"
 #include "parser/ParseSample.hpp"
 #include "parser/ParseSelect.hpp"
@@ -133,6 +137,12 @@ typedef void* yyscan_t;
 
   quickstep::ParseSubqueryExpression *subquery_expression_;
 
+  quickstep::PtrVector<quickstep::ParseSimpleWhenClause> *simple_when_clause_list_;
+  quickstep::ParseSimpleWhenClause *simple_when_clause_;
+
+  quickstep::PtrVector<quickstep::ParseSearchedWhenClause> *searched_when_clause_list_;
+  quickstep::ParseSearchedWhenClause *searched_when_clause_;
+
   quickstep::ParseSelectionClause *selection_;
   quickstep::ParseSelectionItem *selection_item_;
   quickstep::ParseSelectionList *selection_list_;
@@ -140,6 +150,8 @@ typedef void* yyscan_t;
   quickstep::ParseTableReference *table_reference_;
   quickstep::PtrList<quickstep::ParseTableReference> *table_reference_list_;
   quickstep::ParseTableReferenceSignature *table_reference_signature_;
+
+  quickstep::ParseJoinedTableReference::JoinType join_type_;
 
   quickstep::ParseDataType *data_type_;
   quickstep::ParseAttributeDefinition *attribute_definition_;
@@ -232,11 +244,13 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_ASC;
 %token TOKEN_BIGINT;
 %token TOKEN_BIT;
+%token TOKEN_BITWEAVING;
 %token TOKEN_BLOCKPROPERTIES;
 %token TOKEN_BLOCKSAMPLE;
 %token TOKEN_BLOOM_FILTER;
 %token TOKEN_CSB_TREE;
 %token TOKEN_BY;
+%token TOKEN_CASE;
 %token TOKEN_CHARACTER;
 %token TOKEN_CHECK;
 %token TOKEN_COLUMN;
@@ -253,8 +267,11 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_DISTINCT;
 %token TOKEN_DOUBLE;
 %token TOKEN_DROP;
+%token TOKEN_ELSE;
+%token TOKEN_END;
 %token TOKEN_ESCAPE_STRINGS;
 %token TOKEN_EMIT;
+%token TOKEN_EXISTS;
 %token TOKEN_EXTRACT;
 %token TOKEN_FALSE;
 %token TOKEN_FIRST;
@@ -265,6 +282,7 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_GROUP;
 %token TOKEN_HASH;
 %token TOKEN_HAVING;
+%token TOKEN_IN;
 %token TOKEN_INDEX;
 %token TOKEN_INNER;
 %token TOKEN_INSERT;
@@ -298,8 +316,10 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_ROW_DELIMITER;
 %token TOKEN_SELECT;
 %token TOKEN_SET;
+%token TOKEN_SMA;
 %token TOKEN_SMALLINT;
 %token TOKEN_TABLE;
+%token TOKEN_THEN;
 %token TOKEN_TIME;
 %token TOKEN_TIMESTAMP;
 %token TOKEN_TRUE;
@@ -309,6 +329,7 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %token TOKEN_USING;
 %token TOKEN_VALUES;
 %token TOKEN_VARCHAR;
+%token TOKEN_WHEN;
 %token TOKEN_WHERE;
 %token TOKEN_WITH;
 %token TOKEN_WINDOW;
@@ -335,6 +356,8 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
   unary_expression
   multiply_expression
   add_expression
+  case_expression
+  opt_else_clause
   extract_function
 
 %type <attribute_>
@@ -355,6 +378,18 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %type <subquery_expression_>
   subquery_expression
 
+%type <simple_when_clause_list_>
+  simple_when_clause_list
+
+%type <simple_when_clause_>
+  simple_when_clause
+
+%type <searched_when_clause_list_>
+  searched_when_clause_list
+
+%type <searched_when_clause_>
+  searched_when_clause
+
 %type <selection_>
   selection
 
@@ -366,14 +401,18 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 
 %type <table_reference_>
   table_reference
+  joined_table_reference
 
 %type <table_reference_list_>
-  table_reference_commalist
+  joined_table_reference_commalist
   from_clause
 
 %type <table_reference_signature_>
   table_reference_signature
   table_reference_signature_primary
+
+%type <join_type_>
+  join_type
 
 %type <data_type_>
   data_type
@@ -532,9 +571,6 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 
 /*
 %type <int_val>
-  join                  // unimplemented
-  join_chain            // unimplemented
-  opt_join_chain        // unimplemented
   opt_all_distinct      // unimplemented
   table_constraint_def  // unimplemented
   table_constraint_def_commalist        // unimplemented
@@ -545,6 +581,7 @@ void NotSupported(const YYLTYPE *location, yyscan_t yyscanner, const std::string
 %destructor { } <comparison_>
 %destructor { } <unary_operation_>
 %destructor { } <binary_operation_>
+%destructor { } <join_type_>
 
 %destructor {
   if ($$ != nullptr) {
@@ -974,13 +1011,22 @@ key_integer_value:
   };
 
 index_type:
-  TOKEN_BLOOM_FILTER {
+  TOKEN_BITWEAVING {
+    // Defaults to BitWeavingV, but IndexProperties can change this to H.
+    $$ = new quickstep::ParseString(@1.first_line, @1.first_column,
+           std::to_string(quickstep::IndexSubBlockType::kBitWeavingV));
+  }
+  | TOKEN_BLOOM_FILTER {
     $$ = new quickstep::ParseString(@1.first_line, @1.first_column,
            std::to_string(quickstep::IndexSubBlockType::kBloomFilter));
   }
   | TOKEN_CSB_TREE {
     $$ = new quickstep::ParseString(@1.first_line, @1.first_column,
            std::to_string(quickstep::IndexSubBlockType::kCSBTree));
+  }
+  | TOKEN_SMA {
+    $$ = new quickstep::ParseString(@1.first_line, @1.first_column,
+           std::to_string(quickstep::IndexSubBlockType::kSMA));
   };
 
 opt_index_properties:
@@ -1147,77 +1193,8 @@ selection_item:
   };
 
 from_clause:
-  TOKEN_FROM table_reference_commalist opt_join_chain {
+  TOKEN_FROM joined_table_reference_commalist {
     $$ = $2;
-  };
-
-opt_join_chain:
-  {
-    /* $$ = nullptr; */
-  }
-  | join_chain {
-    NotSupported(&@1, yyscanner, "alternate JOIN syntax (specify in WHERE clause instead)");
-    YYERROR;
-  };
-
-join_chain:
-  join_chain join {
-    NotSupported(&@1, yyscanner, "alternate JOIN syntax (specify in WHERE clause instead)");
-    YYERROR;
-  }
-  | join {
-    NotSupported(&@1, yyscanner, "alternate JOIN syntax (specify in WHERE clause instead)");
-    YYERROR;
-  };
-
-join:
-  TOKEN_INNER TOKEN_JOIN name_commalist TOKEN_ON or_expression {
-    delete $3;
-    delete $5;
-    NotSupported(&@1, yyscanner, "alternate JOIN syntax (specify in WHERE clause instead)");
-    YYERROR;
-  }
-  | TOKEN_JOIN name_commalist TOKEN_ON or_expression {
-    delete $2;
-    delete $4;
-    NotSupported(&@1, yyscanner, "alternate JOIN syntax (specify in WHERE clause instead)");
-    YYERROR;
-  }
-  | TOKEN_LEFT TOKEN_OUTER TOKEN_JOIN name_commalist TOKEN_ON or_expression {
-    delete $4;
-    delete $6;
-    NotSupported(&@1, yyscanner, "OUTER JOIN");
-    YYERROR;
-  }
-  | TOKEN_LEFT TOKEN_JOIN name_commalist TOKEN_ON or_expression {
-    delete $3;
-    delete $5;
-    NotSupported(&@1, yyscanner, "OUTER JOIN");
-    YYERROR;
-  }
-  | TOKEN_RIGHT TOKEN_OUTER TOKEN_JOIN name_commalist TOKEN_ON or_expression {
-    delete $4;
-    delete $6;
-    NotSupported(&@1, yyscanner, "OUTER JOIN");
-    YYERROR;
-  }
-  | TOKEN_RIGHT TOKEN_JOIN name_commalist TOKEN_ON or_expression {
-    delete $3;
-    delete $5;
-    NotSupported(&@1, yyscanner, "OUTER JOIN");
-    YYERROR;
-  }
-  | TOKEN_FULL TOKEN_OUTER TOKEN_JOIN name_commalist TOKEN_ON or_expression {
-    delete $4;
-    delete $6;
-    NotSupported(&@1, yyscanner, "OUTER JOIN");
-    YYERROR;
-  }
-  | TOKEN_FULL TOKEN_JOIN name_commalist TOKEN_ON or_expression {
-    delete $3;
-    delete $5;
-    NotSupported(&@1, yyscanner, "OUTER JOIN");
-    YYERROR;
   };
 
 subquery_expression:
@@ -1234,6 +1211,40 @@ opt_sample_clause:
   }
   | TOKEN_TUPLESAMPLE TOKEN_UNSIGNED_NUMVAL TOKEN_PERCENT {
     $$ = new quickstep::ParseSample(@1.first_line, @1.first_column, false, $2);
+  };
+
+join_type:
+  {
+    $$ = quickstep::ParseJoinedTableReference::JoinType::kInnerJoin;
+  }
+  | TOKEN_INNER {
+    $$ = quickstep::ParseJoinedTableReference::JoinType::kInnerJoin;
+  }
+  | TOKEN_LEFT {
+    $$ = quickstep::ParseJoinedTableReference::JoinType::kLeftOuterJoin;
+  }
+  | TOKEN_LEFT TOKEN_OUTER {
+    $$ = quickstep::ParseJoinedTableReference::JoinType::kLeftOuterJoin;
+  }
+  | TOKEN_RIGHT {
+    $$ = quickstep::ParseJoinedTableReference::JoinType::kRightOuterJoin;
+  }
+  | TOKEN_RIGHT TOKEN_OUTER {
+    $$ = quickstep::ParseJoinedTableReference::JoinType::kRightOuterJoin;
+  }
+  | TOKEN_FULL {
+    $$ = quickstep::ParseJoinedTableReference::JoinType::kFullOuterJoin;
+  }
+  | TOKEN_FULL TOKEN_OUTER {
+    $$ = quickstep::ParseJoinedTableReference::JoinType::kFullOuterJoin;
+  };
+
+joined_table_reference:
+  joined_table_reference join_type TOKEN_JOIN table_reference TOKEN_ON or_expression {
+    $$ = new quickstep::ParseJoinedTableReference(@3.first_line, @3.first_column, $2, $1, $4, $6);
+  }
+  | table_reference {
+    $$ = $1;
   };
 
 table_reference:
@@ -1254,6 +1265,9 @@ table_reference:
   }
   | function_call {
     $$ = new quickstep::ParseGeneratorTableReference(@1.first_line, @1.first_column, $1);
+  }
+  | '(' joined_table_reference ')' {
+    $$ = $2;
   };
 
 table_reference_signature:
@@ -1272,12 +1286,12 @@ table_reference_signature_primary:
     $$ = new ::quickstep::ParseTableReferenceSignature(@1.first_line, @1.first_column, $1, $3);
   };
 
-table_reference_commalist:
-  table_reference {
+joined_table_reference_commalist:
+  joined_table_reference {
     $$ = new quickstep::PtrList<quickstep::ParseTableReference>();
     $$->push_back($1);
   }
-  | table_reference_commalist ',' table_reference {
+  | joined_table_reference_commalist ',' joined_table_reference {
     $$ = $1;
     $$->push_back($3);
   };
@@ -1479,6 +1493,27 @@ predicate_expression_base:
   }
   | '(' or_expression ')' {
     $$ = $2;
+  }
+  | TOKEN_EXISTS subquery_expression {
+    $$ = new quickstep::ParsePredicateExists(@1.first_line, @1.first_column, $2);
+  }
+  | add_expression TOKEN_IN subquery_expression {
+    $$ = new quickstep::ParsePredicateInTableQuery(@2.first_line, @2.first_column, $1, $3);
+  }
+  | add_expression TOKEN_IN '(' expression_list ')' {
+    $$ = new quickstep::ParsePredicateInValueList(@2.first_line, @2.first_column, $1, $4);
+  }
+  | add_expression TOKEN_NOT TOKEN_IN subquery_expression {
+    $$ = new quickstep::ParsePredicateNegation(
+        @2.first_line,
+        @2.first_column,
+        new quickstep::ParsePredicateInTableQuery(@3.first_line, @3.first_column, $1, $4));
+  }
+  | add_expression TOKEN_NOT TOKEN_IN '(' expression_list ')' {
+    $$ = new quickstep::ParsePredicateNegation(
+        @2.first_line,
+        @2.first_column,
+        new quickstep::ParsePredicateInValueList(@3.first_line, @3.first_column, $1, $5));
   };
 
 /* Scalars */
@@ -1519,6 +1554,9 @@ expression_base:
   | extract_function {
     $$ = $1;
   }
+  | case_expression {
+    $$ = $1;
+  }
   | '(' add_expression ')' {
     $$ = $2;
   };
@@ -1542,6 +1580,52 @@ function_call:
 extract_function:
   TOKEN_EXTRACT '(' any_name TOKEN_FROM add_expression ')' {
     $$ = new quickstep::ParseExtractFunction(@1.first_line, @1.first_column, $3, $5);
+  };
+
+case_expression:
+  TOKEN_CASE add_expression simple_when_clause_list opt_else_clause TOKEN_END {
+    $$ = new quickstep::ParseSimpleCaseExpression(@1.first_line, @1.first_column, $2, $3, $4);
+  }
+  | TOKEN_CASE searched_when_clause_list opt_else_clause TOKEN_END {
+    $$ = new quickstep::ParseSearchedCaseExpression(@1.first_line, @1.first_column, $2, $3);
+  };
+
+simple_when_clause_list:
+  simple_when_clause {
+    $$ = new quickstep::PtrVector<quickstep::ParseSimpleWhenClause>;
+    $$->push_back($1);
+  }
+  | simple_when_clause_list simple_when_clause {
+    $$ = $1;
+    $$->push_back($2);
+  };
+
+simple_when_clause:
+  TOKEN_WHEN add_expression TOKEN_THEN add_expression {
+    $$ = new quickstep::ParseSimpleWhenClause(@1.first_line, @1.first_column, $2, $4);
+  };
+
+searched_when_clause_list:
+  searched_when_clause {
+    $$ = new quickstep::PtrVector<quickstep::ParseSearchedWhenClause>;
+    $$->push_back($1);
+  }
+  | searched_when_clause_list searched_when_clause {
+    $$ = $1;
+    $$->push_back($2);
+  };
+
+searched_when_clause:
+  TOKEN_WHEN or_expression TOKEN_THEN add_expression {
+    $$ = new quickstep::ParseSearchedWhenClause(@1.first_line, @1.first_column, $2, $4);
+  };
+
+opt_else_clause:
+  {
+    $$ = NULL;
+  }
+  | TOKEN_ELSE add_expression {
+    $$ = $2;
   };
 
 expression_list:

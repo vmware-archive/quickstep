@@ -674,6 +674,152 @@ FROM dates;
 +-----------------------------------------------------+
 ==
 
+SELECT i,
+       CASE i%2
+         WHEN 1 THEN 'odd'
+         ELSE 'even'
+       END
+FROM generate_series(1, 5) AS gs(i);
+--
++-----------+--------------------------------------------+
+|i          |CASE (i%2) WHEN 1 THEN 'odd' ELSE 'even' END|
++-----------+--------------------------------------------+
+|          1|                                         odd|
+|          2|                                        even|
+|          3|                                         odd|
+|          4|                                        even|
+|          5|                                         odd|
++-----------+--------------------------------------------+
+==
+
+SELECT SUM(CASE WHEN i < 4 THEN i
+                ELSE i * i
+           END) AS result
+FROM generate_series(1, 5) AS gs(i);
+--
++--------------------+
+|result              |
++--------------------+
+|                  47|
++--------------------+
+==
+
+SELECT *
+FROM generate_series(1, 3) AS gs1(i),
+     generate_series(1, 3) AS gs2(j)
+WHERE CASE WHEN i < j THEN i
+           ELSE j
+       END > 1;
+--
++-----------+-----------+
+|i          |j          |
++-----------+-----------+
+|          2|          2|
+|          2|          3|
+|          3|          2|
+|          3|          3|
++-----------+-----------+
+==
+
+SELECT i AS odd
+FROM generate_series(0, 10, 1) AS gs1(i)
+WHERE
+  NOT EXISTS (
+    SELECT *
+    FROM generate_series(0, 10, 2) AS gs2(even)
+    WHERE i = even
+  );
+--
++-----------+
+|odd        |
++-----------+
+|          1|
+|          3|
+|          5|
+|          7|
+|          9|
++-----------+
+==
+
+SELECT i
+FROM generate_series(0, 100, 3) AS gs1(i)
+WHERE
+  EXISTS (
+    SELECT *
+    FROM generate_series(0, 100, 5) AS gs2(i)
+    WHERE gs1.i = gs2.i
+  )
+  AND NOT EXISTS (
+    SELECT *
+    FROM generate_series(0, 100, 10) AS gs3(i)
+    WHERE gs1.i = gs3.i
+  )
+  AND (i < 40 OR i > 60);
+--
++-----------+
+|i          |
++-----------+
+|         15|
+|         75|
++-----------+
+==
+
+# IN predicate
+SELECT *
+FROM generate_series(1, 5) AS gs(i)
+WHERE i IN (2, 4);
+--
++-----------+
+|i          |
++-----------+
+|          2|
+|          4|
++-----------+
+==
+
+SELECT *
+FROM generate_series(1, 5) AS gs(i)
+WHERE i NOT IN (2, 4);
+--
++-----------+
+|i          |
++-----------+
+|          1|
+|          3|
+|          5|
++-----------+
+==
+
+SELECT *
+FROM generate_series(1, 5) AS gs(i)
+WHERE i NOT IN (i*i-6, CASE WHEN i < 3 THEN 1 ELSE 4 END);
+--
++-----------+
+|i          |
++-----------+
+|          2|
+|          5|
++-----------+
+==
+
+SELECT *
+FROM generate_series(1, 10) AS gs(i)
+WHERE i NOT IN (
+  SELECT *
+  FROM generate_series(2, 10, 2)
+);
+--
++-----------+
+|i          |
++-----------+
+|          1|
+|          3|
+|          5|
+|          7|
+|          9|
++-----------+
+==
+
 # TODO(team): Support uncorrelated queries.
 # SELECT COUNT(*)
 # FROM test

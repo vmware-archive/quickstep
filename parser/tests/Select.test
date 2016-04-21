@@ -1371,6 +1371,322 @@ SelectStatement
     +-TableReference[table=test]
 ==
 
+# EXISTS subquery
+SELECT i
+FROM generate_series(0, 100, 3) AS gs1(i)
+WHERE
+  EXISTS (
+    SELECT *
+    FROM generate_series(0, 100, 5) AS gs2(i)
+    WHERE gs1.i = gs2.i
+  )
+  AND NOT EXISTS (
+    SELECT *
+    FROM generate_series(0, 100, 10) AS gs3(i)
+    WHERE gs1.i = gs3.i
+  );
+--
+SelectStatement
++-select_query=Select
+  +-select_clause=SelectList
+  | +-SelectListItem
+  |   +-AttributeReference[attribute_name=i]
+  +-where_clause=And
+  | +-Exists
+  | | +-subquery=SubqueryExpression
+  | |   +-Select
+  | |     +-select_clause=SelectStar
+  | |     +-where_clause=Equal
+  | |     | +-left_operand=AttributeReference[attribute_name=i,relation_name=gs1]
+  | |     | +-right_operand=AttributeReference[attribute_name=i,
+  | |     |   relation_name=gs2]
+  | |     +-from_clause=
+  | |       +-TableGenerator
+  | |         +-FunctionCall[name=generate_series]
+  | |           +-Literal
+  | |           | +-NumericLiteral[numeric_string=0,float_like=false]
+  | |           +-Literal
+  | |           | +-NumericLiteral[numeric_string=100,float_like=false]
+  | |           +-Literal
+  | |             +-NumericLiteral[numeric_string=5,float_like=false]
+  | +-Not
+  |   +-Exists
+  |     +-subquery=SubqueryExpression
+  |       +-Select
+  |         +-select_clause=SelectStar
+  |         +-where_clause=Equal
+  |         | +-left_operand=AttributeReference[attribute_name=i,
+  |         | | relation_name=gs1]
+  |         | +-right_operand=AttributeReference[attribute_name=i,
+  |         |   relation_name=gs3]
+  |         +-from_clause=
+  |           +-TableGenerator
+  |             +-FunctionCall[name=generate_series]
+  |               +-Literal
+  |               | +-NumericLiteral[numeric_string=0,float_like=false]
+  |               +-Literal
+  |               | +-NumericLiteral[numeric_string=100,float_like=false]
+  |               +-Literal
+  |                 +-NumericLiteral[numeric_string=10,float_like=false]
+  +-from_clause=
+    +-TableGenerator
+      +-FunctionCall[name=generate_series]
+        +-Literal
+        | +-NumericLiteral[numeric_string=0,float_like=false]
+        +-Literal
+        | +-NumericLiteral[numeric_string=100,float_like=false]
+        +-Literal
+          +-NumericLiteral[numeric_string=3,float_like=false]
+==
+
+# CASE expressions.
+SELECT CASE col1%2
+           WHEN 1 THEN 'odd'
+           ELSE 'even'
+       END
+FROM test;
+--
+SelectStatement
++-select_query=Select
+  +-select_clause=SelectList
+  | +-SelectListItem
+  |   +-SimpleCaseExpression
+  |     +-case_operand=Modulo
+  |     | +-left_operand=AttributeReference[attribute_name=col1]
+  |     | +-right_operand=Literal
+  |     |   +-NumericLiteral[numeric_string=2,float_like=false]
+  |     +-else_result_expression=Literal
+  |     | +-StringLiteral[value=even]
+  |     +-when_clauses=
+  |       +-SimpleWhenClause
+  |         +-condition_operand=Literal
+  |         | +-NumericLiteral[numeric_string=1,float_like=false]
+  |         +-result_expression=Literal
+  |           +-StringLiteral[value=odd]
+  +-from_clause=
+    +-TableReference[table=test]
+==
+
+SELECT *
+FROM test
+WHERE CASE WHEN col1 > col2 THEN col3
+           ELSE col4
+      END > 0;
+--
+SelectStatement
++-select_query=Select
+  +-select_clause=SelectStar
+  +-where_clause=Greater
+  | +-left_operand=SearchedCaseExpression
+  | | +-else_result_expression=AttributeReference[attribute_name=col4]
+  | | +-when_clauses=
+  | |   +-SearchedWhenClause
+  | |     +-condition_predicate=Greater
+  | |     | +-left_operand=AttributeReference[attribute_name=col1]
+  | |     | +-right_operand=AttributeReference[attribute_name=col2]
+  | |     +-result_expression=AttributeReference[attribute_name=col3]
+  | +-right_operand=Literal
+  |   +-NumericLiteral[numeric_string=0,float_like=false]
+  +-from_clause=
+    +-TableReference[table=test]
+==
+
+SELECT
+  FUN(CASE col1
+        WHEN col2 + FUN(
+               CASE WHEN col1 < col2 THEN 0
+                    ELSE 1
+               END +
+               CASE WHEN col1 < col3 THEN 0
+                    ELSE 1
+               END
+             ) THEN 1
+        WHEN col3 THEN 2
+        ELSE 0
+      END + col4)
+FROM test;
+--
+SelectStatement
++-select_query=Select
+  +-select_clause=SelectList
+  | +-SelectListItem
+  |   +-FunctionCall[name=FUN]
+  |     +-Add
+  |       +-left_operand=SimpleCaseExpression
+  |       | +-case_operand=AttributeReference[attribute_name=col1]
+  |       | +-else_result_expression=Literal
+  |       | | +-NumericLiteral[numeric_string=0,float_like=false]
+  |       | +-when_clauses=
+  |       |   +-SimpleWhenClause
+  |       |   | +-condition_operand=Add
+  |       |   | | +-left_operand=AttributeReference[attribute_name=col2]
+  |       |   | | +-right_operand=FunctionCall[name=FUN]
+  |       |   | |   +-Add
+  |       |   | |     +-left_operand=SearchedCaseExpression
+  |       |   | |     | +-else_result_expression=Literal
+  |       |   | |     | | +-NumericLiteral[numeric_string=1,float_like=false]
+  |       |   | |     | +-when_clauses=
+  |       |   | |     |   +-SearchedWhenClause
+  |       |   | |     |     +-condition_predicate=Less
+  |       |   | |     |     | +-left_operand=AttributeReference[
+  |       |   | |     |     | | attribute_name=col1]
+  |       |   | |     |     | +-right_operand=AttributeReference[
+  |       |   | |     |     |   attribute_name=col2]
+  |       |   | |     |     +-result_expression=Literal
+  |       |   | |     |       +-NumericLiteral[numeric_string=0,float_like=false]
+  |       |   | |     +-right_operand=SearchedCaseExpression
+  |       |   | |       +-else_result_expression=Literal
+  |       |   | |       | +-NumericLiteral[numeric_string=1,float_like=false]
+  |       |   | |       +-when_clauses=
+  |       |   | |         +-SearchedWhenClause
+  |       |   | |           +-condition_predicate=Less
+  |       |   | |           | +-left_operand=AttributeReference[
+  |       |   | |           | | attribute_name=col1]
+  |       |   | |           | +-right_operand=AttributeReference[
+  |       |   | |           |   attribute_name=col3]
+  |       |   | |           +-result_expression=Literal
+  |       |   | |             +-NumericLiteral[numeric_string=0,float_like=false]
+  |       |   | +-result_expression=Literal
+  |       |   |   +-NumericLiteral[numeric_string=1,float_like=false]
+  |       |   +-SimpleWhenClause
+  |       |     +-condition_operand=AttributeReference[attribute_name=col3]
+  |       |     +-result_expression=Literal
+  |       |       +-NumericLiteral[numeric_string=2,float_like=false]
+  |       +-right_operand=AttributeReference[attribute_name=col4]
+  +-from_clause=
+    +-TableReference[table=test]
+==
+
+# IN predicate
+SELECT *
+FROM test 
+WHERE col1 IN (1, 3, 5);
+--
+SelectStatement
++-select_query=Select
+  +-select_clause=SelectStar
+  +-where_clause=InValueList
+  | +-test_expression=AttributeReference[attribute_name=col1]
+  | +-value_list=
+  |   +-Literal
+  |   | +-NumericLiteral[numeric_string=1,float_like=false]
+  |   +-Literal
+  |   | +-NumericLiteral[numeric_string=3,float_like=false]
+  |   +-Literal
+  |     +-NumericLiteral[numeric_string=5,float_like=false]
+  +-from_clause=
+    +-TableReference[table=test]
+==
+
+SELECT *
+FROM test
+WHERE col1 IN (FUN(1),
+               col2+col3,
+               CASE WHEN col4 > 0 THEN col5 ELSE col6 END);
+--
+SelectStatement
++-select_query=Select
+  +-select_clause=SelectStar
+  +-where_clause=InValueList
+  | +-test_expression=AttributeReference[attribute_name=col1]
+  | +-value_list=
+  |   +-FunctionCall[name=FUN]
+  |   | +-Literal
+  |   |   +-NumericLiteral[numeric_string=1,float_like=false]
+  |   +-Add
+  |   | +-left_operand=AttributeReference[attribute_name=col2]
+  |   | +-right_operand=AttributeReference[attribute_name=col3]
+  |   +-SearchedCaseExpression
+  |     +-else_result_expression=AttributeReference[attribute_name=col6]
+  |     +-when_clauses=
+  |       +-SearchedWhenClause
+  |         +-condition_predicate=Greater
+  |         | +-left_operand=AttributeReference[attribute_name=col4]
+  |         | +-right_operand=Literal
+  |         |   +-NumericLiteral[numeric_string=0,float_like=false]
+  |         +-result_expression=AttributeReference[attribute_name=col5]
+  +-from_clause=
+    +-TableReference[table=test]
+==
+
+SELECT *
+FROM test
+WHERE col1 NOT IN (col1, col2 + col3);
+--
+SelectStatement
++-select_query=Select
+  +-select_clause=SelectStar
+  +-where_clause=Not
+  | +-InValueList
+  |   +-test_expression=AttributeReference[attribute_name=col1]
+  |   +-value_list=
+  |     +-AttributeReference[attribute_name=col1]
+  |     +-Add
+  |       +-left_operand=AttributeReference[attribute_name=col2]
+  |       +-right_operand=AttributeReference[attribute_name=col3]
+  +-from_clause=
+    +-TableReference[table=test]
+==
+
+SELECT *
+FROM test
+WHERE col1 IN (
+  SELECT SUM(col2+col3)
+  FROM bar
+  GROUP BY col4
+);
+--
+SelectStatement
++-select_query=Select
+  +-select_clause=SelectStar
+  +-where_clause=InTableQuery
+  | +-test_expression=AttributeReference[attribute_name=col1]
+  | +-table_query=SubqueryExpression
+  |   +-Select
+  |     +-select_clause=SelectList
+  |     | +-SelectListItem
+  |     |   +-FunctionCall[name=SUM]
+  |     |     +-Add
+  |     |       +-left_operand=AttributeReference[attribute_name=col2]
+  |     |       +-right_operand=AttributeReference[attribute_name=col3]
+  |     +-group_by=GroupBy
+  |     | +-AttributeReference[attribute_name=col4]
+  |     +-from_clause=
+  |       +-TableReference[table=bar]
+  +-from_clause=
+    +-TableReference[table=test]
+==
+
+SELECT *
+FROM test
+WHERE col1 NOT IN (
+  SELECT col2
+  FROM bar
+  WHERE col3 IN (col4, col5)
+);
+--
+SelectStatement
++-select_query=Select
+  +-select_clause=SelectStar
+  +-where_clause=Not
+  | +-InTableQuery
+  |   +-test_expression=AttributeReference[attribute_name=col1]
+  |   +-table_query=SubqueryExpression
+  |     +-Select
+  |       +-select_clause=SelectList
+  |       | +-SelectListItem
+  |       |   +-AttributeReference[attribute_name=col2]
+  |       +-where_clause=InValueList
+  |       | +-test_expression=AttributeReference[attribute_name=col3]
+  |       | +-value_list=
+  |       |   +-AttributeReference[attribute_name=col4]
+  |       |   +-AttributeReference[attribute_name=col5]
+  |       +-from_clause=
+  |         +-TableReference[table=bar]
+  +-from_clause=
+    +-TableReference[table=test]
+==
+
 select avg(attr1) from test window 10 on attr emit 2 age 60;
 --
 SelectStatement

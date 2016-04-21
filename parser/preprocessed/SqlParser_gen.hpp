@@ -73,86 +73,95 @@ extern int quickstep_yydebug;
     TOKEN_ASC = 283,
     TOKEN_BIGINT = 284,
     TOKEN_BIT = 285,
-    TOKEN_BLOCKPROPERTIES = 286,
-    TOKEN_BLOCKSAMPLE = 287,
-    TOKEN_BLOOM_FILTER = 288,
-    TOKEN_CSB_TREE = 289,
-    TOKEN_BY = 290,
-    TOKEN_CHARACTER = 291,
-    TOKEN_CHECK = 292,
-    TOKEN_COLUMN = 293,
-    TOKEN_CONSTRAINT = 294,
-    TOKEN_COPY = 295,
-    TOKEN_CREATE = 296,
-    TOKEN_DATE = 297,
-    TOKEN_DATETIME = 298,
-    TOKEN_DECIMAL = 299,
-    TOKEN_DEFAULT = 300,
-    TOKEN_DELETE = 301,
-    TOKEN_DELIMITER = 302,
-    TOKEN_DESC = 303,
-    TOKEN_DISTINCT = 304,
-    TOKEN_DOUBLE = 305,
-    TOKEN_DROP = 306,
-    TOKEN_ESCAPE_STRINGS = 307,
-    TOKEN_EMIT = 308,
-    TOKEN_EXTRACT = 309,
-    TOKEN_FALSE = 310,
-    TOKEN_FIRST = 311,
-    TOKEN_FLOAT = 312,
-    TOKEN_FOREIGN = 313,
-    TOKEN_FROM = 314,
-    TOKEN_FULL = 315,
-    TOKEN_GROUP = 316,
-    TOKEN_HASH = 317,
-    TOKEN_HAVING = 318,
-    TOKEN_INDEX = 319,
-    TOKEN_INNER = 320,
-    TOKEN_INSERT = 321,
-    TOKEN_INTEGER = 322,
-    TOKEN_INTERVAL = 323,
-    TOKEN_INTO = 324,
-    TOKEN_JOIN = 325,
-    TOKEN_KEY = 326,
-    TOKEN_LAST = 327,
-    TOKEN_LEFT = 328,
-    TOKEN_LIMIT = 329,
-    TOKEN_LONG = 330,
-    TOKEN_NULL = 331,
-    TOKEN_NULLS = 332,
-    TOKEN_OFF = 333,
-    TOKEN_ON = 334,
-    TOKEN_ORDER = 335,
-    TOKEN_OUTER = 336,
-    TOKEN_PARTITION = 337,
-    TOKEN_PARTITIONS = 338,
-    TOKEN_PERCENT = 339,
-    TOKEN_PRIMARY = 340,
-    TOKEN_QUIT = 341,
-    TOKEN_RANGE = 342,
-    TOKEN_REAL = 343,
-    TOKEN_REFERENCES = 344,
-    TOKEN_RIGHT = 345,
-    TOKEN_ROW_DELIMITER = 346,
-    TOKEN_SELECT = 347,
-    TOKEN_SET = 348,
-    TOKEN_SMALLINT = 349,
-    TOKEN_TABLE = 350,
-    TOKEN_TIME = 351,
-    TOKEN_TIMESTAMP = 352,
-    TOKEN_TRUE = 353,
-    TOKEN_TUPLESAMPLE = 354,
-    TOKEN_UNIQUE = 355,
-    TOKEN_UPDATE = 356,
-    TOKEN_USING = 357,
-    TOKEN_VALUES = 358,
-    TOKEN_VARCHAR = 359,
-    TOKEN_WHERE = 360,
-    TOKEN_WITH = 361,
-    TOKEN_WINDOW = 362,
-    TOKEN_YEARMONTH = 363,
-    TOKEN_EOF = 364,
-    TOKEN_LEX_ERROR = 365
+    TOKEN_BITWEAVING = 286,
+    TOKEN_BLOCKPROPERTIES = 287,
+    TOKEN_BLOCKSAMPLE = 288,
+    TOKEN_BLOOM_FILTER = 289,
+    TOKEN_CSB_TREE = 290,
+    TOKEN_BY = 291,
+    TOKEN_CASE = 292,
+    TOKEN_CHARACTER = 293,
+    TOKEN_CHECK = 294,
+    TOKEN_COLUMN = 295,
+    TOKEN_CONSTRAINT = 296,
+    TOKEN_COPY = 297,
+    TOKEN_CREATE = 298,
+    TOKEN_DATE = 299,
+    TOKEN_DATETIME = 300,
+    TOKEN_DECIMAL = 301,
+    TOKEN_DEFAULT = 302,
+    TOKEN_DELETE = 303,
+    TOKEN_DELIMITER = 304,
+    TOKEN_DESC = 305,
+    TOKEN_DISTINCT = 306,
+    TOKEN_DOUBLE = 307,
+    TOKEN_DROP = 308,
+    TOKEN_ELSE = 309,
+    TOKEN_END = 310,
+    TOKEN_ESCAPE_STRINGS = 311,
+    TOKEN_EMIT = 312,
+    TOKEN_EXISTS = 313,
+    TOKEN_EXTRACT = 314,
+    TOKEN_FALSE = 315,
+    TOKEN_FIRST = 316,
+    TOKEN_FLOAT = 317,
+    TOKEN_FOREIGN = 318,
+    TOKEN_FROM = 319,
+    TOKEN_FULL = 320,
+    TOKEN_GROUP = 321,
+    TOKEN_HASH = 322,
+    TOKEN_HAVING = 323,
+    TOKEN_IN = 324,
+    TOKEN_INDEX = 325,
+    TOKEN_INNER = 326,
+    TOKEN_INSERT = 327,
+    TOKEN_INTEGER = 328,
+    TOKEN_INTERVAL = 329,
+    TOKEN_INTO = 330,
+    TOKEN_JOIN = 331,
+    TOKEN_KEY = 332,
+    TOKEN_LAST = 333,
+    TOKEN_LEFT = 334,
+    TOKEN_LIMIT = 335,
+    TOKEN_LONG = 336,
+    TOKEN_NULL = 337,
+    TOKEN_NULLS = 338,
+    TOKEN_OFF = 339,
+    TOKEN_ON = 340,
+    TOKEN_ORDER = 341,
+    TOKEN_OUTER = 342,
+    TOKEN_PARTITION = 343,
+    TOKEN_PARTITIONS = 344,
+    TOKEN_PERCENT = 345,
+    TOKEN_PRIMARY = 346,
+    TOKEN_QUIT = 347,
+    TOKEN_RANGE = 348,
+    TOKEN_REAL = 349,
+    TOKEN_REFERENCES = 350,
+    TOKEN_RIGHT = 351,
+    TOKEN_ROW_DELIMITER = 352,
+    TOKEN_SELECT = 353,
+    TOKEN_SET = 354,
+    TOKEN_SMA = 355,
+    TOKEN_SMALLINT = 356,
+    TOKEN_TABLE = 357,
+    TOKEN_THEN = 358,
+    TOKEN_TIME = 359,
+    TOKEN_TIMESTAMP = 360,
+    TOKEN_TRUE = 361,
+    TOKEN_TUPLESAMPLE = 362,
+    TOKEN_UNIQUE = 363,
+    TOKEN_UPDATE = 364,
+    TOKEN_USING = 365,
+    TOKEN_VALUES = 366,
+    TOKEN_VARCHAR = 367,
+    TOKEN_WHEN = 368,
+    TOKEN_WHERE = 369,
+    TOKEN_WITH = 370,
+    TOKEN_WINDOW = 371,
+    TOKEN_YEARMONTH = 372,
+    TOKEN_EOF = 373,
+    TOKEN_LEX_ERROR = 374
   };
 #endif
 
@@ -161,7 +170,7 @@ extern int quickstep_yydebug;
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 115 "../SqlParser.ypp" /* yacc.c:1909  */
+#line 119 "../SqlParser.ypp" /* yacc.c:1909  */
 
   quickstep::ParseString *string_value_;
 
@@ -183,6 +192,12 @@ union YYSTYPE
 
   quickstep::ParseSubqueryExpression *subquery_expression_;
 
+  quickstep::PtrVector<quickstep::ParseSimpleWhenClause> *simple_when_clause_list_;
+  quickstep::ParseSimpleWhenClause *simple_when_clause_;
+
+  quickstep::PtrVector<quickstep::ParseSearchedWhenClause> *searched_when_clause_list_;
+  quickstep::ParseSearchedWhenClause *searched_when_clause_;
+
   quickstep::ParseSelectionClause *selection_;
   quickstep::ParseSelectionItem *selection_item_;
   quickstep::ParseSelectionList *selection_list_;
@@ -190,6 +205,8 @@ union YYSTYPE
   quickstep::ParseTableReference *table_reference_;
   quickstep::PtrList<quickstep::ParseTableReference> *table_reference_list_;
   quickstep::ParseTableReferenceSignature *table_reference_signature_;
+
+  quickstep::ParseJoinedTableReference::JoinType join_type_;
 
   quickstep::ParseDataType *data_type_;
   quickstep::ParseAttributeDefinition *attribute_definition_;
@@ -246,7 +263,7 @@ union YYSTYPE
   quickstep::PtrVector<quickstep::ParseSubqueryTableReference> *with_list_;
   quickstep::ParseSubqueryTableReference *with_list_element_;
 
-#line 250 "SqlParser_gen.hpp" /* yacc.c:1909  */
+#line 267 "SqlParser_gen.hpp" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

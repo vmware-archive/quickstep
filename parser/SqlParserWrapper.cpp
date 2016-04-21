@@ -19,6 +19,7 @@
 
 #include <string>
 
+#include "parser/ParseJoinedTableReference.hpp"
 #include "parser/ParseStatement.hpp"
 #include "utility/Macros.hpp"
 #include "utility/SqlError.hpp"
@@ -46,10 +47,12 @@ class ParseLiteralValue;
 class ParsePartitionClause;
 class ParsePredicate;
 class ParseSample;
+class ParseSearchedWhenClause;
 class ParseScalarLiteral;
 class ParseSelection;
 class ParseSelectionItem;
 class ParseSelectionList;
+class ParseSimpleWhenClause;
 class ParseTableReference;
 class Type;
 class UnaryOperation;

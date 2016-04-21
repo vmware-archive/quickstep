@@ -39,10 +39,10 @@ void StreamCoordinatorThread::run()
     {
     
     if(query_dag_== NULL) {
-    	sleep(1);	
+    	sleep(10);
     }
 	initializeTimer();
-	if(op_timer_heap_.size()==0) sleep(1);
+	if(op_timer_heap_.size()==0) sleep(10);
 	processTimerEvents();
 	sleep(sleep_time_/1000);	
     

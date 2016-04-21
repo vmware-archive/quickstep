@@ -45,7 +45,7 @@ class PrintToScreen {
 	/**
 	   * @brief Print all the tuples in the relation.
 	   * @param out FILE pointer to print the tuples to.
-	   **/
+	   **/ 
 	  void printRelation(FILE *out);
 
 
@@ -69,6 +69,8 @@ class PrintToScreen {
     void printBlock(block_id block, FILE *out);
 
 
+  void printHBar(const std::vector<int> &column_widths,
+                        FILE *out);
  private:
 
 
@@ -85,6 +87,7 @@ class PrintToScreen {
   const CatalogRelation &relation_;  // Relation to print.
   std::vector<int> column_widths_;  // Precomputed column-widths.
   StorageManager *storage_manager_;
+
 
   DISALLOW_COPY_AND_ASSIGN(PrintToScreen);
 };
