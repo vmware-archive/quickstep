@@ -656,17 +656,17 @@ SELECT SUM(EXTRACT(SECOND FROM value))
 FROM dates;
 --
 +-------------------------------+
-|SUM(EXTRACT(second FROM value))|
+|SUM(EXTRACT(SECOND FROM value))|
 +-------------------------------+
 |                             93|
 +-------------------------------+
 ==
 
-SELECT EXTRACT(hour FROM value + INTERVAL '1 hour')
+SELECT EXTRACT(HOUR FROM value + INTERVAL '1 hour')
 FROM dates;
 --
 +-----------------------------------------------------+
-|EXTRACT(hour FROM (value+DatetimeInterval('1 hour')))|
+|EXTRACT(HOUR FROM (value+DatetimeInterval('1 hour')))|
 +-----------------------------------------------------+
 |                                                   11|
 |                                                   12|

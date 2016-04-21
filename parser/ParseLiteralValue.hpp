@@ -289,7 +289,8 @@ class StringParseLiteralValue : public ParseLiteralValue {
    **/
   static bool ParseAmbiguousInterval(ParseString *value,
                                      StringParseLiteralValue **output);
-   /**
+
+  /**
    * @note The rules for what type this literal is resolved as depend on
    *       whether an explicit_type_ from the SQL context exists, and whether
    *       a type_hint is provided. Specifically, they are:

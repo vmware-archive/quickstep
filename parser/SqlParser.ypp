@@ -1639,9 +1639,9 @@ literal_value:
   }
   | TOKEN_INTERVAL TOKEN_STRING_SINGLE_QUOTED datetime_unit {
     quickstep::StringParseLiteralValue *parse_value;
-    const std::string& datetime_type_value = $3->value();
-    if (quickstep::StringParseLiteralValue::ParseAmbiguousInterval(&($2->append((" " +
-        datetime_type_value).c_str(), datetime_type_value.length() + 1)),
+    const std::string &datetime_type_value = $3->value();
+    if (quickstep::StringParseLiteralValue::ParseAmbiguousInterval(
+        &($2->append((" " + datetime_type_value).c_str(), datetime_type_value.length() + 1)),
         &parse_value)) {
       $$ = parse_value;
     } else {
@@ -1666,22 +1666,22 @@ literal_value:
 
 datetime_unit:
   TOKEN_YEAR {
-     $$ = new quickstep::ParseString(@1.first_line, @1.first_column, std::string("year"));
+     $$ = new quickstep::ParseString(@1.first_line, @1.first_column, std::string("YEAR"));
   }
   | TOKEN_MONTH {
-     $$ = new quickstep::ParseString(@1.first_line, @1.first_column, std::string("month"));
+     $$ = new quickstep::ParseString(@1.first_line, @1.first_column, std::string("MONTH"));
   }
   | TOKEN_DAY {
-     $$ = new quickstep::ParseString(@1.first_line, @1.first_column, std::string("day"));
+     $$ = new quickstep::ParseString(@1.first_line, @1.first_column, std::string("DAY"));
   }
   | TOKEN_HOUR {
-     $$ = new quickstep::ParseString(@1.first_line, @1.first_column, std::string("hour"));
+     $$ = new quickstep::ParseString(@1.first_line, @1.first_column, std::string("HOUR"));
   }
   | TOKEN_MINUTE {
-     $$ = new quickstep::ParseString(@1.first_line, @1.first_column, std::string("minute"));
+     $$ = new quickstep::ParseString(@1.first_line, @1.first_column, std::string("MINUTE"));
   }
   | TOKEN_SECOND {
-     $$ = new quickstep::ParseString(@1.first_line, @1.first_column, std::string("second"));
+     $$ = new quickstep::ParseString(@1.first_line, @1.first_column, std::string("SECOND"));
   };
 
 literal_value_commalist:
