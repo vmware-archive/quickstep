@@ -225,7 +225,7 @@ class RunTest : public ::testing::Test {
 };
 
 const char RunTest::kTableName[] = "table";
-const char RunTest::kStoragePath[] = "./test_data";
+const char RunTest::kStoragePath[] = "./sort_merge_run_operator_test_data";
 const tuple_id RunTest::kNumTuples = 100;
 const tuple_id RunTest::kNumTuplesPerBlock = 10;
 
@@ -642,7 +642,7 @@ class RunMergerTest : public ::testing::Test {
 };
 
 const char RunMergerTest::kTableName[] = "table";
-const char RunMergerTest::kStoragePath[] = "./test_data";
+const char RunMergerTest::kStoragePath[] = "./sort_merge_run_operator_test_data";
 const std::size_t RunMergerTest::kNumTuplesPerBlock = 10;
 const tuple_id RunMergerTest::kNumBlocksPerRun = 10;
 const std::size_t RunMergerTest::kNumRuns = 10;
@@ -1681,7 +1681,7 @@ class SortMergeRunOperatorTest : public ::testing::Test {
 const char SortMergeRunOperatorTest::kTableName[] = "table";
 const char SortMergeRunOperatorTest::kResultTableName[] = "result-table";
 const char SortMergeRunOperatorTest::kRunTableName[] = "run-table";
-const char SortMergeRunOperatorTest::kStoragePath[] = "./test_data";
+const char SortMergeRunOperatorTest::kStoragePath[] = "./sort_merge_run_operator_test_data";
 const char SortMergeRunOperatorTest::kDatabaseName[] = "database";
 
 namespace {

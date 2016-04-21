@@ -500,7 +500,7 @@ class AggregationOperatorTest : public ::testing::Test {
 
 const char AggregationOperatorTest::kDatabaseName[] = "database";
 const char AggregationOperatorTest::kTableName[] = "table";
-const char AggregationOperatorTest::kStoragePath[] = "./test_data";
+const char AggregationOperatorTest::kStoragePath[] = "./aggregation_operator_test_data";
 
 namespace {
 

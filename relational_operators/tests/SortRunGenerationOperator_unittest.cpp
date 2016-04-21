@@ -414,7 +414,7 @@ class SortRunGenerationOperatorTest : public ::testing::Test {
 
 const char SortRunGenerationOperatorTest::kTableName[] = "table";
 const char SortRunGenerationOperatorTest::kResultTableName[] = "result-table";
-const char SortRunGenerationOperatorTest::kStoragePath[] = "./test_data";
+const char SortRunGenerationOperatorTest::kStoragePath[] = "./sort_run_generation_operator_test_data";
 
 namespace {
 

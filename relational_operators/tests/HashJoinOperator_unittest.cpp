@@ -114,7 +114,7 @@ class HashJoinOperatorTest : public ::testing::TestWithParam<HashTableImplType> 
     bus_.RegisterClientAsSender(foreman_client_id_, kCatalogRelationNewBlockMessage);
     bus_.RegisterClientAsReceiver(foreman_client_id_, kCatalogRelationNewBlockMessage);
 
-    storage_manager_.reset(new StorageManager("./test_data/"));
+    storage_manager_.reset(new StorageManager("./hash_join_operator_test_data/"));
 
     // Create a database.
     db_.reset(new CatalogDatabase(nullptr, "database"));
