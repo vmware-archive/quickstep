@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -98,6 +99,7 @@
 #include "storage/InsertDestination.pb.h"
 #include "storage/StorageBlockLayout.hpp"
 #include "storage/StorageBlockLayout.pb.h"
+#include "storage/SubBlockTypeRegistry.hpp"
 #include "types/Type.hpp"
 #include "types/Type.pb.h"
 #include "types/TypedValue.hpp"
@@ -120,14 +122,14 @@ namespace optimizer {
 DEFINE_string(join_hashtable_type, "SeparateChaining",
               "HashTable implementation to use for hash joins (valid options "
               "are SeparateChaining or LinearOpenAddressing)");
-static const bool join_hashtable_type_dummy
+static const volatile bool join_hashtable_type_dummy
     = gflags::RegisterFlagValidator(&FLAGS_join_hashtable_type,
                                     &ValidateHashTableImplTypeString);
 
 DEFINE_string(aggregate_hashtable_type, "LinearOpenAddressing",
               "HashTable implementation to use for aggregates with GROUP BY "
               "(valid options are SeparateChaining or LinearOpenAddressing)");
-static const bool aggregate_hashtable_type_dummy
+static const volatile bool aggregate_hashtable_type_dummy
     = gflags::RegisterFlagValidator(&FLAGS_aggregate_hashtable_type,
                                     &ValidateHashTableImplTypeString);
 
@@ -570,16 +572,19 @@ void ExecutionGenerator::convertHashJoin(const P::HashJoinPtr &physical_plan) {
     key_types.push_back(&left_attribute_type);
   }
 
-  // Choose the smaller table as the inner build table,
-  // and the other one as the outer probe table.
   std::size_t probe_cardinality = cost_model_->estimateCardinality(probe_physical);
   std::size_t build_cardinality = cost_model_->estimateCardinality(build_physical);
-  if (probe_cardinality < build_cardinality) {
-    // Switch the probe and build physical nodes.
-    std::swap(probe_physical, build_physical);
-    std::swap(probe_cardinality, build_cardinality);
-    std::swap(probe_attribute_ids, build_attribute_ids);
-    std::swap(any_probe_attributes_nullable, any_build_attributes_nullable);
+  // For inner join, we may swap the probe table and the build table.
+  if (physical_plan->join_type() == P::HashJoin::JoinType::kInnerJoin)  {
+    // Choose the smaller table as the inner build table,
+    // and the other one as the outer probe table.
+    if (probe_cardinality < build_cardinality) {
+      // Switch the probe and build physical nodes.
+      std::swap(probe_physical, build_physical);
+      std::swap(probe_cardinality, build_cardinality);
+      std::swap(probe_attribute_ids, build_attribute_ids);
+      std::swap(any_probe_attributes_nullable, any_build_attributes_nullable);
+    }
   }
 
   // Convert the residual predicate proto.
@@ -601,6 +606,18 @@ void ExecutionGenerator::convertHashJoin(const P::HashJoinPtr &physical_plan) {
       findRelationInfoOutputByPhysical(build_physical);
   const CatalogRelationInfo *probe_operator_info =
       findRelationInfoOutputByPhysical(probe_physical);
+
+  // Create a vector that indicates whether each project expression is using
+  // attributes from the build relation as input. This information is required
+  // by the current implementation of hash left outer join
+  std::unique_ptr<std::vector<bool>> is_selection_on_build;
+  if (physical_plan->join_type() == P::HashJoin::JoinType::kLeftOuterJoin) {
+    is_selection_on_build.reset(
+        new std::vector<bool>(
+            E::MarkExpressionsReferingAnyAttribute(
+                physical_plan->project_expressions(),
+                build_physical->getOutputAttributes())));
+  }
 
   // FIXME(quickstep-team): Add support for self-join.
   if (build_relation_info->relation == probe_operator_info->relation) {
@@ -647,6 +664,28 @@ void ExecutionGenerator::convertHashJoin(const P::HashJoinPtr &physical_plan) {
                                  &output_relation,
                                  insert_destination_proto);
 
+  // Get JoinType
+  HashJoinOperator::JoinType join_type;
+  switch (physical_plan->join_type()) {
+    case P::HashJoin::JoinType::kInnerJoin:
+      join_type = HashJoinOperator::JoinType::kInnerJoin;
+      break;
+    case P::HashJoin::JoinType::kLeftSemiJoin:
+      join_type = HashJoinOperator::JoinType::kLeftSemiJoin;
+      break;
+    case P::HashJoin::JoinType::kLeftAntiJoin:
+      join_type = HashJoinOperator::JoinType::kLeftAntiJoin;
+      break;
+    case P::HashJoin::JoinType::kLeftOuterJoin:
+      join_type = HashJoinOperator::JoinType::kLeftOuterJoin;
+      break;
+    default:
+      LOG(FATAL) << "Invalid physical::HashJoin::JoinType: "
+                 << static_cast<typename std::underlying_type<P::HashJoin::JoinType>::type>(
+                        physical_plan->join_type());
+  }
+
+  // Create hash join operator
   const QueryPlan::DAGNodeIndex join_operator_index =
       execution_plan_->addRelationalOperator(
           new HashJoinOperator(
@@ -659,7 +698,9 @@ void ExecutionGenerator::convertHashJoin(const P::HashJoinPtr &physical_plan) {
               insert_destination_index,
               join_hash_table_index,
               residual_predicate_index,
-              project_expressions_group_index));
+              project_expressions_group_index,
+              is_selection_on_build.get(),
+              join_type));
   insert_destination_proto->set_relational_op_index(join_operator_index);
 
   const QueryPlan::DAGNodeIndex destroy_operator_index =
@@ -846,7 +887,7 @@ void ExecutionGenerator::convertCreateIndex(
     THROW_SQL_ERROR() << "The relation " << input_relation->getName()
         << " already defines this index on the given attribute(s).";
   }
-  if (!index_description.IsInitialized()) {
+  if (!SubBlockTypeRegistry::IndexDescriptionIsValid(*input_relation, index_description)) {
     // Check if the given index description is valid.
     THROW_SQL_ERROR() << "The index with given properties cannot be created.";
   }

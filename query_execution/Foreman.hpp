@@ -454,8 +454,8 @@ class Foreman final : public ForemanLite {
 
   WorkerDirectory *workers_;
 
-  friend class ForemanTest;
-  FRIEND_TEST(ForemanTest, TwoNodesDAGPartiallyFilledBlocksTest);
+  /*friend class ForemanTest;
+  FRIEND_TEST(ForemanTest, TwoNodesDAGPartiallyFilledBlocksTest);*/
 
   DISALLOW_COPY_AND_ASSIGN(Foreman);
 };

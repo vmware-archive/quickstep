@@ -74,7 +74,7 @@ static bool ValidateTextScanSplitBlobSize(const char *flagname,
   return true;
 }
 
-static const bool text_scan_split_blob_size_dummy = gflags::RegisterFlagValidator(
+static const volatile bool text_scan_split_blob_size_dummy = gflags::RegisterFlagValidator(
     &FLAGS_textscan_split_blob_size, &ValidateTextScanSplitBlobSize);
 
 namespace {
@@ -147,6 +147,10 @@ bool TextScanOperator::getAllWorkOrders(
   DCHECK(query_context != nullptr);
 
   const std::vector<std::string> files = utility::file::GlobExpand(file_pattern_);
+
+  if (files.size() == 0) {
+    LOG(FATAL) << "No files matched '" << file_pattern_ << "'. Exiting.";
+  }
 
   InsertDestination *output_destination =
       query_context->getInsertDestination(output_destination_index_);

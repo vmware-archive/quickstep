@@ -56,7 +56,7 @@ class WorkOrdersContainer {
       : num_operators_(num_operators),
         num_numa_nodes_(num_numa_nodes),
         query_id_(query_id) {
-    DCHECK(num_operators != 0);
+    DEBUG_ASSERT(num_operators != 0);
     for (std::size_t op = 0; op < num_operators; ++op) {
       normal_workorders_.push_back(
           new OperatorWorkOrdersContainer(num_numa_nodes_));
@@ -512,6 +512,7 @@ class WorkOrdersContainer {
 
   DISALLOW_COPY_AND_ASSIGN(WorkOrdersContainer);
 };
+
 /** @} */
 
 }  // namespace quickstep
