@@ -150,8 +150,20 @@ void PolicyEnforcer::getWorkerMessages(
 
 void PolicyEnforcer::removeQuery(const std::size_t query_id) {
   DCHECK(admitted_queries_.find(query_id) != admitted_queries_.end());
+  if (!admitted_queries_[query_id]->getQueryExecutionState().hasQueryExecutionFinished()) {
+    LOG(WARNING) << "Removing query with ID " << query_id
+                 << " that hasn't finished its execution";
+  }
   admitted_queries_[query_id].reset(nullptr);
   admitted_queries_.erase(query_id);
+}
+
+bool PolicyEnforcer::admitQueries(std::vector<QueryHandle*> query_handles) {
+  bool result = true;
+  for (QueryHandle* curr_query : query_handles) {
+    result = result && admitQuery(curr_query);
+  }
+  return result;
 }
 
 }  // namespace quickstep

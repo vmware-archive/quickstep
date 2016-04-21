@@ -68,6 +68,16 @@ class PolicyEnforcer {
         bus_(bus) {}
 
   /**
+   * @brief Destructor.
+   **/
+  ~PolicyEnforcer() {
+    if (hasQueries()) {
+      LOG(WARNING) << "Destructing PolicyEnforcer with some unfinished or "
+                      "waiting queries";
+    }
+  }
+
+  /**
    * @brief Admit a query to the system.
    *
    * @param query_handle The QueryHandle for the new query.
@@ -79,16 +89,29 @@ class PolicyEnforcer {
   /**
    * @brief Admit multiple queries in the system.
    *
+   * @note In the current simple implementation, we only allow one active
+   *       query in the system. Other queries will have to wait.
+   *
    * @param query_handles A vector of QueryHandles for the queries to be
    *        admitted.
    *
    * @return True if all the queries were admitted, false if at least one query
    *         was not admitted.
    **/
-  bool admitQueries(std::vector<QueryHandle*> query_handles) {
-    LOG(ERROR) << "PolicyEnforcer::admitQueries is not supported right now.";
-    return false;
-  }
+  bool admitQueries(std::vector<QueryHandle*> query_handles);
+
+  /**
+   * @brief Remove a given query that is under execution.
+   *
+   * @note This function is made public so that it is possible for a query
+   *       to be killed. Otherwise, it should only be used privately by the
+   *       class.
+   *
+   * TODO(harshad) - Extend this function to support removal of waiting queries.
+   *
+   * @param query_id The ID of the query to be removed.
+   **/
+  void removeQuery(const std::size_t query_id);
 
   /**
    * @brief Get worker messages to be dispatched. These worker messages come
@@ -121,7 +144,6 @@ class PolicyEnforcer {
   static constexpr std::size_t kMaxConcurrentQueries = 1;
   static constexpr std::size_t kMaxNumWorkerMessages = 20;
 
-  void removeQuery(const std::size_t query_id);
 
   const tmb::client_id foreman_client_id_;
   const std::size_t num_numa_nodes_;
