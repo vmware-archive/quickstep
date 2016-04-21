@@ -22,6 +22,7 @@
 #include <memory>
 #include <vector>
 
+#include "catalog/CatalogTypedefs.hpp"
 #include "query_execution/QueryContext.hpp"
 #include "query_execution/QueryExecutionState.hpp"
 #include "query_execution/WorkOrdersContainer.hpp"
@@ -75,7 +76,7 @@ class QueryManager {
    * @param bus The TMB used for communication.
    **/
   QueryManager(const tmb::client_id foreman_client_id,
-               const int num_numa_nodes,
+               const std::size_t num_numa_nodes,
                QueryHandle *query_handle,
                CatalogDatabaseLite *catalog_database,
                StorageManager *storage_manager,
@@ -92,8 +93,9 @@ class QueryManager {
    * @return A pointer to the WorkerMessage. If there's no WorkOrder to be
    *         executed, return NULL.
    **/
-  WorkerMessage* getNextWorkerMessage(
-      const dag_node_index start_operator_index, const int numa_node = -1);
+  WorkerMessage *getNextWorkerMessage(
+      const dag_node_index start_operator_index,
+      const numa_node_id node_id = -1);
 
   /**
    * @brief Process a message sent to the QueryManager.
@@ -108,7 +110,7 @@ class QueryManager {
    * @brief Get the QueryExecutionState for this query.
    **/
   inline const QueryExecutionState& getQueryExecutionState() const {
-    return *(query_exec_state_.get());
+    return *query_exec_state_;
   }
 
   /**

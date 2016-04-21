@@ -431,7 +431,7 @@ TEST_F(QueryManagerTest, SingleNodeDAGDynamicWorkOrdersTest) {
   // op doesn't have any dependencies.
   EXPECT_TRUE(op.getBlockingDependenciesMet());
 
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; ++i) {
     // We expect one call for op's getAllWorkOrders().
     EXPECT_EQ(i + 1, op.getNumCalls(MockOperator::kGetAllWorkOrders));
 
@@ -485,7 +485,7 @@ TEST_F(QueryManagerTest, TwoNodesDAGBlockingLinkTest) {
 
   static_cast<MockOperator *>(
       query_plan_->getQueryPlanDAGMutable()->getNodePayloadMutable(id1))
-      ->setOutputRelationID(0xdead);
+          ->setOutputRelationID(0xdead);
 
   const MockOperator &op1 = static_cast<const MockOperator &>(
       query_plan_->getQueryPlanDAG().getNodePayload(id1));

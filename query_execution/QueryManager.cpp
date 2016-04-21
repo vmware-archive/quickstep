@@ -47,7 +47,7 @@ class StorageManager;
 namespace quickstep {
 
 QueryManager::QueryManager(const tmb::client_id foreman_client_id,
-                           const int num_numa_nodes,
+                           const std::size_t num_numa_nodes,
                            QueryHandle *query_handle,
                            CatalogDatabaseLite *catalog_database,
                            StorageManager *storage_manager,

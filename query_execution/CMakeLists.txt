@@ -29,10 +29,10 @@ add_library(quickstep_queryexecution_QueryContext_proto
 add_library(quickstep_queryexecution_QueryExecutionMessages_proto
             ${queryexecution_QueryExecutionMessages_proto_srcs}
             ${queryexecution_QueryExecutionMessages_proto_hdrs})
-add_library(quickstep_queryexecution_QueryExecutionState ../empty_src.cpp QueryExecutionState.hpp) 
+add_library(quickstep_queryexecution_QueryExecutionState ../empty_src.cpp QueryExecutionState.hpp)
 add_library(quickstep_queryexecution_QueryExecutionTypedefs ../empty_src.cpp QueryExecutionTypedefs.hpp)
 add_library(quickstep_queryexecution_QueryExecutionUtil ../empty_src.cpp QueryExecutionUtil.hpp)
-add_library(quickstep_queryexecution_QueryManager QueryManager.cpp QueryManager.hpp) 
+add_library(quickstep_queryexecution_QueryManager QueryManager.cpp QueryManager.hpp)
 add_library(quickstep_queryexecution_WorkOrdersContainer WorkOrdersContainer.cpp WorkOrdersContainer.hpp)
 add_library(quickstep_queryexecution_Worker Worker.cpp Worker.hpp)
 add_library(quickstep_queryexecution_WorkerDirectory ../empty_src.cpp WorkerDirectory.hpp)
@@ -113,7 +113,7 @@ target_link_libraries(quickstep_queryexecution_QueryExecutionUtil
                       quickstep_queryexecution_QueryExecutionTypedefs
                       quickstep_utility_Macros
                       tmb)
-target_link_libraries(quickstep_queryexecution_QueryManager 
+target_link_libraries(quickstep_queryexecution_QueryManager
                       quickstep_catalog_CatalogDatabase
                       quickstep_catalog_CatalogRelation
                       quickstep_catalog_CatalogTypedefs
@@ -132,7 +132,7 @@ target_link_libraries(quickstep_queryexecution_QueryManager
                       quickstep_storage_StorageBlockInfo
                       quickstep_utility_DAG
                       quickstep_utility_Macros
-                      tmb)                      
+                      tmb)
 target_link_libraries(quickstep_queryexecution_WorkOrdersContainer
                       glog
                       quickstep_relationaloperators_WorkOrder
@@ -175,9 +175,39 @@ target_link_libraries(quickstep_queryexecution
                       quickstep_queryexecution_WorkerMessage
                       quickstep_queryexecution_WorkerSelectionPolicy)
 # Tests:
+add_executable(Foreman_unittest
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/Foreman_unittest.cpp")
+target_link_libraries(Foreman_unittest
+                      glog
+                      gtest
+                      gtest_main
+                      quickstep_catalog_CatalogDatabase
+                      quickstep_catalog_CatalogRelation
+                      quickstep_catalog_CatalogTypedefs
+                      quickstep_queryexecution_Foreman
+                      quickstep_queryexecution_QueryContext
+                      quickstep_queryexecution_QueryContext_proto
+                      quickstep_queryexecution_QueryExecutionState
+                      quickstep_queryexecution_QueryExecutionTypedefs
+                      quickstep_queryexecution_WorkOrdersContainer
+                      quickstep_queryexecution_WorkerDirectory
+                      quickstep_queryexecution_WorkerMessage
+                      quickstep_queryoptimizer_QueryPlan
+                      quickstep_relationaloperators_RelationalOperator
+                      quickstep_relationaloperators_WorkOrder
+                      quickstep_storage_InsertDestination
+                      quickstep_storage_InsertDestination_proto
+                      quickstep_storage_StorageBlock
+                      quickstep_storage_StorageBlockInfo
+                      quickstep_storage_StorageManager
+                      quickstep_utility_DAG
+                      quickstep_utility_Macros
+                      tmb)
+add_test(Foreman_unittest Foreman_unittest)
+
 add_executable(QueryManager_unittest
   "${CMAKE_CURRENT_SOURCE_DIR}/tests/QueryManager_unittest.cpp")
-target_link_libraries(QueryManager_unittest  
+target_link_libraries(QueryManager_unittest
                       glog
                       gtest
                       gtest_main
