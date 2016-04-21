@@ -196,6 +196,17 @@ class RunTest : public ::testing::Test {
     // Usually the worker thread makes the following call. In this test setup,
     // we don't have a worker thread hence we have to explicitly make the call.
     thread_id_map_->removeValue();
+
+    // Drop blocks from relations and InsertDestination.
+    const vector<block_id> tmp_blocks = insert_destination_->getTouchedBlocks();
+    for (const block_id block : tmp_blocks) {
+      storage_manager_->deleteBlockOrBlobFile(block);
+    }
+
+    const vector<block_id> blocks = table_->getBlocksSnapshot();
+    for (const block_id block : blocks) {
+      storage_manager_->deleteBlockOrBlobFile(block);
+    }
   }
 
   // Helper method to insert test tuples.
@@ -429,6 +440,17 @@ class RunMergerTest : public ::testing::Test {
     // Usually the worker thread makes the following call. In this test setup,
     // we don't have a worker thread hence we have to explicitly make the call.
     thread_id_map_->removeValue();
+
+    // Drop blocks from relations and InsertDestination.
+    const vector<block_id> tmp_blocks = insert_destination_->getTouchedBlocks();
+    for (const block_id block : tmp_blocks) {
+      storage_manager_->deleteBlockOrBlobFile(block);
+    }
+
+    const vector<block_id> blocks = table_->getBlocksSnapshot();
+    for (const block_id block : blocks) {
+      storage_manager_->deleteBlockOrBlobFile(block);
+    }
   }
 
   // Helper method to create test tuples.
@@ -1285,6 +1307,22 @@ class SortMergeRunOperatorTest : public ::testing::Test {
     // Usually the worker thread makes the following call. In this test setup,
     // we don't have a worker thread hence we have to explicitly make the call.
     thread_id_map_->removeValue();
+
+    // Drop blocks from relations.
+    const vector<block_id> input_blocks = input_table_->getBlocksSnapshot();
+    for (const block_id block : input_blocks) {
+      storage_manager_->deleteBlockOrBlobFile(block);
+    }
+
+    const vector<block_id> result_blocks = result_table_->getBlocksSnapshot();
+    for (const block_id block : result_blocks) {
+      storage_manager_->deleteBlockOrBlobFile(block);
+    }
+
+    const vector<block_id> run_blocks = run_table_->getBlocksSnapshot();
+    for (const block_id block : run_blocks) {
+      storage_manager_->deleteBlockOrBlobFile(block);
+    }
   }
 
   CatalogRelation *createTable(const char *name, const relation_id rel_id) {
