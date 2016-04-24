@@ -36,12 +36,8 @@ bool PolicyEnforcer::admitQuery(QueryHandle *query_handle) {
     const std::size_t query_id = query_handle->query_id();
     if (admitted_queries_.find(query_id) == admitted_queries_.end()) {
       admitted_queries_[query_id].reset(
-          new QueryManager(foreman_client_id_,
-                           num_numa_nodes_,
-                           query_handle,
-                           catalog_database_,
-                           storage_manager_,
-                           bus_));
+          new QueryManager(foreman_client_id_, num_numa_nodes_, query_handle,
+                           catalog_database_, storage_manager_, bus_));
       return true;
     } else {
       LOG(ERROR) << "Query with same ID " << query_id << " exists";
@@ -96,17 +92,17 @@ void PolicyEnforcer::processMessage(const TaggedMessage &tagged_message) {
     }
     default:
       LOG(FATAL) << "Unknown message type found in PolicyEnforcer";
-    DCHECK(admitted_queries_.find(query_id) != admitted_queries_.end());
-    QueryManager::QueryStatusCode return_code =
-        admitted_queries_[query_id]->processMessage(tagged_message);
-    if (return_code == QueryManager::QueryStatusCode::kQueryExecuted) {
-      removeQuery(query_id);
-      if (!waiting_queries_.empty()) {
-        // Admit the earliest waiting query.
-        QueryHandle *new_query = waiting_queries_.front();
-        waiting_queries_.pop();
-        admitQuery(new_query);
-      }
+  }
+  DCHECK(admitted_queries_.find(query_id) != admitted_queries_.end());
+  QueryManager::QueryStatusCode return_code =
+      admitted_queries_[query_id]->processMessage(tagged_message);
+  if (return_code == QueryManager::QueryStatusCode::kQueryExecuted) {
+    removeQuery(query_id);
+    if (!waiting_queries_.empty()) {
+      // Admit the earliest waiting query.
+      QueryHandle *new_query = waiting_queries_.front();
+      waiting_queries_.pop();
+      admitQuery(new_query);
     }
   }
 }
@@ -119,7 +115,7 @@ void PolicyEnforcer::getWorkerMessages(
   // been collected.
   DCHECK(worker_messages->empty());
   // TODO(harshad) - Make this function generic enough so that it
-  // works well when multiple queries are admitted.
+  // works well when multiple queries are getting executed.
   DCHECK(!admitted_queries_.empty());
   const std::size_t per_query_share = kMaxNumWorkerMessages / admitted_queries_.size();
   DCHECK(per_query_share > 0);
