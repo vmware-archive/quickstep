@@ -107,19 +107,20 @@ class CycleDetectorTestSimple : public testing::Test {
 
 TEST_F(CycleDetectorTest, BreakCycle) {
   std::vector<DirectedGraph::node_id> victims = cycle_detector_->breakCycle();
-  std::vector<DirectedGraph::node_id> expected_victims = {6, 7, 8, 9, 2, 1};
+  std::unordered_set<DirectedGraph::node_id> expected_victims
+      = {4, 5, 7, 8, 9, 10, 11};
   EXPECT_EQ(expected_victims.size(), victims.size());
   for (std::size_t i = 0; i < victims.size(); ++i) {
-    EXPECT_EQ(expected_victims[i], victims[i]);
+    EXPECT_EQ(expected_victims.count(victims[i]), 1);
   }
 }
 
 TEST_F(CycleDetectorTestSimple, BreakCycleSimple) {
   std::vector<DirectedGraph::node_id> victims = cycle_detector_->breakCycle();
-  std::vector<DirectedGraph::node_id> expected_victims = {0};
+  std::unordered_set<DirectedGraph::node_id> expected_victims = {1};
   EXPECT_EQ(expected_victims.size(), victims.size());
   for (std::size_t i = 0; i < victims.size(); ++i) {
-    EXPECT_EQ(expected_victims[i], victims[i]);
+    EXPECT_EQ(expected_victims.count(victims[i]), 1);
   }
 }
 

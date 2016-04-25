@@ -61,12 +61,13 @@ CycleDetector::breakComponent(const std::vector<DirectedGraph::node_id> &nodes) 
   std::vector<DirectedGraph::node_id> targets;
   // Convert it to set to ensure defensively that the elements are unique.
   std::unordered_set<DirectedGraph::node_id> nodes_set(nodes.begin(), nodes.end());
+
   while (true) {
     const bool has_cycle = hasCycleWithin(nodes_set);
     if (!has_cycle) {
       break;
     }
-    // If there is a cycle, start to pop a node from the beginning.
+    // If there is a cycle, start to pop a node from randomly.
     // TODO(Hakan): This is very inefficient scheme, however in the
     //              future, we can use the transaction's priority
     //              as the victim selection parameter.
@@ -100,8 +101,8 @@ bool CycleDetector::hasCycleWithin(
       const std::vector<DirectedGraph::node_id> adjacents
           = wait_for_graph_->getAdjacentNodes(current_node);
       for (DirectedGraph::node_id adj : adjacents) {
-        if (adj == node_id) {
-          // If this adjacent node is the node we started, then
+        if (visited.count(adj) == 1) {
+          // If this adjacent node is a node we already visited, then
           // there is a cycle.
           return true;
         } else if (within.count(adj) == 1 && visited.count(adj) == 0) {
