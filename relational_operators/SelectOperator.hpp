@@ -91,14 +91,14 @@ class SelectOperator : public RelationalOperator {
         input_relation_is_stored_(input_relation_is_stored),
         placement_scheme_(input_relation.getNUMAPlacementScheme()),
         started_(false) {
-    if (input_relation.hasPartitionScheme()) {
+    if (input_relation.hasPartitionScheme() && input_relation_.hasNUMAPlacementScheme()) {
       const PartitionScheme &part_scheme = input_relation.getPartitionScheme();
       const PartitionSchemeHeader &part_scheme_header = part_scheme.getPartitionSchemeHeader();
-      int num_partitions = part_scheme_header.getNumPartitions();
+      const std::size_t num_partitions = part_scheme_header.getNumPartitions();
       input_relation_block_ids_in_partition_.resize(num_partitions);
       num_workorders_generated_in_partition_.resize(num_partitions);
       num_workorders_generated_in_partition_.assign(num_partitions, 0);
-      for (int part_id = 0; part_id < num_partitions; ++part_id) {
+      for (std::size_t part_id = 0; part_id < num_partitions; ++part_id) {
         if (input_relation_is_stored) {
           input_relation_block_ids_in_partition_[part_id] =
               part_scheme.getBlocksInPartition(part_id);
@@ -147,14 +147,14 @@ class SelectOperator : public RelationalOperator {
         input_relation_is_stored_(input_relation_is_stored),
         placement_scheme_(input_relation.getNUMAPlacementScheme()),
         started_(false) {
-    if (input_relation.hasPartitionScheme()) {
+    if (input_relation.hasPartitionScheme() && input_relation_.hasNUMAPlacementScheme()) {
       const PartitionScheme &part_scheme = input_relation.getPartitionScheme();
       const PartitionSchemeHeader &part_scheme_header = part_scheme.getPartitionSchemeHeader();
-      int num_partitions = part_scheme_header.getNumPartitions();
+      const std::size_t num_partitions = part_scheme_header.getNumPartitions();
       input_relation_block_ids_in_partition_.resize(num_partitions);
       num_workorders_generated_in_partition_.resize(num_partitions);
       num_workorders_generated_in_partition_.assign(num_partitions, 0);
-      for (int part_id = 0; part_id < num_partitions; ++part_id) {
+      for (std::size_t part_id = 0; part_id < num_partitions; ++part_id) {
         if (input_relation_is_stored) {
           input_relation_block_ids_in_partition_[part_id] =
               part_scheme.getBlocksInPartition(part_id);
@@ -175,13 +175,28 @@ class SelectOperator : public RelationalOperator {
                         tmb::MessageBus *bus) override;
 
   void feedInputBlock(const block_id input_block_id, const relation_id input_relation_id) override {
-    input_relation_block_ids_.push_back(input_block_id);
+    if (input_relation_.hasPartitionScheme() && input_relation_.hasNUMAPlacementScheme()) {
+      const partition_id part_id =
+          input_relation_.getPartitionScheme().getPartitionForBlock(input_block_id);
+      input_relation_block_ids_in_partition_[part_id].push_back(input_block_id);
+    } else {
+      input_relation_block_ids_.push_back(input_block_id);
+    }
   }
 
   void feedInputBlocks(const relation_id rel_id, std::vector<block_id> *partially_filled_blocks) override {
-    input_relation_block_ids_.insert(input_relation_block_ids_.end(),
-                                     partially_filled_blocks->begin(),
-                                     partially_filled_blocks->end());
+    if (input_relation_.hasPartitionScheme() && input_relation_.hasNUMAPlacementScheme()) {
+      const partition_id part_id =
+          input_relation_.getPartitionScheme().getPartitionForBlock((*partially_filled_blocks)[0]);
+
+      input_relation_block_ids_in_partition_[part_id].insert(input_relation_block_ids_in_partition_[part_id].end(),
+                                                             partially_filled_blocks->begin(),
+                                                             partially_filled_blocks->end());
+    } else {
+      input_relation_block_ids_.insert(input_relation_block_ids_.end(),
+                                       partially_filled_blocks->begin(),
+                                       partially_filled_blocks->end());
+    }
   }
 
   QueryContext::insert_destination_id getInsertDestinationID() const override {
@@ -191,6 +206,18 @@ class SelectOperator : public RelationalOperator {
   const relation_id getOutputRelationID() const override {
     return output_relation_.getID();
   }
+
+  void addWorkOrders(WorkOrdersContainer *container,
+                     StorageManager *storage_manager,
+                     const Predicate *predicate,
+                     const std::vector<std::unique_ptr<const Scalar>> *selection,
+                     InsertDestination *output_destination);
+
+  void addPartitionAwareWorkOrders(WorkOrdersContainer *container,
+                                   StorageManager *storage_manager,
+                                   const Predicate *predicate,
+                                   const std::vector<std::unique_ptr<const Scalar>> *selection,
+                                   InsertDestination *output_destination);
 
  private:
   const CatalogRelation &input_relation_;
@@ -202,15 +229,20 @@ class SelectOperator : public RelationalOperator {
   const std::vector<attribute_id> simple_selection_;
 
   std::vector<block_id> input_relation_block_ids_;
+  // A vector of vectors V where V[i] indicates the list of block IDs of the
+  // input relation that belong to the partition i.
   std::vector<std::vector<block_id>> input_relation_block_ids_in_partition_;
 
   // A single workorder is generated for each block of input relation.
   std::vector<block_id>::size_type num_workorders_generated_;
+  // A single workorder is generated for each block in each partition of input relation.
   std::vector<std::size_t> num_workorders_generated_in_partition_;
 
   const bool simple_projection_;
   const bool input_relation_is_stored_;
+#ifdef QUICKSTEP_HAVE_LIBNUMA
   const NUMAPlacementScheme &placement_scheme_;
+#endif
   bool started_;
 
   DISALLOW_COPY_AND_ASSIGN(SelectOperator);
@@ -248,7 +280,7 @@ class SelectWorkOrder : public WorkOrder {
                   const std::vector<std::unique_ptr<const Scalar>> *selection,
                   InsertDestination *output_destination,
                   StorageManager *storage_manager,
-                  const int numa_node = 0)
+                  const numa_node_id numa_node = 0)
       : input_relation_(input_relation),
         input_block_id_(input_block_id),
         predicate_(predicate),
@@ -287,7 +319,7 @@ class SelectWorkOrder : public WorkOrder {
                   const std::vector<std::unique_ptr<const Scalar>> *selection,
                   InsertDestination *output_destination,
                   StorageManager *storage_manager,
-                  const int numa_node = 0)
+                  const numa_node_id numa_node = 0)
       : input_relation_(input_relation),
         input_block_id_(input_block_id),
         predicate_(predicate),
