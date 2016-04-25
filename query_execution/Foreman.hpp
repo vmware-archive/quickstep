@@ -22,16 +22,11 @@
 #include <memory>
 #include <vector>
 
-#include "catalog/CatalogTypedefs.hpp"
 #include "query_execution/ForemanLite.hpp"
 #include "query_execution/PolicyEnforcer.hpp"
-#include "query_execution/QueryExecutionTypedefs.hpp"
-#include "storage/StorageBlockInfo.hpp"
 #include "utility/Macros.hpp"
 
-#include "glog/logging.h"
-#include "gtest/gtest_prod.h"
-
+#include "tmb/id_typedefs.h"
 #include "tmb/message_bus.h"
 
 namespace quickstep {
@@ -72,7 +67,7 @@ class Foreman final : public ForemanLite {
           CatalogDatabaseLite *catalog_database,
           StorageManager *storage_manager,
           const int cpu_id = -1,
-          const int num_numa_nodes = 1);
+          const std::size_t num_numa_nodes = 1);
 
   ~Foreman() override {}
 
@@ -124,11 +119,9 @@ class Foreman final : public ForemanLite {
   StorageManager *storage_manager_;
 
   std::unique_ptr<PolicyEnforcer> policy_enforcer_;
-  // During a single round of WorkOrder dispatch, a Worker should be allocated
-  // at most these many WorkOrders.
-  const std::size_t max_msgs_per_worker_;
 
-  const int num_numa_nodes_;
+  // Every worker should have at least these many pending work orders.
+  const std::size_t min_load_per_worker_;
 
   DISALLOW_COPY_AND_ASSIGN(Foreman);
 };

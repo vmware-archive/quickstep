@@ -24,9 +24,12 @@
 #include <unordered_map>
 #include <vector>
 
+#include "query_execution/QueryExecutionTypedefs.hpp"
 #include "query_execution/QueryManager.hpp"
 #include "query_execution/WorkerMessage.hpp"
 #include "utility/Macros.hpp"
+
+#include "glog/logging.h"
 
 #include "tmb/id_typedefs.h"
 #include "tmb/message_bus.h"
@@ -34,9 +37,9 @@
 
 namespace quickstep {
 
-class CatalogDatabase;
+class CatalogDatabaseLite;
+class QueryHandle;
 class StorageManager;
-class WorkerDirectory;
 
 /**
  * @brief A class that ensures that a high level policy is maintained
@@ -49,20 +52,17 @@ class PolicyEnforcer {
    *
    * @param foreman_client_id The TMB client ID of the Foreman.
    * @param num_numa_nodes Number of NUMA nodes used by the system.
-   * @param worker_directory The WorkerDirectory.
    * @param catalog_database The CatalogDatabase used.
    * @param storage_manager The StorageManager used.
    * @param bus The TMB.
    **/
   PolicyEnforcer(const tmb::client_id foreman_client_id,
                  const std::size_t num_numa_nodes,
-                 const WorkerDirectory &worker_directory,
                  CatalogDatabaseLite *catalog_database,
                  StorageManager *storage_manager,
                  tmb::MessageBus *bus)
       : foreman_client_id_(foreman_client_id),
         num_numa_nodes_(num_numa_nodes),
-        worker_directory_(worker_directory),
         catalog_database_(catalog_database),
         storage_manager_(storage_manager),
         bus_(bus) {}
@@ -146,8 +146,6 @@ class PolicyEnforcer {
 
   const tmb::client_id foreman_client_id_;
   const std::size_t num_numa_nodes_;
-
-  const WorkerDirectory &worker_directory_;
 
   CatalogDatabaseLite *catalog_database_;
   StorageManager *storage_manager_;

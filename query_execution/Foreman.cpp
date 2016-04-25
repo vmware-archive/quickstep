@@ -22,19 +22,11 @@
 #include <utility>
 #include <vector>
 
-#include "catalog/CatalogDatabase.hpp"
-#include "catalog/CatalogRelation.hpp"
-#include "catalog/CatalogTypedefs.hpp"
-#include "catalog/PartitionScheme.hpp"
 #include "query_execution/AdmitRequestMessage.hpp"
-#include "query_execution/QueryContext.hpp"
-#include "query_execution/QueryExecutionMessages.pb.h"
 #include "query_execution/QueryExecutionTypedefs.hpp"
 #include "query_execution/QueryExecutionUtil.hpp"
 #include "query_execution/WorkerDirectory.hpp"
 #include "query_execution/WorkerMessage.hpp"
-#include "storage/StorageBlock.hpp"
-#include "storage/StorageBlockInfo.hpp"
 #include "threading/ThreadUtil.hpp"
 #include "utility/EqualsAnyConstant.hpp"
 #include "utility/Macros.hpp"
@@ -45,7 +37,6 @@
 #include "tmb/tagged_message.h"
 
 using std::move;
-using std::pair;
 using std::size_t;
 using std::unique_ptr;
 using std::vector;
@@ -58,14 +49,13 @@ Foreman::Foreman(const tmb::client_id main_thread_client_id,
                  CatalogDatabaseLite *catalog_database,
                  StorageManager *storage_manager,
                  const int cpu_id,
-                 const int num_numa_nodes)
+                 const size_t num_numa_nodes)
     : ForemanLite(bus, cpu_id),
       main_thread_client_id_(main_thread_client_id),
       worker_directory_(DCHECK_NOTNULL(worker_directory)),
       catalog_database_(DCHECK_NOTNULL(catalog_database)),
       storage_manager_(DCHECK_NOTNULL(storage_manager)),
-      max_msgs_per_worker_(4),  // TODO(harshad) - Make this field configurable.
-      num_numa_nodes_(num_numa_nodes) {
+      min_load_per_worker_(2) {  // TODO(harshad) - Make this field configurable.
   std::vector<QueryExecutionMessageType> sender_message_types{
       kPoisonMessage,
       kRebuildWorkOrderMessage,
@@ -91,8 +81,7 @@ Foreman::Foreman(const tmb::client_id main_thread_client_id,
   }
   policy_enforcer_.reset(new PolicyEnforcer(
       foreman_client_id_,
-      num_numa_nodes_,
-      *worker_directory_,
+      num_numa_nodes,
       catalog_database_,
       storage_manager_,
       bus_));
@@ -168,7 +157,7 @@ void Foreman::run() {
               bus_,
               foreman_client_id_,
               main_thread_client_id_,
-              std::move(completion_tagged_message));
+              move(completion_tagged_message));
       CHECK(send_status == tmb::MessageBus::SendStatus::kOK)
           << "Message could not be sent from Foreman with TMB client ID "
           << foreman_client_id_ << " to main thread with TMB client ID"
@@ -182,7 +171,7 @@ bool Foreman::canCollectNewMessages(const tmb::message_type_id message_type) {
                                     kCatalogRelationNewBlockMessage,
                                     kWorkOrderFeedbackMessage)) {
     return false;
-  } else if (worker_directory_->getLeastLoadedWorker().second <= 1u) {
+  } else if (worker_directory_->getLeastLoadedWorker().second <= min_load_per_worker_) {
     // If the least loaded worker has only one pending work order, we should
     // collect new messages and dispatch them.
     return true;
@@ -207,7 +196,7 @@ void Foreman::dispatchWorkerMessages(vector<unique_ptr<WorkerMessage>> *messages
   }
 }
 
-void Foreman::sendWorkerMessage(const std::size_t worker_thread_index,
+void Foreman::sendWorkerMessage(const size_t worker_thread_index,
                                 const WorkerMessage &message) {
   tmb::message_type_id type;
   if (message.getType() == WorkerMessage::WorkerMessageType::kRebuildWorkOrder) {

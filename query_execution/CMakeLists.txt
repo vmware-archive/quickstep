@@ -48,22 +48,13 @@ target_link_libraries(quickstep_queryexecution_AdmitRequestMessage
                       quickstep_utility_Macros)
 target_link_libraries(quickstep_queryexecution_Foreman
                       glog
-                      gtest
-                      quickstep_catalog_CatalogDatabase
-                      quickstep_catalog_CatalogRelation
-                      quickstep_catalog_CatalogTypedefs
-                      quickstep_catalog_PartitionScheme
                       quickstep_queryexecution_AdmitRequestMessage
                       quickstep_queryexecution_ForemanLite
                       quickstep_queryexecution_PolicyEnforcer
-                      quickstep_queryexecution_QueryContext
-                      quickstep_queryexecution_QueryExecutionMessages_proto
                       quickstep_queryexecution_QueryExecutionTypedefs
                       quickstep_queryexecution_QueryExecutionUtil
                       quickstep_queryexecution_WorkerDirectory
                       quickstep_queryexecution_WorkerMessage
-                      quickstep_storage_StorageBlock
-                      quickstep_storage_StorageBlockInfo
                       quickstep_threading_ThreadUtil
                       quickstep_utility_EqualsAnyConstant
                       quickstep_utility_Macros
@@ -75,10 +66,12 @@ target_link_libraries(quickstep_queryexecution_ForemanLite
                       tmb)
 target_link_libraries(quickstep_queryexecution_PolicyEnforcer
                       glog
+                      quickstep_queryexecution_QueryExecutionTypedefs
+                      quickstep_queryexecution_QueryExecutionMessages_proto
                       quickstep_queryexecution_QueryManager
-                      quickstep_queryexecution_WorkerDirectory
                       quickstep_queryexecution_WorkerMessage
                       quickstep_queryoptimizer_QueryHandle
+                      quickstep_relationaloperators_WorkOrder
                       quickstep_utility_Macros
                       tmb)
 target_link_libraries(quickstep_queryexecution_QueryContext

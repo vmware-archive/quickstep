@@ -26,6 +26,10 @@ namespace quickstep {
 
 class QueryHandle;
 
+/** \addtogroup QueryExecution
+ *  @{
+ */
+
 /**
  * @brief A message requesting a query or queries to be admitted to the system.
  **/
@@ -37,7 +41,7 @@ class AdmitRequestMessage {
    * @param query_handles The handles of the queries requesting to be admitted
    *        to the system.
    **/
-  AdmitRequestMessage(const std::vector<QueryHandle*> &query_handles)
+  explicit AdmitRequestMessage(const std::vector<QueryHandle*> &query_handles)
       : query_handles_(query_handles) {}
 
   /**
@@ -45,7 +49,7 @@ class AdmitRequestMessage {
    *
    * @param query_handle The handle of the query requesting to be admitted.
    **/
-  AdmitRequestMessage(QueryHandle* query_handle) {
+  explicit AdmitRequestMessage(QueryHandle* query_handle) {
     query_handles_.push_back(query_handle);
   }
 
@@ -61,6 +65,8 @@ class AdmitRequestMessage {
 
   DISALLOW_COPY_AND_ASSIGN(AdmitRequestMessage);
 };
+
+/** @} */
 
 }  // namespace quickstep
 

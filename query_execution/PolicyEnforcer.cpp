@@ -19,12 +19,15 @@
 
 #include <cstddef>
 #include <memory>
+#include <queue>
 #include <utility>
 #include <unordered_map>
 #include <vector>
 
-#include "query_execution/WorkerDirectory.hpp"
+#include "query_execution/QueryExecutionMessages.pb.h"
+#include "query_execution/QueryManager.hpp"
 #include "query_optimizer/QueryHandle.hpp"
+#include "relational_operators/WorkOrder.hpp"
 
 #include "glog/logging.h"
 
@@ -114,7 +117,6 @@ void PolicyEnforcer::processMessage(const TaggedMessage &tagged_message) {
   }
 }
 
-
 void PolicyEnforcer::getWorkerMessages(
     std::vector<std::unique_ptr<WorkerMessage>> *worker_messages) {
   // Iterate over admitted queries until either there are no more
@@ -123,9 +125,14 @@ void PolicyEnforcer::getWorkerMessages(
   DCHECK(worker_messages->empty());
   // TODO(harshad) - Make this function generic enough so that it
   // works well when multiple queries are getting executed.
-  DCHECK(!admitted_queries_.empty());
-  const std::size_t per_query_share = kMaxNumWorkerMessages / admitted_queries_.size();
-  DCHECK(per_query_share > 0);
+  std::size_t per_query_share = 0;
+  if (!admitted_queries_.empty()) {
+    per_query_share = kMaxNumWorkerMessages / admitted_queries_.size();
+  } else {
+    LOG(WARNING) << "Requesting WorkerMessages when no query is running";
+    return;
+  }
+  DCHECK_GT(per_query_share, 0u);
   std::vector<std::size_t> finished_queries_ids;
 
   for (auto query_manager_it = admitted_queries_.begin();

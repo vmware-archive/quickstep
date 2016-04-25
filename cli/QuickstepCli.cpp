@@ -327,8 +327,6 @@ int main(int argc, char* argv[]) {
                   query_processor->getStorageManager(),
                   num_numa_nodes_covered);
 
-  // foreman.setWorkerDirectory(&worker_directory);
-
   // Start the worker threads.
   for (Worker &worker : workers) {
     worker.start();
