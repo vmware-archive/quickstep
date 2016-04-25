@@ -58,11 +58,11 @@ class CycleDetector {
       breakComponent(const std::vector<DirectedGraph::node_id> &nodes);
 
   // Checks whether the nodes in the set make a cycle.
-  bool hasCycleWithin(const std::set<DirectedGraph::node_id> &within);
-
-  std::unique_ptr<StronglyConnectedComponents> scc_;
+  bool hasCycleWithin(const std::unordered_set<DirectedGraph::node_id> &within);
 
   DirectedGraph *wait_for_graph_;
+
+  std::unique_ptr<StronglyConnectedComponents> strongly_connected_components_;
 
   DISALLOW_COPY_AND_ASSIGN(CycleDetector);
 };

@@ -19,7 +19,7 @@
 
 #include <cstdint>
 #include <memory>
-#include <set>
+#include <unordered_set>
 #include <stack>
 #include <unordered_map>
 #include <utility>
@@ -32,28 +32,27 @@ namespace quickstep {
 namespace transaction {
 
 CycleDetector::CycleDetector(DirectedGraph *wait_for_graph)
-  : wait_for_graph_(wait_for_graph) {
-  scc_ = std::make_unique<StronglyConnectedComponents>(*wait_for_graph_);
+    : wait_for_graph_(wait_for_graph),
+      strongly_connected_components_(
+          std::make_unique<StronglyConnectedComponents>(*wait_for_graph)) {
 }
 
 std::vector<DirectedGraph::node_id> CycleDetector::breakCycle() {
   std::vector<DirectedGraph::node_id> nodes_to_kill;
-  std::unordered_map<std::uint64_t, std::vector<DirectedGraph::node_id>>
-    component_mapping = scc_->getComponentMapping();
-  for (std::pair<std::uint64_t, std::vector<DirectedGraph::node_id>>
-         entry : component_mapping) {
+  const std::unordered_map<std::uint64_t, std::vector<DirectedGraph::node_id>>
+    component_mapping = strongly_connected_components_->getComponentMapping();
+  for (const std::pair<std::uint64_t, std::vector<DirectedGraph::node_id>>
+           &entry : component_mapping) {
     // One node means no cycle.
     if (entry.second.size() == 1) {
       continue;
-    } else {
-      std::vector<DirectedGraph::node_id> targets
-          = breakComponent(entry.second);
-      for (DirectedGraph::node_id elem : targets) {
-        nodes_to_kill.push_back(elem);
-      }
     }
+    const std::vector<DirectedGraph::node_id> nodes
+        = breakComponent(entry.second);
+      for (const DirectedGraph::node_id &node : nodes) {
+        nodes_to_kill.push_back(node);
+      }
   }
-
   return nodes_to_kill;
 }
 
@@ -61,9 +60,9 @@ std::vector<DirectedGraph::node_id>
 CycleDetector::breakComponent(const std::vector<DirectedGraph::node_id> &nodes) {
   std::vector<DirectedGraph::node_id> targets;
   // Convert it to set to ensure defensively that the elements are unique.
-  std::set<DirectedGraph::node_id> nodes_set(nodes.begin(), nodes.end());
+  std::unordered_set<DirectedGraph::node_id> nodes_set(nodes.begin(), nodes.end());
   while (true) {
-    bool has_cycle = hasCycleWithin(nodes_set);
+    const bool has_cycle = hasCycleWithin(nodes_set);
     if (!has_cycle) {
       break;
     }
@@ -71,18 +70,18 @@ CycleDetector::breakComponent(const std::vector<DirectedGraph::node_id> &nodes) 
     // TODO(Hakan): This is very inefficient scheme, however in the
     //              future, we can use the transaction's priority
     //              as the victim selection parameter.
-    DirectedGraph::node_id victim = *(nodes_set.begin());
+    const DirectedGraph::node_id victim = *(nodes_set.begin());
     nodes_set.erase(nodes_set.begin());
     targets.push_back(victim);
   }
   return targets;
 }
 
-bool
-CycleDetector::hasCycleWithin(const std::set<DirectedGraph::node_id> &within) {
+bool CycleDetector::hasCycleWithin(
+    const std::unordered_set<DirectedGraph::node_id> &within) {
   // Keeps track of the nodes the algorithms visited.
-  std::set<DirectedGraph::node_id> visited;
-  for (DirectedGraph::node_id node_id : within) {
+  std::unordered_set<DirectedGraph::node_id> visited;
+  for (const DirectedGraph::node_id node_id : within) {
     // If it is visited, then pass to the next one.
     if (visited.count(node_id) == 1) {
       continue;
@@ -93,12 +92,12 @@ CycleDetector::hasCycleWithin(const std::set<DirectedGraph::node_id> &within) {
     to_visit.push(node_id);
     // Start to visit nodes until it is done.
     while (!to_visit.empty()) {
-      DirectedGraph::node_id current_node = to_visit.top();
+      const DirectedGraph::node_id current_node = to_visit.top();
       to_visit.pop();
       // Mark the node coming from stack as "visited".
       visited.insert(current_node);
       // For all adjacent nodes of this "visited" node,
-      std::vector<DirectedGraph::node_id> adjacents
+      const std::vector<DirectedGraph::node_id> adjacents
           = wait_for_graph_->getAdjacentNodes(current_node);
       for (DirectedGraph::node_id adj : adjacents) {
         if (adj == node_id) {
