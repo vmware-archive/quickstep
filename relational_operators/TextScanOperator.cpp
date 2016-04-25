@@ -604,6 +604,7 @@ void TextSplitWorkOrder::execute() {
 
   // Notify the operator about the completion of this Work Order.
   FeedbackMessage msg(TextScanOperator::kSplitWorkOrderCompletionMessage,
+                      getQueryID(),
                       operator_index_,
                       nullptr /* payload */,
                       0 /* payload_size */,
@@ -665,6 +666,7 @@ void TextSplitWorkOrder::sendBlobInfoToOperator(const bool write_row_aligned) {
 
   const tmb::client_id worker_thread_client_id = ClientIDMap::Instance()->getValue();
   FeedbackMessage feedback_msg(TextScanOperator::kNewTextBlobMessage,
+                               getQueryID(),
                                operator_index_,
                                payload,
                                payload_size);

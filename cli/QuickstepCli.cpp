@@ -51,8 +51,10 @@ typedef quickstep::LineReaderDumb LineReaderImpl;
 #include "cli/PrintToScreen.hpp"
 #include "parser/ParseStatement.hpp"
 #include "parser/SqlParserWrapper.hpp"
+#include "query_execution/AdmitRequestMessage.hpp"
 #include "query_execution/Foreman.hpp"
 #include "query_execution/QueryExecutionTypedefs.hpp"
+#include "query_execution/QueryExecutionUtil.hpp"
 #include "query_execution/Worker.hpp"
 #include "query_execution/WorkerDirectory.hpp"
 #include "query_execution/WorkerMessage.hpp"
@@ -92,6 +94,7 @@ using std::string;
 using std::vector;
 
 using quickstep::Address;
+using quickstep::AdmitRequestMessage;
 using quickstep::CatalogRelation;
 using quickstep::DefaultsConfigurator;
 using quickstep::DropRelation;
@@ -104,6 +107,7 @@ using quickstep::ParseResult;
 using quickstep::ParseStatement;
 using quickstep::PrintToScreen;
 using quickstep::PtrVector;
+using quickstep::QueryExecutionUtil;
 using quickstep::QueryHandle;
 using quickstep::QueryPlan;
 using quickstep::QueryProcessor;
@@ -112,9 +116,12 @@ using quickstep::TaggedMessage;
 using quickstep::Worker;
 using quickstep::WorkerDirectory;
 using quickstep::WorkerMessage;
+using quickstep::kAdmitRequestMessage;
 using quickstep::kPoisonMessage;
+using quickstep::kWorkloadCompletionMessage;
 
 using tmb::client_id;
+using tmb::AnnotatedMessage;
 
 namespace quickstep {
 
@@ -190,7 +197,9 @@ int main(int argc, char* argv[]) {
 
   // The TMB client id for the main thread, used to kill workers at the end.
   const client_id main_thread_client_id = bus.Connect();
+  bus.RegisterClientAsSender(main_thread_client_id, kAdmitRequestMessage);
   bus.RegisterClientAsSender(main_thread_client_id, kPoisonMessage);
+  bus.RegisterClientAsReceiver(main_thread_client_id, kWorkloadCompletionMessage);
 
   // Setup the paths used by StorageManager.
   string fixed_storage_path(quickstep::FLAGS_storage_path);
@@ -277,11 +286,6 @@ int main(int argc, char* argv[]) {
            std::chrono::duration<double>(preload_end - preload_start).count());
   }
 
-  Foreman foreman(&bus,
-                  query_processor->getDefaultDatabase(),
-                  query_processor->getStorageManager(),
-                  num_numa_nodes_covered);
-
   // Get the NUMA affinities for workers.
   vector<int> cpu_numa_nodes = InputParserUtil::GetNUMANodesForCPUs();
   if (cpu_numa_nodes.empty()) {
@@ -316,12 +320,21 @@ int main(int argc, char* argv[]) {
                                    worker_client_ids,
                                    worker_numa_nodes);
 
-  foreman.setWorkerDirectory(&worker_directory);
+  Foreman foreman(main_thread_client_id,
+                  &worker_directory,
+                  &bus,
+                  query_processor->getDefaultDatabase(),
+                  query_processor->getStorageManager(),
+                  num_numa_nodes_covered);
+
+  // foreman.setWorkerDirectory(&worker_directory);
 
   // Start the worker threads.
   for (Worker &worker : workers) {
     worker.start();
   }
+
+  foreman.start();
 
   LineReaderImpl line_reader("quickstep> ",
                              "      ...> ");
@@ -374,14 +387,20 @@ int main(int argc, char* argv[]) {
         }
 
         DCHECK(query_handle->getQueryPlanMutable() != nullptr);
-        foreman.setQueryPlan(query_handle->getQueryPlanMutable()->getQueryPlanDAGMutable());
+        AdmitRequestMessage request_message(query_handle.get());
+        TaggedMessage admit_tagged_message(
+            &request_message, sizeof(request_message), kAdmitRequestMessage);
 
-        foreman.reconstructQueryContextFromProto(query_handle->getQueryContextProto());
-
+        start = std::chrono::steady_clock::now();
+        QueryExecutionUtil::SendTMBMessage(&bus,
+                                           main_thread_client_id,
+                                           foreman.getBusClientID(),
+                                           std::move(admit_tagged_message));
         try {
-          start = std::chrono::steady_clock::now();
-          foreman.start();
-          foreman.join();
+          const AnnotatedMessage annotated_msg =
+              bus.Receive(main_thread_client_id, 0, true);
+          const TaggedMessage &tagged_message = annotated_msg.tagged_message;
+          DCHECK(tagged_message.message_type() == kWorkloadCompletionMessage);
           end = std::chrono::steady_clock::now();
 
           const CatalogRelation *query_result_relation = query_handle->getQueryResultRelation();
@@ -420,29 +439,13 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  // Terminate all workers before exiting.
-  // The main thread broadcasts poison message to the workers. Each worker dies
-  // after receiving poison message. The order of workers' death is irrelavant.
-  MessageStyle style;
-  style.Broadcast(true);
-  Address address;
-  address.All(true);
-  std::unique_ptr<WorkerMessage> poison_message(WorkerMessage::PoisonMessage());
-  TaggedMessage poison_tagged_message(poison_message.get(),
-                                      sizeof(*poison_message),
-                                      kPoisonMessage);
-
-  const tmb::MessageBus::SendStatus send_status =
-      bus.Send(main_thread_client_id,
-               address,
-               style,
-               std::move(poison_tagged_message));
-  CHECK(send_status == tmb::MessageBus::SendStatus::kOK) <<
-     "Broadcast message from Foreman to workers failed";
+  // Kill the foreman and workers.
+  QueryExecutionUtil::BroadcastPoisonMessage(main_thread_client_id, &bus);
 
   for (Worker &worker : workers) {
     worker.join();
   }
 
+  foreman.join();
   return 0;
 }

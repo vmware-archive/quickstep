@@ -65,7 +65,9 @@ enum QueryExecutionMessageType : message_type_id {
                               // their corresponding RelationalOperators.
   kRebuildWorkOrderMessage,  // From Foreman to Worker.
   kRebuildWorkOrderCompleteMessage,  // From Worker to Foreman.
-  kPoisonMessage,  // From the CLI shell to Foreman, then from Foreman to Workers.
+  kPoisonMessage,  // From the main thread to Foreman and workers.
+  kAdmitRequestMessage,  // Requesting a query (or queries) to be admitted.
+  kWorkloadCompletionMessage  // From Foreman to main thread.
 };
 
 /** @} */

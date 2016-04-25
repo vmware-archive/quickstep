@@ -98,7 +98,7 @@ class PolicyEnforcer {
    * @return True if all the queries were admitted, false if at least one query
    *         was not admitted.
    **/
-  bool admitQueries(std::vector<QueryHandle*> query_handles);
+  bool admitQueries(const std::vector<QueryHandle*> &query_handles);
 
   /**
    * @brief Remove a given query that is under execution.
@@ -143,7 +143,6 @@ class PolicyEnforcer {
  private:
   static constexpr std::size_t kMaxConcurrentQueries = 1;
   static constexpr std::size_t kMaxNumWorkerMessages = 20;
-
 
   const tmb::client_id foreman_client_id_;
   const std::size_t num_numa_nodes_;

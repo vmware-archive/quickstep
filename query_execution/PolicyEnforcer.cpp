@@ -61,33 +61,40 @@ void PolicyEnforcer::processMessage(const TaggedMessage &tagged_message) {
       CHECK(proto.ParseFromArray(tagged_message.message(),
                                  tagged_message.message_bytes()));
       query_id = proto.query_id();
+      break;
     }
     case kRebuildWorkOrderCompleteMessage: {
       serialization::WorkOrderCompletionMessage proto;
       CHECK(proto.ParseFromArray(tagged_message.message(),
                                  tagged_message.message_bytes()));
       query_id = proto.query_id();
+      break;
     }
     case kCatalogRelationNewBlockMessage: {
       serialization::CatalogRelationNewBlockMessage proto;
       CHECK(proto.ParseFromArray(tagged_message.message(),
                                  tagged_message.message_bytes()));
       query_id = proto.query_id();
+      break;
     }
     case kDataPipelineMessage: {
       serialization::DataPipelineMessage proto;
       CHECK(proto.ParseFromArray(tagged_message.message(),
                                  tagged_message.message_bytes()));
       query_id = proto.query_id();
+      break;
     }
     case kWorkOrdersAvailableMessage: {
       serialization::WorkOrdersAvailableMessage proto;
       CHECK(proto.ParseFromArray(tagged_message.message(),
                                  tagged_message.message_bytes()));
+      query_id = proto.query_id();
+      break;
     }
     case kWorkOrderFeedbackMessage: {
       // TODO(harshad) Add query ID to FeedbackMessage.
-      query_id = 0;
+      WorkOrder::FeedbackMessage msg(const_cast<void *>(tagged_message.message()), tagged_message.message_bytes());
+      query_id = msg.header().query_id;
       break;
     }
     default:
@@ -119,11 +126,13 @@ void PolicyEnforcer::getWorkerMessages(
   DCHECK(!admitted_queries_.empty());
   const std::size_t per_query_share = kMaxNumWorkerMessages / admitted_queries_.size();
   DCHECK(per_query_share > 0);
+  std::vector<std::size_t> finished_queries_ids;
 
   for (auto query_manager_it = admitted_queries_.begin();
        query_manager_it != admitted_queries_.end();
        ++query_manager_it) {
     QueryManager *curr_query_manager = query_manager_it->second.get();
+    DCHECK(curr_query_manager != nullptr);
     std::size_t messages_collected_curr_query = 0;
     while (messages_collected_curr_query < per_query_share) {
       WorkerMessage *next_worker_message =
@@ -136,11 +145,14 @@ void PolicyEnforcer::getWorkerMessages(
         // Check if the query's execution is over.
         if (curr_query_manager->getQueryExecutionState().hasQueryExecutionFinished()) {
           // If the query has been executed, remove it.
-          removeQuery(query_manager_it->first);
+          finished_queries_ids.push_back(query_manager_it->first);
         }
         break;
       }
     }
+  }
+  for (std::size_t finished_qid : finished_queries_ids) {
+    removeQuery(finished_qid);
   }
 }
 
@@ -154,7 +166,8 @@ void PolicyEnforcer::removeQuery(const std::size_t query_id) {
   admitted_queries_.erase(query_id);
 }
 
-bool PolicyEnforcer::admitQueries(std::vector<QueryHandle*> query_handles) {
+bool PolicyEnforcer::admitQueries(
+    const std::vector<QueryHandle *> &query_handles) {
   bool result = true;
   for (QueryHandle* curr_query : query_handles) {
     result = result && admitQuery(curr_query);
