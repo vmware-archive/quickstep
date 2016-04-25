@@ -148,6 +148,10 @@ bool TextScanOperator::getAllWorkOrders(
 
   const std::vector<std::string> files = utility::file::GlobExpand(file_pattern_);
 
+  if (files.size() == 0) {
+    LOG(FATAL) << "No files matched '" << file_pattern_ << "'. Exiting.";
+  }
+
   InsertDestination *output_destination =
       query_context->getInsertDestination(output_destination_index_);
 
@@ -296,6 +300,10 @@ void TextScanWorkOrder::execute() {
         output_destination_->insertTupleInBatch(tuple);
       }
     } while (have_row);
+
+    // Drop the consumed blob produced by TextSplitWorkOrder.
+    blob.release();
+    storage_manager_->deleteBlockOrBlobFile(text_blob_);
   }
 }
 
