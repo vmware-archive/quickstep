@@ -479,7 +479,7 @@ class StorageManager {
   //   (2) If it is not safe to evict a block, then either that block's
   //       reference count is greater than 0 or a shared lock is held on the
   //       block's lock shard.
-  // TODO(jmp): Would be good to set this more intelligently in the future 
+  // TODO(jmp): Would be good to set this more intelligently in the future
   //            based on the hardware concurrency, the amount of main memory
   //            and slot size. For now pick the largest prime that is less
   //            than 8K.
