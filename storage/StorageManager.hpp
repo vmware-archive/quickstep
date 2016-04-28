@@ -479,7 +479,10 @@ class StorageManager {
   //   (2) If it is not safe to evict a block, then either that block's
   //       reference count is greater than 0 or a shared lock is held on the
   //       block's lock shard.
-  static constexpr std::size_t kLockManagerNumShards = 256;
+  // TODO(jmp): Would be good to set this more intelligently in the future 
+  //            based on the hardware concurrency, the amount of main memory
+  //            and slot size.
+  static constexpr std::size_t kLockManagerNumShards = 16384;
   ShardedLockManager<block_id, kLockManagerNumShards, SpinSharedMutex<false>> lock_manager_;
 
   FRIEND_TEST(StorageManagerTest, DifferentNUMANodeBlobTestWithEviction);
