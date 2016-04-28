@@ -481,8 +481,9 @@ class StorageManager {
   //       block's lock shard.
   // TODO(jmp): Would be good to set this more intelligently in the future 
   //            based on the hardware concurrency, the amount of main memory
-  //            and slot size.
-  static constexpr std::size_t kLockManagerNumShards = 8192;
+  //            and slot size. For now pick the largest prime that is less
+  //            than 8K.
+  static constexpr std::size_t kLockManagerNumShards = 0x2000-1;
   ShardedLockManager<block_id, kLockManagerNumShards, SpinSharedMutex<false>> lock_manager_;
 
   FRIEND_TEST(StorageManagerTest, DifferentNUMANodeBlobTestWithEviction);
