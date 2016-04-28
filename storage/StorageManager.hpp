@@ -482,7 +482,7 @@ class StorageManager {
   // TODO(jmp): Would be good to set this more intelligently in the future 
   //            based on the hardware concurrency, the amount of main memory
   //            and slot size.
-  static constexpr std::size_t kLockManagerNumShards = 16384;
+  static constexpr std::size_t kLockManagerNumShards = 8192;
   ShardedLockManager<block_id, kLockManagerNumShards, SpinSharedMutex<false>> lock_manager_;
 
   FRIEND_TEST(StorageManagerTest, DifferentNUMANodeBlobTestWithEviction);
