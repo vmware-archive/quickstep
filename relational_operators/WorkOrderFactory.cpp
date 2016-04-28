@@ -102,6 +102,7 @@ WorkOrder* WorkOrderFactory::ReconstructFromProto(const serialization::WorkOrder
               proto.GetExtension(serialization::DeleteWorkOrder::predicate_index)),
           storage_manager,
           proto.GetExtension(serialization::DeleteWorkOrder::operator_index),
+          query_context->getQueryID(),
           shiftboss_client_id,
           bus);
     }
@@ -401,6 +402,7 @@ WorkOrder* WorkOrderFactory::ReconstructFromProto(const serialization::WorkOrder
           proto.GetExtension(serialization::TextSplitWorkOrder::process_escape_sequences),
           storage_manager,
           proto.GetExtension(serialization::TextSplitWorkOrder::operator_index),
+          query_context->getQueryID(),
           shiftboss_client_id,
           bus);
     }
@@ -418,6 +420,7 @@ WorkOrder* WorkOrderFactory::ReconstructFromProto(const serialization::WorkOrder
               proto.GetExtension(serialization::UpdateWorkOrder::insert_destination_index)),
           storage_manager,
           proto.GetExtension(serialization::UpdateWorkOrder::operator_index),
+          query_context->getQueryID(),
           shiftboss_client_id,
           bus);
     }

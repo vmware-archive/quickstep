@@ -146,6 +146,7 @@ class UpdateWorkOrder : public WorkOrder {
                   InsertDestination *relocation_destination,
                   StorageManager *storage_manager,
                   const std::size_t update_operator_index,
+                  const std::size_t query_id,
                   const tmb::client_id scheduler_client_id,
                   MessageBus *bus)
       : relation_(relation),
@@ -155,6 +156,7 @@ class UpdateWorkOrder : public WorkOrder {
         relocation_destination_(DCHECK_NOTNULL(relocation_destination)),
         storage_manager_(DCHECK_NOTNULL(storage_manager)),
         update_operator_index_(update_operator_index),
+        query_id_(query_id),
         scheduler_client_id_(scheduler_client_id),
         bus_(DCHECK_NOTNULL(bus)) {}
 
@@ -172,6 +174,8 @@ class UpdateWorkOrder : public WorkOrder {
   StorageManager *storage_manager_;
 
   const std::size_t update_operator_index_;
+  const std::size_t query_id_;
+
   const tmb::client_id scheduler_client_id_;
   MessageBus *bus_;
 

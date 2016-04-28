@@ -126,6 +126,7 @@ class DeleteWorkOrder : public WorkOrder {
    * @param storage_manager The StorageManager to use.
    * @param delete_operator_index The index of the Delete Operator in the query
    *        plan DAG.
+   * @param query_id The ID of the query.
    * @param scheduler_client_id The TMB client ID of the scheduler thread.
    * @param bus A pointer to the TMB.
    **/
@@ -134,6 +135,7 @@ class DeleteWorkOrder : public WorkOrder {
                   const Predicate *predicate,
                   StorageManager *storage_manager,
                   const std::size_t delete_operator_index,
+                  const std::size_t query_id,
                   const tmb::client_id scheduler_client_id,
                   MessageBus *bus)
       : input_relation_(input_relation),
@@ -141,6 +143,7 @@ class DeleteWorkOrder : public WorkOrder {
         predicate_(predicate),
         storage_manager_(DCHECK_NOTNULL(storage_manager)),
         delete_operator_index_(delete_operator_index),
+        query_id_(query_id),
         scheduler_client_id_(scheduler_client_id),
         bus_(DCHECK_NOTNULL(bus)) {}
 
@@ -156,6 +159,8 @@ class DeleteWorkOrder : public WorkOrder {
   StorageManager *storage_manager_;
 
   const std::size_t delete_operator_index_;
+  const std::size_t query_id_;
+
   const tmb::client_id scheduler_client_id_;
   MessageBus *bus_;
 

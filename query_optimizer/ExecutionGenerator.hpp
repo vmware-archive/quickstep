@@ -101,10 +101,10 @@ class ExecutionGenerator {
         query_handle_(DCHECK_NOTNULL(query_handle)),
         execution_plan_(DCHECK_NOTNULL(query_handle->getQueryPlanMutable())),
         query_context_proto_(DCHECK_NOTNULL(query_handle->getQueryContextProtoMutable())) {
+    query_context_proto_->set_query_id(query_handle->query_id());
 #ifdef QUICKSTEP_DISTRIBUTED
     catalog_database_cache_proto_ = DCHECK_NOTNULL(query_handle->getCatalogDatabaseCacheProtoMutable());
 #endif
-
     setupCostModel();
   }
 
@@ -378,6 +378,14 @@ class ExecutionGenerator {
    *        when some exception or error occurs.
    */
   void dropAllTemporaryRelations();
+
+  /**
+   * @brief Add a new InsertDesetination to the QueryContext and set the
+   *        query ID for the InsertDestination.
+   *
+   * @return A pointer to the serialized InsertDestination.
+   **/
+  serialization::InsertDestination* addNewInsertDestinationToQueryContext();
 
   OptimizerContext *optimizer_context_;
   QueryHandle *query_handle_;
