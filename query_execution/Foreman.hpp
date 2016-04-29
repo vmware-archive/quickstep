@@ -26,10 +26,14 @@
 #include "query_execution/PolicyEnforcer.hpp"
 #include "utility/Macros.hpp"
 
+#include "gflags/gflags.h"
+
 #include "tmb/id_typedefs.h"
 #include "tmb/message_bus.h"
 
 namespace quickstep {
+
+DECLARE_uint64(min_load_per_worker);
 
 class CatalogDatabaseLite;
 class StorageManager;
@@ -71,13 +75,6 @@ class Foreman final : public ForemanLite {
 
   ~Foreman() override {}
 
-  /**
-   * @brief Get the Foreman's TMB client ID.
-   **/
-  tmb::client_id getBusClientID() const {
-    return foreman_client_id_;
-  }
-
  protected:
   /**
    * @brief Run the event-based loop in the Foreman thread.
@@ -92,7 +89,7 @@ class Foreman final : public ForemanLite {
    * @param messages The messages to be dispatched.
    **/
   void dispatchWorkerMessages(
-      std::vector<std::unique_ptr<WorkerMessage>> *messages);
+      const std::vector<std::unique_ptr<WorkerMessage>> &messages);
 
   /**
    * @brief Send the given message to the specified worker.
@@ -119,9 +116,6 @@ class Foreman final : public ForemanLite {
   StorageManager *storage_manager_;
 
   std::unique_ptr<PolicyEnforcer> policy_enforcer_;
-
-  // Every worker should have at least these many pending work orders.
-  const std::size_t min_load_per_worker_;
 
   DISALLOW_COPY_AND_ASSIGN(Foreman);
 };

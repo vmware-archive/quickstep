@@ -43,7 +43,7 @@ bool PolicyEnforcer::admitQuery(QueryHandle *query_handle) {
                            catalog_database_, storage_manager_, bus_));
       return true;
     } else {
-      LOG(ERROR) << "Query with same ID " << query_id << " exists";
+      LOG(ERROR) << "Query with the same ID " << query_id << " exists";
       return false;
     }
   } else {
@@ -59,13 +59,7 @@ void PolicyEnforcer::processMessage(const TaggedMessage &tagged_message) {
   // TaggedMessage only once.
   std::size_t query_id;
   switch (tagged_message.message_type()) {
-    case kWorkOrderCompleteMessage: {
-      serialization::WorkOrderCompletionMessage proto;
-      CHECK(proto.ParseFromArray(tagged_message.message(),
-                                 tagged_message.message_bytes()));
-      query_id = proto.query_id();
-      break;
-    }
+    case kWorkOrderCompleteMessage:  // Fall through.
     case kRebuildWorkOrderCompleteMessage: {
       serialization::WorkOrderCompletionMessage proto;
       CHECK(proto.ParseFromArray(tagged_message.message(),
@@ -104,7 +98,7 @@ void PolicyEnforcer::processMessage(const TaggedMessage &tagged_message) {
       LOG(FATAL) << "Unknown message type found in PolicyEnforcer";
   }
   DCHECK(admitted_queries_.find(query_id) != admitted_queries_.end());
-  QueryManager::QueryStatusCode return_code =
+  const QueryManager::QueryStatusCode return_code =
       admitted_queries_[query_id]->processMessage(tagged_message);
   if (return_code == QueryManager::QueryStatusCode::kQueryExecuted) {
     removeQuery(query_id);
@@ -135,10 +129,8 @@ void PolicyEnforcer::getWorkerMessages(
   DCHECK_GT(per_query_share, 0u);
   std::vector<std::size_t> finished_queries_ids;
 
-  for (auto query_manager_it = admitted_queries_.begin();
-       query_manager_it != admitted_queries_.end();
-       ++query_manager_it) {
-    QueryManager *curr_query_manager = query_manager_it->second.get();
+  for (const auto &admitted_query_info : admitted_queries_) {
+    QueryManager *curr_query_manager = admitted_query_info.second.get();
     DCHECK(curr_query_manager != nullptr);
     std::size_t messages_collected_curr_query = 0;
     while (messages_collected_curr_query < per_query_share) {
@@ -152,7 +144,7 @@ void PolicyEnforcer::getWorkerMessages(
         // Check if the query's execution is over.
         if (curr_query_manager->getQueryExecutionState().hasQueryExecutionFinished()) {
           // If the query has been executed, remove it.
-          finished_queries_ids.push_back(query_manager_it->first);
+          finished_queries_ids.push_back(admitted_query_info.first);
         }
         break;
       }
@@ -169,17 +161,17 @@ void PolicyEnforcer::removeQuery(const std::size_t query_id) {
     LOG(WARNING) << "Removing query with ID " << query_id
                  << " that hasn't finished its execution";
   }
-  admitted_queries_[query_id].reset(nullptr);
   admitted_queries_.erase(query_id);
 }
 
 bool PolicyEnforcer::admitQueries(
     const std::vector<QueryHandle *> &query_handles) {
-  bool result = true;
-  for (QueryHandle* curr_query : query_handles) {
-    result = result && admitQuery(curr_query);
+  for (QueryHandle *curr_query : query_handles) {
+    if (!admitQuery(curr_query)) {
+      return false;
+    }
   }
-  return result;
+  return true;
 }
 
 }  // namespace quickstep

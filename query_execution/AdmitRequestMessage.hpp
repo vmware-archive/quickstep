@@ -49,7 +49,7 @@ class AdmitRequestMessage {
    *
    * @param query_handle The handle of the query requesting to be admitted.
    **/
-  explicit AdmitRequestMessage(QueryHandle* query_handle) {
+  explicit AdmitRequestMessage(QueryHandle *query_handle) {
     query_handles_.push_back(query_handle);
   }
 
@@ -71,4 +71,3 @@ class AdmitRequestMessage {
 }  // namespace quickstep
 
 #endif  // QUICKSTEP_QUERY_EXECUTION_ADMIT_REQUEST_MESSAGE_HPP_
-

@@ -115,7 +115,7 @@ void CommandExecutorTestRunner::runTestCase(
           const AnnotatedMessage annotated_msg =
               bus_.Receive(main_thread_client_id_, 0, true);
           const TaggedMessage &tagged_message = annotated_msg.tagged_message;
-          DCHECK(tagged_message.message_type() == kWorkloadCompletionMessage);
+          DCHECK_EQ(kWorkloadCompletionMessage, tagged_message.message_type());
           const CatalogRelation *query_result_relation = query_handle.getQueryResultRelation();
           if (query_result_relation) {
             PrintToScreen::PrintRelation(*query_result_relation,

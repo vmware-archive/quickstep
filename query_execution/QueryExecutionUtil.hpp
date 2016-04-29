@@ -79,7 +79,8 @@ class QueryExecutionUtil {
     const tmb::MessageBus::SendStatus send_status = bus->Send(
         sender_id, address, style, std::move(poison_tagged_message));
     CHECK(send_status == tmb::MessageBus::SendStatus::kOK) <<
-       "Broadcast message from Foreman to workers failed";
+       "Broadcast poison message from sender with TMB client ID " << sender_id
+       << " failed";
   }
 
  private:

@@ -42,11 +42,10 @@ add_library(quickstep_queryexecution_WorkerMessage ../empty_src.cpp WorkerMessag
 add_library(quickstep_queryexecution_WorkerSelectionPolicy ../empty_src.cpp WorkerSelectionPolicy.hpp)
 
 # Link dependencies:
-target_link_libraries(quickstep_queryexecution_ForemanLite
-                      quickstep_utility_Macros)
 target_link_libraries(quickstep_queryexecution_AdmitRequestMessage
                       quickstep_utility_Macros)
 target_link_libraries(quickstep_queryexecution_Foreman
+                      gflags_nothreads-static
                       glog
                       quickstep_queryexecution_AdmitRequestMessage
                       quickstep_queryexecution_ForemanLite
@@ -66,8 +65,8 @@ target_link_libraries(quickstep_queryexecution_ForemanLite
                       tmb)
 target_link_libraries(quickstep_queryexecution_PolicyEnforcer
                       glog
-                      quickstep_queryexecution_QueryExecutionTypedefs
                       quickstep_queryexecution_QueryExecutionMessages_proto
+                      quickstep_queryexecution_QueryExecutionTypedefs
                       quickstep_queryexecution_QueryManager
                       quickstep_queryexecution_WorkerMessage
                       quickstep_queryoptimizer_QueryHandle

@@ -1528,9 +1528,9 @@ void ExecutionGenerator::convertTableGenerator(
 }
 
 S::InsertDestination* ExecutionGenerator::addNewInsertDestinationToQueryContext() {
-  std::unique_ptr<S::InsertDestination> insert_destination_proto(query_context_proto_->add_insert_destinations());
+  S::InsertDestination *insert_destination_proto(query_context_proto_->add_insert_destinations());
   insert_destination_proto->set_query_id(query_context_proto_->query_id());
-  return insert_destination_proto.release();
+  return insert_destination_proto;
 }
 
 }  // namespace optimizer

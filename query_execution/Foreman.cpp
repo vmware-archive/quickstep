@@ -31,6 +31,7 @@
 #include "utility/EqualsAnyConstant.hpp"
 #include "utility/Macros.hpp"
 
+#include "gflags/gflags.h"
 #include "glog/logging.h"
 
 #include "tmb/message_bus.h"
@@ -43,6 +44,10 @@ using std::vector;
 
 namespace quickstep {
 
+DEFINE_uint64(min_load_per_worker, 2, "The minimum load defined as the number "
+              "of pending work orders for the worker. This information is used "
+              "by the Foreman to assign work orders to worker threads");
+
 Foreman::Foreman(const tmb::client_id main_thread_client_id,
                  WorkerDirectory *worker_directory,
                  tmb::MessageBus *bus,
@@ -54,19 +59,18 @@ Foreman::Foreman(const tmb::client_id main_thread_client_id,
       main_thread_client_id_(main_thread_client_id),
       worker_directory_(DCHECK_NOTNULL(worker_directory)),
       catalog_database_(DCHECK_NOTNULL(catalog_database)),
-      storage_manager_(DCHECK_NOTNULL(storage_manager)),
-      min_load_per_worker_(2) {  // TODO(harshad) - Make this field configurable.
-  std::vector<QueryExecutionMessageType> sender_message_types{
+      storage_manager_(DCHECK_NOTNULL(storage_manager)) {
+  const std::vector<QueryExecutionMessageType> sender_message_types{
       kPoisonMessage,
       kRebuildWorkOrderMessage,
       kWorkOrderMessage,
       kWorkloadCompletionMessage};
 
-  for (auto message_type : sender_message_types) {
+  for (const auto message_type : sender_message_types) {
     bus_->RegisterClientAsSender(foreman_client_id_, message_type);
   }
 
-  std::vector<QueryExecutionMessageType> receiver_message_types{
+  const std::vector<QueryExecutionMessageType> receiver_message_types{
       kAdmitRequestMessage,
       kCatalogRelationNewBlockMessage,
       kDataPipelineMessage,
@@ -76,9 +80,10 @@ Foreman::Foreman(const tmb::client_id main_thread_client_id,
       kWorkOrdersAvailableMessage,
       kWorkOrderCompleteMessage};
 
-  for (auto message_type : receiver_message_types) {
+  for (const auto message_type : receiver_message_types) {
     bus_->RegisterClientAsReceiver(foreman_client_id_, message_type);
   }
+
   policy_enforcer_.reset(new PolicyEnforcer(
       foreman_client_id_,
       num_numa_nodes,
@@ -96,12 +101,12 @@ void Foreman::run() {
   // Event loop
   for (;;) {
     // Receive() causes this thread to sleep until next message is received.
-    AnnotatedMessage annotated_msg =
+    const AnnotatedMessage annotated_msg =
         bus_->Receive(foreman_client_id_, 0, true);
     const TaggedMessage &tagged_message = annotated_msg.tagged_message;
     const tmb::message_type_id message_type = tagged_message.message_type();
     switch (message_type) {
-      case kCatalogRelationNewBlockMessage:
+      case kCatalogRelationNewBlockMessage:  // Fall through
       case kDataPipelineMessage:
       case kRebuildWorkOrderCompleteMessage:
       case kWorkOrderCompleteMessage:
@@ -139,11 +144,13 @@ void Foreman::run() {
       default:
         LOG(FATAL) << "Unknown message type to Foreman";
     }
+
     if (canCollectNewMessages(message_type)) {
       vector<unique_ptr<WorkerMessage>> new_messages;
       policy_enforcer_->getWorkerMessages(&new_messages);
-      dispatchWorkerMessages(&new_messages);
+      dispatchWorkerMessages(new_messages);
     }
+
     // We check again, as some queries may produce zero work orders and finish
     // their execution.
     if (!policy_enforcer_->hasQueries()) {
@@ -171,7 +178,8 @@ bool Foreman::canCollectNewMessages(const tmb::message_type_id message_type) {
                                     kCatalogRelationNewBlockMessage,
                                     kWorkOrderFeedbackMessage)) {
     return false;
-  } else if (worker_directory_->getLeastLoadedWorker().second <= min_load_per_worker_) {
+  } else if (worker_directory_->getLeastLoadedWorker().second <=
+             FLAGS_min_load_per_worker) {
     // If the least loaded worker has only one pending work order, we should
     // collect new messages and dispatch them.
     return true;
@@ -180,18 +188,16 @@ bool Foreman::canCollectNewMessages(const tmb::message_type_id message_type) {
   }
 }
 
-void Foreman::dispatchWorkerMessages(vector<unique_ptr<WorkerMessage>> *messages) {
-  for (auto message_it = messages->begin();
-       message_it != messages->end();
-       ++message_it) {
-    DCHECK(*message_it != nullptr);
-    int recipient_worker_thread_index = (*message_it)->getRecipientHint();
+void Foreman::dispatchWorkerMessages(const vector<unique_ptr<WorkerMessage>> &messages) {
+  for (auto const &message : messages) {
+    DCHECK(message != nullptr);
+    int recipient_worker_thread_index = message->getRecipientHint();
     if (recipient_worker_thread_index != -1) {
       sendWorkerMessage(static_cast<size_t>(recipient_worker_thread_index),
-                        *(*message_it));
+                        *message);
     } else {
       sendWorkerMessage(worker_directory_->getLeastLoadedWorker().first,
-                        *(*message_it));
+                        *message);
     }
   }
 }

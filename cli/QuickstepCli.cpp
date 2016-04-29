@@ -398,7 +398,7 @@ int main(int argc, char* argv[]) {
           const AnnotatedMessage annotated_msg =
               bus.Receive(main_thread_client_id, 0, true);
           const TaggedMessage &tagged_message = annotated_msg.tagged_message;
-          DCHECK(tagged_message.message_type() == kWorkloadCompletionMessage);
+          DCHECK_EQ(kWorkloadCompletionMessage, tagged_message.message_type());
           end = std::chrono::steady_clock::now();
 
           const CatalogRelation *query_result_relation = query_handle->getQueryResultRelation();
