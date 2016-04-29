@@ -311,6 +311,7 @@ class HashTableTest : public ::testing::Test {
 
   virtual void SetUp() {
     storage_manager_.reset(new StorageManager("./test_data/"));
+    LOG(INFO) << "Done SetUp in HashTableTest";
   }
 
   static std::vector<const Type*> SetupScalarKeyType(const TypeID type_id) {
@@ -1179,6 +1180,7 @@ class NonTriviallyDestructibleValueHashTableTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
     storage_manager_.reset(new StorageManager("./test_data/"));
+    LOG(INFO) << "Done SetUp in NonTriviallyDestructibleValueHashTableTest";
   }
 
   static std::vector<const Type*> SetupScalarKeyType(const TypeID type_id) {
