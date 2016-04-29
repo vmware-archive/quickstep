@@ -61,7 +61,7 @@ script:
   - ./validate_cmakelists.py
   - ./cyclic_dependency.py
   - (cd build && make -j$MAKE_JOBS)
-  - (cd build && ctest --output-on-failure -j$TEST_JOBS)
+  - (cd build && GLOG_logtostderr=1 ctest --output-on-failure -j$TEST_JOBS)
 
 after_failure:
   - df -h
