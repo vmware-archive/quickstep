@@ -24,7 +24,11 @@
 
 #include "catalog/CatalogRelation.hpp"
 #include "catalog/CatalogTypedefs.hpp"
+
+#ifdef QUICKSTEP_HAVE_LIBNUMA
 #include "catalog/NUMAPlacementScheme.hpp"
+#endif
+
 #include "catalog/PartitionSchemeHeader.hpp"
 #include "query_execution/QueryContext.hpp"
 #include "relational_operators/RelationalOperator.hpp"
@@ -89,9 +93,11 @@ class SelectOperator : public RelationalOperator {
         num_workorders_generated_(0),
         simple_projection_(false),
         input_relation_is_stored_(input_relation_is_stored),
-        placement_scheme_(input_relation.getNUMAPlacementScheme()),
         started_(false) {
-    if (input_relation.hasPartitionScheme() && input_relation_.hasNUMAPlacementScheme()) {
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+    placement_scheme_ = input_relation.getNUMAPlacementSchemePtr();
+#endif
+    if (input_relation.hasPartitionScheme()) {
       const PartitionScheme &part_scheme = input_relation.getPartitionScheme();
       const PartitionSchemeHeader &part_scheme_header = part_scheme.getPartitionSchemeHeader();
       const std::size_t num_partitions = part_scheme_header.getNumPartitions();
@@ -145,9 +151,11 @@ class SelectOperator : public RelationalOperator {
         num_workorders_generated_(0),
         simple_projection_(true),
         input_relation_is_stored_(input_relation_is_stored),
-        placement_scheme_(input_relation.getNUMAPlacementScheme()),
         started_(false) {
-    if (input_relation.hasPartitionScheme() && input_relation_.hasNUMAPlacementScheme()) {
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+    placement_scheme_ = input_relation.getNUMAPlacementSchemePtr();
+#endif
+    if (input_relation.hasPartitionScheme()) {
       const PartitionScheme &part_scheme = input_relation.getPartitionScheme();
       const PartitionSchemeHeader &part_scheme_header = part_scheme.getPartitionSchemeHeader();
       const std::size_t num_partitions = part_scheme_header.getNumPartitions();
@@ -175,7 +183,7 @@ class SelectOperator : public RelationalOperator {
                         tmb::MessageBus *bus) override;
 
   void feedInputBlock(const block_id input_block_id, const relation_id input_relation_id) override {
-    if (input_relation_.hasPartitionScheme() && input_relation_.hasNUMAPlacementScheme()) {
+    if (input_relation_.hasPartitionScheme()) {
       const partition_id part_id =
           input_relation_.getPartitionScheme().getPartitionForBlock(input_block_id);
       input_relation_block_ids_in_partition_[part_id].push_back(input_block_id);
@@ -185,7 +193,7 @@ class SelectOperator : public RelationalOperator {
   }
 
   void feedInputBlocks(const relation_id rel_id, std::vector<block_id> *partially_filled_blocks) override {
-    if (input_relation_.hasPartitionScheme() && input_relation_.hasNUMAPlacementScheme()) {
+    if (input_relation_.hasPartitionScheme()) {
       const partition_id part_id =
           input_relation_.getPartitionScheme().getPartitionForBlock((*partially_filled_blocks)[0]);
 
@@ -241,7 +249,7 @@ class SelectOperator : public RelationalOperator {
   const bool simple_projection_;
   const bool input_relation_is_stored_;
 #ifdef QUICKSTEP_HAVE_LIBNUMA
-  const NUMAPlacementScheme &placement_scheme_;
+  const NUMAPlacementScheme *placement_scheme_;
 #endif
   bool started_;
 
