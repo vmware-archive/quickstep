@@ -194,12 +194,11 @@ class SelectOperator : public RelationalOperator {
 
   void feedInputBlocks(const relation_id rel_id, std::vector<block_id> *partially_filled_blocks) override {
     if (input_relation_.hasPartitionScheme()) {
-      const partition_id part_id =
-          input_relation_.getPartitionScheme().getPartitionForBlock((*partially_filled_blocks)[0]);
-
-      input_relation_block_ids_in_partition_[part_id].insert(input_relation_block_ids_in_partition_[part_id].end(),
-                                                             partially_filled_blocks->begin(),
-                                                             partially_filled_blocks->end());
+      for (auto it = partially_filled_blocks->begin(); it != partially_filled_blocks->end(); ++it) {
+        const partition_id part_id = input_relation_.getPartitionScheme().getPartitionForBlock((*it));
+        input_relation_block_ids_in_partition_[part_id].insert(input_relation_block_ids_in_partition_[part_id].end(),
+                                                               *it);
+      }
     } else {
       input_relation_block_ids_.insert(input_relation_block_ids_.end(),
                                        partially_filled_blocks->begin(),
