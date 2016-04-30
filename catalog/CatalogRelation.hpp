@@ -169,7 +169,7 @@ class CatalogRelation : public CatalogRelationSchema {
    *
    * @return A pointer to a const NUMA placement scheme.
    **/
-  const NUMAPlacementScheme* getNUMAPlacementSchemePtr() const{
+  const NUMAPlacementScheme* getNUMAPlacementSchemePtr() const {
     return placement_scheme_.get();
   }
 
