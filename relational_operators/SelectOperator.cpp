@@ -77,6 +77,7 @@ void SelectOperator::addPartitionAwareWorkOrders(WorkOrdersContainer *container,
                                                  const Predicate *predicate,
                                                  const std::vector<std::unique_ptr<const Scalar>> *selection,
                                                  InsertDestination *output_destination) {
+  DCHECK(placement_scheme_ != nullptr);
   const std::size_t num_partitions = input_relation_.getPartitionScheme().getPartitionSchemeHeader().getNumPartitions();
   if (input_relation_is_stored_) {
     for (std::size_t part_id = 0; part_id < num_partitions; ++part_id) {

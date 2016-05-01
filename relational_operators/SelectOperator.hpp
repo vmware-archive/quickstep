@@ -96,7 +96,6 @@ class SelectOperator : public RelationalOperator {
         started_(false) {
 #ifdef QUICKSTEP_HAVE_LIBNUMA
     placement_scheme_ = input_relation.getNUMAPlacementSchemePtr();
-    DCHECK(placement_scheme_ != nullptr);
 #endif
     if (input_relation.hasPartitionScheme()) {
       const PartitionScheme &part_scheme = input_relation.getPartitionScheme();
@@ -155,7 +154,6 @@ class SelectOperator : public RelationalOperator {
         started_(false) {
 #ifdef QUICKSTEP_HAVE_LIBNUMA
     placement_scheme_ = input_relation.getNUMAPlacementSchemePtr();
-    DCHECK(placement_scheme_ != nullptr);
 #endif
     if (input_relation.hasPartitionScheme()) {
       const PartitionScheme &part_scheme = input_relation.getPartitionScheme();
