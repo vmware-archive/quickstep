@@ -96,6 +96,7 @@ class SelectOperator : public RelationalOperator {
         started_(false) {
 #ifdef QUICKSTEP_HAVE_LIBNUMA
     placement_scheme_ = input_relation.getNUMAPlacementSchemePtr();
+    DCHECK(placement_scheme_ != nullptr);
 #endif
     if (input_relation.hasPartitionScheme()) {
       const PartitionScheme &part_scheme = input_relation.getPartitionScheme();
@@ -154,6 +155,7 @@ class SelectOperator : public RelationalOperator {
         started_(false) {
 #ifdef QUICKSTEP_HAVE_LIBNUMA
     placement_scheme_ = input_relation.getNUMAPlacementSchemePtr();
+    DCHECK(placement_scheme_ != nullptr);
 #endif
     if (input_relation.hasPartitionScheme()) {
       const PartitionScheme &part_scheme = input_relation.getPartitionScheme();
@@ -192,6 +194,12 @@ class SelectOperator : public RelationalOperator {
     }
   }
 
+  // TODO(gerald): Each call to getPartitionForBlock() involves grabbing shared
+  // locks on each partition's mutex, checking if the block belongs to the
+  // partition. Instead, we can provide a method getPartitionsForBlocks() which
+  // accepts a list of blocks and returns corresponding list of their partition IDs.
+  // Therefore, once we grab a lock for a partition, we search for all the blocks
+  // and then release the lock.
   void feedInputBlocks(const relation_id rel_id, std::vector<block_id> *partially_filled_blocks) override {
     if (input_relation_.hasPartitionScheme()) {
       for (auto it = partially_filled_blocks->begin(); it != partially_filled_blocks->end(); ++it) {

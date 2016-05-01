@@ -100,20 +100,19 @@ void SelectOperator::addPartitionAwareWorkOrders(WorkOrdersContainer *container,
     for (std::size_t part_id = 0; part_id < num_partitions; ++part_id) {
       while (num_workorders_generated_in_partition_[part_id] <
              input_relation_block_ids_in_partition_[part_id].size()) {
+        block_id block_in_partition
+            = input_relation_block_ids_in_partition_[part_id][num_workorders_generated_in_partition_[part_id]];
         container->addNormalWorkOrder(
             new SelectWorkOrder(
                 input_relation_,
-                input_relation_block_ids_in_partition_
-                    [part_id]
-                    [num_workorders_generated_in_partition_[part_id]],
+                block_in_partition,
                 predicate,
                 simple_projection_,
                 simple_selection_,
                 selection,
                 output_destination,
                 storage_manager,
-                placement_scheme_->getNUMANodeForBlock(
-                  input_relation_block_ids_in_partition_[part_id][num_workorders_generated_in_partition_[part_id]])),
+                placement_scheme_->getNUMANodeForBlock(block_in_partition)),
             op_index_);
         ++num_workorders_generated_in_partition_[part_id];
       }
