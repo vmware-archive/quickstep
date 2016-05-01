@@ -600,24 +600,31 @@ StorageBlockLayoutDescription* Resolver::resolveBlockProperties(
     }
   }
   // Resolve the Block size (size -> # of slots).
-  std::int64_t slots = 1;  // The default.
+  std::int64_t slots = kDefaultBlockSizeInSlots;
   if (block_properties->hasBlockSizeMb()) {
-    std::int64_t blocksizemb = block_properties->getBlockSizeMbValue();
-    if (blocksizemb == -1) {
+    const std::int64_t block_size_in_mega_bytes = block_properties->getBlockSizeMbValue();
+    if (block_size_in_mega_bytes == -1) {
       // Indicates an error condition if the property is present but getter returns -1.
       THROW_SQL_ERROR_AT(block_properties->getBlockSizeMb())
           << "The BLOCKSIZEMB property must be an integer.";
+    } else if ((block_size_in_mega_bytes * kAMegaByte) % kSlotSizeBytes != 0) {
+      THROW_SQL_ERROR_AT(block_properties->getBlockSizeMb())
+          << "The BLOCKSIZEMB property must be multiple times of "
+          << std::to_string(kSlotSizeBytes / kAMegaByte) << "MB.";
     }
-    slots = (blocksizemb * 1000000) / kSlotSizeBytes;
+
+    slots = (block_size_in_mega_bytes * kAMegaByte) / kSlotSizeBytes;
     DLOG(INFO) << "Resolver using BLOCKSIZEMB of " << slots << " slots"
         << " which is " << (slots * kSlotSizeBytes) << " bytes versus"
-        << " user requested " << (blocksizemb * 1000000) << " bytes.";
-    // 1Gb is the max size.
-    const std::int64_t max_size_slots = 1000000000 / kSlotSizeBytes;
-    // TODO(marc) The upper bound is arbitrary.
-    if (slots < 1 || slots > max_size_slots) {
+        << " user requested " << (block_size_in_mega_bytes * kAMegaByte) << " bytes.";
+    const std::uint64_t max_size_slots = kBlockSizeUpperBoundBytes / kSlotSizeBytes;
+    const std::uint64_t min_size_slots = kBlockSizeLowerBoundBytes / kSlotSizeBytes;
+    if (static_cast<std::uint64_t>(slots) < min_size_slots ||
+        static_cast<std::uint64_t>(slots) > max_size_slots) {
       THROW_SQL_ERROR_AT(block_properties->getBlockSizeMb())
-        << "The BLOCKSIZEMB property must be between 2Mb and 1000Mb.";
+          << "The BLOCKSIZEMB property must be between "
+          << std::to_string(kBlockSizeLowerBoundBytes / kAMegaByte) << "MB and "
+          << std::to_string(kBlockSizeUpperBoundBytes / kAMegaByte) << "MB.";
     }
   }
   storage_block_description->set_num_slots(slots);
@@ -1539,9 +1546,28 @@ L::LogicalPtr Resolver::resolveSimpleTableReference(
       with_queries_info_.with_query_name_to_vector_position.find(lower_table_name);
   if (subplan_it != with_queries_info_.with_query_name_to_vector_position.end()) {
     with_queries_info_.unreferenced_query_indexes.erase(subplan_it->second);
-    return L::SharedSubplanReference::Create(
-        subplan_it->second,
-        with_queries_info_.with_query_plans[subplan_it->second]->getOutputAttributes());
+
+    const std::vector<E::AttributeReferencePtr> with_query_attributes =
+        with_queries_info_.with_query_plans[subplan_it->second]->getOutputAttributes();
+
+    // Create a vector of new attributes to delegate the original output attributes
+    // from the WITH query, to avoid (ExprId -> CatalogAttribute) mapping collision
+    // later in ExecutionGenerator when there are multiple SharedSubplanReference's
+    // referencing a same shared subplan.
+    std::vector<E::AttributeReferencePtr> delegator_attributes;
+    for (const E::AttributeReferencePtr &attribute : with_query_attributes) {
+      delegator_attributes.emplace_back(
+          E::AttributeReference::Create(context_->nextExprId(),
+                                        attribute->attribute_name(),
+                                        attribute->attribute_alias(),
+                                        attribute->relation_name(),
+                                        attribute->getValueType(),
+                                        attribute->scope()));
+    }
+
+    return L::SharedSubplanReference::Create(subplan_it->second,
+                                             with_query_attributes,
+                                             delegator_attributes);
   }
 
   // Then look up the name in the database.

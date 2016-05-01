@@ -71,11 +71,13 @@ void SelectOperator::addWorkOrders(WorkOrdersContainer *container,
   }
 }
 
+#ifdef QUICKSTEP_HAVE_LIBNUMA
 void SelectOperator::addPartitionAwareWorkOrders(WorkOrdersContainer *container,
                                                  StorageManager *storage_manager,
                                                  const Predicate *predicate,
                                                  const std::vector<std::unique_ptr<const Scalar>> *selection,
                                                  InsertDestination *output_destination) {
+  DCHECK(placement_scheme_ != nullptr);
   const std::size_t num_partitions = input_relation_.getPartitionScheme().getPartitionSchemeHeader().getNumPartitions();
   if (input_relation_is_stored_) {
     for (std::size_t part_id = 0; part_id < num_partitions; ++part_id) {
@@ -91,7 +93,7 @@ void SelectOperator::addPartitionAwareWorkOrders(WorkOrdersContainer *container,
                 selection,
                 output_destination,
                 storage_manager,
-                placement_scheme_.getNUMANodeForBlock(input_block_id)),
+                placement_scheme_->getNUMANodeForBlock(input_block_id)),
             op_index_);
       }
     }
@@ -99,26 +101,26 @@ void SelectOperator::addPartitionAwareWorkOrders(WorkOrdersContainer *container,
     for (std::size_t part_id = 0; part_id < num_partitions; ++part_id) {
       while (num_workorders_generated_in_partition_[part_id] <
              input_relation_block_ids_in_partition_[part_id].size()) {
+        block_id block_in_partition
+            = input_relation_block_ids_in_partition_[part_id][num_workorders_generated_in_partition_[part_id]];
         container->addNormalWorkOrder(
             new SelectWorkOrder(
                 input_relation_,
-                input_relation_block_ids_in_partition_
-                    [part_id]
-                    [num_workorders_generated_in_partition_[part_id]],
+                block_in_partition,
                 predicate,
                 simple_projection_,
                 simple_selection_,
                 selection,
                 output_destination,
                 storage_manager,
-                placement_scheme_.getNUMANodeForBlock(
-                  input_relation_block_ids_in_partition_[part_id][num_workorders_generated_in_partition_[part_id]])),
+                placement_scheme_->getNUMANodeForBlock(block_in_partition)),
             op_index_);
         ++num_workorders_generated_in_partition_[part_id];
       }
     }
   }
 }
+#endif
 
 bool SelectOperator::getAllWorkOrders(
     WorkOrdersContainer *container,
@@ -139,8 +141,12 @@ bool SelectOperator::getAllWorkOrders(
 
   if (input_relation_is_stored_) {
     if (!started_) {
-      if (input_relation_.hasPartitionScheme() && input_relation_.hasNUMAPlacementScheme()) {
-        addPartitionAwareWorkOrders(container, storage_manager, predicate, selection, output_destination);
+      if (input_relation_.hasPartitionScheme()) {
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+        if (input_relation_.hasNUMAPlacementScheme()) {
+          addPartitionAwareWorkOrders(container, storage_manager, predicate, selection, output_destination);
+        }
+#endif
       } else {
         addWorkOrders(container, storage_manager, predicate, selection, output_destination);
       }
@@ -148,8 +154,12 @@ bool SelectOperator::getAllWorkOrders(
     }
     return started_;
   } else {
-    if (input_relation_.hasPartitionScheme() && input_relation_.hasNUMAPlacementScheme()) {
-        addPartitionAwareWorkOrders(container, storage_manager, predicate, selection, output_destination);
+    if (input_relation_.hasPartitionScheme()) {
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+        if (input_relation_.hasNUMAPlacementScheme()) {
+          addPartitionAwareWorkOrders(container, storage_manager, predicate, selection, output_destination);
+        }
+#endif
     } else {
         addWorkOrders(container, storage_manager, predicate, selection, output_destination);
     }

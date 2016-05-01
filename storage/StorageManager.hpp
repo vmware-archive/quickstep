@@ -84,7 +84,7 @@ class StorageManager {
    *        storage.
    * @param max_memory_usage The maximum amount of memory that the storage
    *                         manager should use for cached blocks in slots. If
-   *                         a block is requested that is not currently in
+   *                         an block is requested that is not currently in
    *                         memory and there are already max_memory_usage slots
    *                         in use in memory, then the storage manager will
    *                         attempt to evict enough blocks to make room for the
@@ -224,7 +224,6 @@ class StorageManager {
 
   /**
    * @brief Save a block or blob in memory to the persistent storage.
-   * @details Obtains a read lock on the shard containing the saved block.
    *
    * @param block The id of the block or blob to save.
    * @param force Force the block to the persistent storage, even if it is not
@@ -358,40 +357,14 @@ class StorageManager {
   // Allocate a buffer to hold the specified number of slots. The memory
   // returned will be zeroed-out, and mapped using large pages if the system
   // supports it.
-  // Note if the last parameter "locked_block_id" is set to something other than
-  // "kInvalidBlockId," then it means that the caller has acquired
-  // a lock in the sharded lock manager for that block. Thus, if a block needs
-  // to be evicted by the EvictionPolicy in the "makeRoomForBlock" call, and
-  // if the block to be evicted happens to hash to the same entry in the
-  // sharded lock manager, then the Eviction policy needs to pick a different
-  // block for eviction.
-  // The key point is that if "locked_block_id" is not "kInvalidBlockId," then
-  // the caller of allocateSlots, e.g. loadBlock, will have acquired a lock
-  // in the sharded lock manager for the block "locked_block_id."
   void* allocateSlots(const std::size_t num_slots,
-                      const int numa_node,
-                      // const block_id locked_block_id = kInvalidBlockId);
-                      const block_id locked_block_id);
+                      const int numa_node);
 
   // Deallocate a buffer allocated by allocateSlots(). This must be used
   // instead of free(), because the underlying implementation of
   // allocateSlots() may use mmap instead of malloc.
   void deallocateSlots(void *slots,
                        const std::size_t num_slots);
-
-  /**
-   * @brief Save a block or blob in memory to the persistent storage.
-   * 
-   * @param block The id of the block or blob to save.
-   * @param force Force the block to the persistent storage, even if it is not
-   *        dirty (by default, only actually write dirty blocks to the
-   *        persistent storage).
-   * 
-   * @return False if the block is not found in the memory. True if the block is
-   *         successfully saved to the persistent storage OR the block is clean
-   *         and force is false.
-   */
-  bool saveBlockOrBlobInternal(const block_id block, const bool force);
 
   /**
    * @brief Evict a block or blob from memory.
@@ -429,12 +402,16 @@ class StorageManager {
                                        const int numa_node);
 
   /**
-   * @brief Evict blocks until there is enough space for a new block of the
-   *        requested size.
+   * @brief Evict blocks or blobs until there is enough space for a new block
+   *        or blob of the requested size.
+   *
+   * @note This non-blocking method gives up evictions if there is a shard
+   *       collision, and thus the buffer pool size may temporarily go beyond
+   *       the memory limit.
    *
    * @param slots Number of slots to make room for.
    */
-  void makeRoomForBlock(const size_t slots);
+  void makeRoomForBlockOrBlob(const std::size_t slots);
 
   /**
    * @brief Load a block from the persistent storage into memory.
@@ -502,7 +479,11 @@ class StorageManager {
   //   (2) If it is not safe to evict a block, then either that block's
   //       reference count is greater than 0 or a shared lock is held on the
   //       block's lock shard.
-  static constexpr std::size_t kLockManagerNumShards = 256;
+  // TODO(jmp): Would be good to set this more intelligently in the future
+  //            based on the hardware concurrency, the amount of main memory
+  //            and slot size. For now pick the largest prime that is less
+  //            than 8K.
+  static constexpr std::size_t kLockManagerNumShards = 0x2000-1;
   ShardedLockManager<block_id, kLockManagerNumShards, SpinSharedMutex<false>> lock_manager_;
 
   FRIEND_TEST(StorageManagerTest, DifferentNUMANodeBlobTestWithEviction);
