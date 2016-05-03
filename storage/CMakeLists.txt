@@ -750,6 +750,10 @@ target_link_libraries(quickstep_storage_PreloaderThread
                       quickstep_threading_Thread
                       quickstep_threading_ThreadUtil
                       quickstep_utility_Macros)
+if (QUICKSTEP_HAVE_LIBNUMA)
+  target_link_libraries(quickstep_storage_PreloaderThread
+                        quickstep_catalog_NUMAPlacementScheme)
+endif()
 target_link_libraries(quickstep_storage_SMAIndexSubBlock
                       glog
                       quickstep_catalog_CatalogAttribute
