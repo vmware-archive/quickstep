@@ -741,6 +741,7 @@ target_link_libraries(quickstep_storage_PackedRowStoreValueAccessor
                       quickstep_utility_BitVector
                       quickstep_utility_Macros)
 target_link_libraries(quickstep_storage_PreloaderThread
+                      glog
                       quickstep_catalog_CatalogDatabase
                       quickstep_catalog_CatalogRelation
                       quickstep_catalog_CatalogTypedefs
