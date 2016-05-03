@@ -51,14 +51,19 @@ class CycleDetector {
    *
    * @return Vector of node ids that should be killed to break all cycles.
    */
-  std::vector<DirectedGraph::node_id> breakCycle();
+  std::vector<DirectedGraph::node_id> breakCycle() const;
 
  private:
   std::vector<DirectedGraph::node_id>
-      breakComponent(const std::vector<DirectedGraph::node_id> &nodes);
+  breakComponent(const std::vector<DirectedGraph::node_id> &nodes) const;
+
+  inline DirectedGraph::node_id chooseVictim(
+      const std::unordered_set<DirectedGraph::node_id> nodes_set) const {
+    return *(nodes_set.begin());
+  }
 
   // Checks whether the nodes in the set make a cycle.
-  bool hasCycleWithin(const std::unordered_set<DirectedGraph::node_id> &within);
+  bool hasCycle(const std::unordered_set<DirectedGraph::node_id> &within) const;
 
   DirectedGraph *wait_for_graph_;
 
@@ -72,4 +77,4 @@ class CycleDetector {
 }  // namespace transaction
 }  // namespace quickstep
 
-#endif
+#endif  // QUICKSTEP_TRANSACTION_CYCLE_DETECTOR_HPP_

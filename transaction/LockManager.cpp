@@ -41,7 +41,6 @@ LockManager::LockManager(ThreadSafeQueue<LockRequest> *incoming_requests,
     : lock_table_(std::make_unique<LockTable>()),
       transaction_table_(std::make_unique<TransactionTable>()),
       detector_status_(DeadLockDetectorStatus::kNotReady),
-      victim_result_(),
       deadlock_detector_(std::make_unique<DeadLockDetector>(lock_table_.get(),
                                                             &detector_status_,
                                                             &victim_result_)),
@@ -57,52 +56,48 @@ LockManager::~LockManager() {
 void LockManager::run() {
   deadlock_detector_->start();
 
-  constexpr std::uint64_t max_try_incoming = 10000;
-  constexpr std::uint64_t max_try_inner = 6000;
+  constexpr std::uint64_t kMaxTryIncoming = 10000;
+  constexpr std::uint64_t kMaxTryInner = 6000;
 
   while (true) {
-    for (std::uint64_t tries = 0; tries < max_try_incoming; ++tries) {
+    for (std::uint64_t tries = 0; tries < kMaxTryIncoming; ++tries) {
       if (!incoming_requests_.empty()) {
-        LockRequest request = incoming_requests_.popOne();
+        const LockRequest request = incoming_requests_.popOne();
         if (request.getRequestType() == RequestType::kReleaseLocks) {
-          bool result = releaseAllLocks(request.getTransactionId());
-          if (!result) {
-            LOG(FATAL) << "Unexpected condition occured.";
-          }
-        } else {
-          bool result = acquireLock(request.getTransactionId(),
-                                    request.getResourceId(),
-                                    request.getAccessMode());
-          if (!result) {
-            LOG(INFO) << "Transaction "
-                         + std::to_string(request.getTransactionId())
-                         + " is waiting " + request.getResourceId().toString();
+          CHECK(releaseAllLocks(request.getTransactionId()))
+              << "Unexpected condition occured.";
+
+        } else if (acquireLock(request.getTransactionId(),
+                               request.getResourceId(),
+                               request.getAccessMode())) {
+          LOG(INFO) << "Transaction "
+                       + std::to_string(request.getTransactionId())
+                       + " is waiting " + request.getResourceId().toString();
 
             inner_pending_requests_.push(request);
-          } else {
+        } else {
             LOG(INFO) << "Transaction "
                          + std::to_string(request.getTransactionId())
                          + " acquired " + request.getResourceId().toString();
 
             permitted_requests_.push(request);
-          }
         }
       }
     }
-    for (std::uint64_t tries = 0; tries < max_try_inner; ++tries) {
-      if (!inner_pending_requests_.empty()) {
-        LockRequest request = inner_pending_requests_.front();
 
-        bool result = acquireLock(request.getTransactionId(),
-                                  request.getResourceId(),
-                                  request.getAccessMode());
-        if (result) {
+    for (std::uint64_t tries = 0; tries < kMaxTryInner; ++tries) {
+      if (!inner_pending_requests_.empty()) {
+        const LockRequest request = inner_pending_requests_.front();
+
+        if (acquireLock(request.getTransactionId(), request.getResourceId(),
+                        request.getAccessMode())) {
           inner_pending_requests_.pop();
           permitted_requests_.push(request);
         }
       }
     }
 
+    // Resolve deadlocks.
     killVictims();
   }
 }
@@ -117,11 +112,10 @@ bool LockManager::acquireLock(const transaction_id tid,
 
   while (current_rid.hasParent()) {
     current_rid = current_rid.getParentResourceId();
-    current_access_mode =
-      (current_access_mode.isShareLock() ||
-       current_access_mode.isIntentionShareLock())
-      ? AccessMode(AccessModeType::kIsLock)
-      : AccessMode(AccessModeType::kIxLock);
+    current_access_mode = (current_access_mode.isShareLock() ||
+                           current_access_mode.isIntentionShareLock())
+                              ? AccessMode(AccessModeType::kIsLock)
+                              : AccessMode(AccessModeType::kIxLock);
 
     stack.push(std::make_pair(current_rid, current_access_mode));
   }
@@ -129,14 +123,11 @@ bool LockManager::acquireLock(const transaction_id tid,
   lock_table_->latchExclusive();
 
   while (!stack.empty()) {
-    std::pair<ResourceId, AccessMode> pair_to_pick = stack.top();
-    ResourceId rid_to_pick = pair_to_pick.first;
-    AccessMode access_mode_to_pick = pair_to_pick.second;
+    const std::pair<ResourceId, AccessMode> pair_to_pick = stack.top();
+    const ResourceId rid_to_pick = pair_to_pick.first;
+    const AccessMode access_mode_to_pick = pair_to_pick.second;
 
-    bool result = acquireLockInternal(tid,
-                                      rid_to_pick,
-                                      access_mode_to_pick);
-    if (!result) {
+    if (!acquireLockInternal(tid, rid_to_pick, access_mode_to_pick)) {
       lock_table_->unlatchExclusive();
       return false;
     }
@@ -147,29 +138,30 @@ bool LockManager::acquireLock(const transaction_id tid,
 }
 
 bool LockManager::releaseAllLocks(const transaction_id tid) {
-  std::vector<ResourceId> related_rids
+  const std::vector<ResourceId> resource_ids
       = transaction_table_->getResourceIdList(tid);
-  TransactionTableResult transaction_deleted
+  const TransactionTableResult transaction_deleted
       = transaction_table_->deleteTransaction(tid);
   if (transaction_deleted
           == TransactionTableResult::kTransactionDeleteError) {
-    FATAL_ERROR("In LockManager.releaseAllLocks"
-                " transaction could not be deleted!");
+    LOG(FATAL)
+        << "In LockManager.releaseAllLocks: Transaction could not be deleted!";
   }
 
   lock_table_->latchExclusive();
 
-  for (std::vector<ResourceId>::const_iterator it = related_rids.begin();
-       it != related_rids.end();
-       ++it) {
-    LockTableResult lock_deleted = lock_table_->deleteLock(tid, *it);
+  for (const auto &resource_id : resource_ids) {
+    const LockTableResult lock_deleted = lock_table_->deleteLock(tid, resource_id);
 
-    std::cout << "Transaction " + std::to_string(tid)
-      + " released lock:" + it->toString() + "\n";
+    LOG(INFO) << "Transaction "
+                 + std::to_string(tid)
+                 + " released lock:"
+                 + resource_id.toString()
+                 + "\n";
 
-    if (lock_deleted == LockTableResult::kDelError) {
-      FATAL_ERROR("In LockManager.releaseAllLock "
-                  "lock could not be deleted from LockTable");
+    if (lock_deleted == LockTableResult::kDeleteError) {
+      LOG(FATAL) << "In LockManager.releaseAllLock lock could not be deleted "
+                    "from LockTable";
     }
   }
 
@@ -177,35 +169,30 @@ bool LockManager::releaseAllLocks(const transaction_id tid) {
   return true;
 }
 
-// If not blocked return true
-// if block return false
 bool LockManager::acquireLockInternal(const transaction_id tid,
                                       const ResourceId &rid,
                                       const AccessMode access_mode) {
-  LockTableResult l_result = lock_table_->putLock(tid, rid, access_mode);
-  if (l_result == LockTableResult::kPutError) {
-    LOG(FATAL) << "Unexpected result in LockManager.acquireLockInternal";
-  }
+  const LockTableResult lock_result = lock_table_->putLock(tid, rid, access_mode);
+  CHECK(lock_result != LockTableResult::kPutError)
+      << "Unexpected result in LockManager.acquireLockInternal";
 
-  if (l_result == LockTableResult::kAlreadyInOwned) {
+  if (lock_result == LockTableResult::kAlreadyInOwned) {
     return true;
-  } else if (l_result == LockTableResult::kPlacedInOwned) {
-    TransactionTableResult t_result
+  } else if (lock_result == LockTableResult::kPlacedInOwned) {
+    const TransactionTableResult transaction_result
         = transaction_table_->putOwnEntry(tid, rid, access_mode);
-    if (t_result != TransactionTableResult::kPlacedInOwned) {
-      LOG(FATAL) << "Unexpected result in LockManager.acquireLockInternal: "
-                    "Mismatch of table results (No.1).";
-    }
+    CHECK(transaction_result == TransactionTableResult::kPlacedInOwned)
+        << "Unexpected result in LockManager.acquireLockInternal: "
+           "Mismatch of table results (No.1).";
     return true;
-  } else if (l_result == LockTableResult::kAlreadyInPending) {
+  } else if (lock_result == LockTableResult::kAlreadyInPending) {
     return false;
-  } else if (l_result == LockTableResult::kPlacedInPending) {
-    TransactionTableResult t_result =
+  } else if (lock_result == LockTableResult::kPlacedInPending) {
+    const TransactionTableResult transaction_result =
       transaction_table_->putPendingEntry(tid, rid, access_mode);
-    if (t_result != TransactionTableResult::kPlacedInPending) {
-      LOG(FATAL) << "Unexpected result in LockManager.acquireLockInternal: "
-                    "Mismatch of table results (No.2).";
-    }
+    CHECK(transaction_result == TransactionTableResult::kPlacedInPending)
+        << "Unexpected result in LockManager.acquireLockInternal: "
+           "Mismatch of table results (No.2).";
     return false;
   }
   return false;
@@ -215,18 +202,13 @@ void LockManager::killVictims() {
   // TODO(Hakan): Find a method to latch this function
   //              (it cannot because it calls releaseLocks)
   if (detector_status_.load() == DeadLockDetectorStatus::kDone) {
-    for (std::vector<transaction_id>::const_iterator iter
-             = victim_result_.begin();
-         iter != victim_result_.end();
-         ++iter) {
-      transaction_id tid = *iter;
-      releaseAllLocks(tid);
+    for (const auto victim_transaction_id : victim_result_) {
+      releaseAllLocks(victim_transaction_id);
       // TODO(Hakan): Find a way to kill transaction, so that requests with this
       //              tid should be ignored.
-      LOG(INFO) << "Killed transaction " + std::to_string(tid);
+      LOG(INFO) << "Killed transaction " << std::to_string(victim_transaction_id);
     }
   }
-
   victim_result_.clear();
   detector_status_.store(DeadLockDetectorStatus::kNotReady);
 }

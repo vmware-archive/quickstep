@@ -105,7 +105,7 @@ LockTable::deleteLock(const transaction_id tid,
       // compatible with the remaining owned entries.
       movePendingToOwned(rid);
 
-      return LockTableResult::kDelFromOwned;
+      return LockTableResult::kDeleteFromOwned;
     }
   }
 
@@ -116,13 +116,13 @@ LockTable::deleteLock(const transaction_id tid,
     if (it->first == tid) {
       // If it exists, erase it from pending list.
       lock_pending_list.erase(it);
-      return LockTableResult::kDelFromPending;
+      return LockTableResult::kDeleteFromPending;
     }
   }
 
   // Execution reaches here, if we cannot find the corresponding lock entry
   // in the both list.
-  return LockTableResult::kDelError;
+  return LockTableResult::kDeleteError;
 }
 
 void LockTable::movePendingToOwned(const ResourceId &rid) {

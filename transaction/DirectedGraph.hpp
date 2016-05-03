@@ -39,7 +39,7 @@ namespace transaction {
  */
 
 /**
- * @brief Class for representing a directed graph. Vertices are transaction 
+ * @brief Class for representing a directed graph. Vertices are transaction
  *        ids, edges are wait-for relations.
  **/
 class DirectedGraph {
@@ -91,7 +91,7 @@ class DirectedGraph {
    * @warning Does not check arguments are legit. It may cause
    *          out of range errors.
    *
-   * @param fromNode The node that edge is orginated.
+   * @param fromNode The node that edge is originated.
    * @param toNode The node that edge is ended.
    **/
   inline void addEdgeUnchecked(node_id from_node, node_id to_node) {

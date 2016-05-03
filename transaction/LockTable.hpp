@@ -44,9 +44,9 @@ enum class LockTableResult {
   kPlacedInPending,
   kAlreadyInOwned,
   kAlreadyInPending,
-  kDelFromOwned,
-  kDelFromPending,
-  kDelError,
+  kDeleteFromOwned,
+  kDeleteFromPending,
+  kDeleteError,
   kPutError,
 };
 

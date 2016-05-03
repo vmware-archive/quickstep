@@ -53,6 +53,7 @@ class DeadLockDetector : public Thread {
  public:
   typedef std::unordered_map<transaction_id, DirectedGraph::node_id>
       transaction_id_node_map;
+
   /**
    * @brief Constructor for DeadLockDetector.
    *
@@ -60,7 +61,8 @@ class DeadLockDetector : public Thread {
    *        necessary information.
    * @param status Pointer to status object which will act as a message
    *        passing algorithm between LockManager.
-   * @paramsstd::atomic<DeadLockDetectorStatus> &status_;
+   * @param victims Message passing buffer betwen DeadLockDetector and
+   *        LockManager.
    **/
   DeadLockDetector(LockTable *lock_table,
                    std::atomic<DeadLockDetectorStatus> *status,
@@ -74,8 +76,8 @@ class DeadLockDetector : public Thread {
    * @param pending Id of the transaction that waits for the resource lock.
    * @param owner Id of the transaction that owns the resource lock.
    */
-  void addPendingInfo(transaction_id pending,
-                      transaction_id owner);
+  void addPendingInfo(const transaction_id pending,
+                      const transaction_id owner);
 
   /**
    * @brief Deletes pending information on a resource.
@@ -85,8 +87,8 @@ class DeadLockDetector : public Thread {
    *
    * @warning This method is not implemented yet.
    */
-  void deletePendingInfo(transaction_id pending,
-                         transaction_id owner);
+  void deletePendingInfo(const transaction_id pending,
+                         const transaction_id owner);
 
   /**
    * @brief Check whether first transaction waits for the latter.
@@ -98,7 +100,8 @@ class DeadLockDetector : public Thread {
    *
    * @warning This method is not implemented yet.
    */
-  bool isDependent(transaction_id pending, transaction_id owner);
+  bool isDependent(const transaction_id pending,
+                   const transaction_id owner) const;
 
   /**
    * @brief Gives the ids of transactions that wait for the owner transaction.
@@ -106,7 +109,7 @@ class DeadLockDetector : public Thread {
    * @param owner Id of the transaction whose the penders will be returned.
    * @return Vector of transaction ids that wait for owner.
    */
-  std::vector<transaction_id> getAllDependents(transaction_id owner);
+  std::vector<transaction_id> getAllDependents(const transaction_id owner) const;
 
   /**
    * @brief Gives the ids of transaction that the pending transaction waits for.
@@ -125,11 +128,11 @@ class DeadLockDetector : public Thread {
   std::vector<transaction_id> getAllVictims();
 
  private:
-  static constexpr std::int64_t kSleepDuration = 5;
+  static constexpr std::int64_t kSleepDurationInSeconds = 5;
 
-  DirectedGraph::node_id getNodeId(transaction_id tid);
+  DirectedGraph::node_id getNodeId(const transaction_id tid);
 
-  DirectedGraph::node_id addNode(transaction_id tid);
+  DirectedGraph::node_id addNode(const transaction_id tid);
 
   // Owned pointer to wait-for graph.
   std::unique_ptr<DirectedGraph> wait_for_graph_;
@@ -141,8 +144,8 @@ class DeadLockDetector : public Thread {
   // by the information got from lock table.
   LockTable *lock_table_;
 
-  std::atomic<DeadLockDetectorStatus> &status_;
-  std::vector<DirectedGraph::node_id> &victims_;
+  std::atomic<DeadLockDetectorStatus> *status_;
+  std::vector<DirectedGraph::node_id> *victims_;
 };
 
 /** @} */
@@ -150,4 +153,4 @@ class DeadLockDetector : public Thread {
 }  // namespace transaction
 }  // namespace quickstep
 
-#endif
+#endif  // QUICKSTEP_TRANSACTION_DEAD_LOCK_DETECTOR_HPP_

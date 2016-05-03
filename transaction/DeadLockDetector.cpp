@@ -29,28 +29,29 @@
 #include "transaction/LockTable.hpp"
 #include "transaction/Transaction.hpp"
 
+#include "glog/logging.h"
+
 namespace quickstep {
 namespace transaction {
 
-constexpr std::int64_t DeadLockDetector::kSleepDuration;
+constexpr std::int64_t DeadLockDetector::kSleepDurationInSeconds;
 
 DeadLockDetector::DeadLockDetector(LockTable *lock_table,
                                    std::atomic<DeadLockDetectorStatus> *status,
                                    std::vector<DirectedGraph::node_id> *victims)
-    : wait_for_graph_(nullptr),
-      tid_node_mapping_(std::make_unique<transaction_id_node_map>()),
+    : tid_node_mapping_(std::make_unique<transaction_id_node_map>()),
       lock_table_(lock_table),
-      status_(*status),
-      victims_(*victims) {
+      status_(status),
+      victims_(victims) {
 }
 
 void DeadLockDetector::run() {
   while (true) {
-    if (status_.load() == DeadLockDetectorStatus::kQuit) {
+    if (status_->load() == DeadLockDetectorStatus::kQuit) {
       // DeadLockDetector should stop.
       return;
     }
-    while (status_.load() == DeadLockDetectorStatus::kDone) {
+    while (status_->load() == DeadLockDetectorStatus::kDone) {
       // LockTable has not process the previous batch yet.
     }
 
@@ -59,56 +60,57 @@ void DeadLockDetector::run() {
     std::vector<DirectedGraph::node_id> victim_new_batch = getAllVictims();
 
     // Swap new batch with old batch to make LockTable to see new victims.
-    std::swap(victim_new_batch, victims_);
+    std::swap(victim_new_batch, *victims_);
 
     // Signal LockTable that new batch is ready.
-    status_.store(DeadLockDetectorStatus::kDone);
+    status_->store(DeadLockDetectorStatus::kDone);
 
     // DeadLockDetector should run once in a predefined interval.
     std::this_thread::sleep_for(
-        std::chrono::seconds(kSleepDuration));
+        std::chrono::seconds(kSleepDurationInSeconds));
   }
 }
 
-void DeadLockDetector::addPendingInfo(transaction_id pending,
-                                      transaction_id owner) {
-  DirectedGraph::node_id pending_node_id = getNodeId(pending);
-  DirectedGraph::node_id owner_node_id = getNodeId(owner);
+void DeadLockDetector::addPendingInfo(const transaction_id pending,
+                                      const transaction_id owner) {
+  const DirectedGraph::node_id pending_node_id = getNodeId(pending);
+  const DirectedGraph::node_id owner_node_id = getNodeId(owner);
 
   // TODO(Hakan): Check first whether link is already created. Use checked
   //              version for adding an edge.
   wait_for_graph_->addEdgeUnchecked(pending_node_id, owner_node_id);
 }
 
-void DeadLockDetector::deletePendingInfo(transaction_id pending,
-                                         transaction_id owner) {
-  FATAL_ERROR("Not implemented");
+void DeadLockDetector::deletePendingInfo(const transaction_id pending,
+                                         const transaction_id owner) {
+  LOG(FATAL) << "Not implemented";
 }
 
-bool DeadLockDetector::isDependent(transaction_id pending, transaction_id owner) {
-  FATAL_ERROR("Not implemented");
+bool DeadLockDetector::isDependent(const transaction_id pending,
+                                   const transaction_id owner) const {
+  LOG(FATAL) << "Not implemented";
 }
 
 std::vector<transaction_id>
-DeadLockDetector::getAllDependents(transaction_id owner) {
-  FATAL_ERROR("Not implemented");
+DeadLockDetector::getAllDependents(const transaction_id owner) const {
+  LOG(FATAL) << "Not implemented";
 }
 
 std::vector<transaction_id>
 DeadLockDetector::getAllDependees(transaction_id pending) {
-  DirectedGraph::node_id pending_node_id = getNodeId(pending);
-  std::vector<DirectedGraph::node_id> nodes
+  const DirectedGraph::node_id pending_node_id = getNodeId(pending);
+  const std::vector<DirectedGraph::node_id> nodes
       = wait_for_graph_->getAdjacentNodes(pending_node_id);
   std::vector<transaction_id> transactions;
   transactions.reserve(nodes.size());
-  for (DirectedGraph::node_id node_id : nodes) {
-    transaction_id tid = wait_for_graph_->getDataFromNode(node_id);
+  for (const DirectedGraph::node_id node_id : nodes) {
+    const transaction_id tid = wait_for_graph_->getDataFromNode(node_id);
     transactions.push_back(tid);
   }
   return transactions;
 }
 
-DirectedGraph::node_id DeadLockDetector::getNodeId(transaction_id tid) {
+DirectedGraph::node_id DeadLockDetector::getNodeId(const transaction_id tid) {
   DirectedGraph::node_id node_id;
   if (tid_node_mapping_->count(tid) == 0) {
     // If it is not created, create it.
@@ -121,46 +123,36 @@ DirectedGraph::node_id DeadLockDetector::getNodeId(transaction_id tid) {
 }
 
 
-DirectedGraph::node_id DeadLockDetector::addNode(transaction_id tid) {
+DirectedGraph::node_id DeadLockDetector::addNode(const transaction_id tid) {
   transaction_id *tid_ptr = new transaction_id(tid);
-  DirectedGraph::node_id node_id = wait_for_graph_->addNodeUnchecked(tid_ptr);
-  (*tid_node_mapping_)[tid] = node_id;
+  const DirectedGraph::node_id node_id =
+      wait_for_graph_->addNodeUnchecked(tid_ptr);
+  tid_node_mapping_->emplace(tid, node_id);
   return node_id;
 }
 
-std::vector<transaction_id> DeadLockDetector::getAllVictims() {
+std::vector<transaction_id> DeadLockDetector::getAllVictims()  {
   std::vector<transaction_id> result_victims;
-  wait_for_graph_ = std::make_unique<DirectedGraph>();
+  wait_for_graph_.reset(new DirectedGraph());
 
   // Critical region on LockTable starts here.
   lock_table_->latchShared();
+
 
   for (LockTable::const_iterator it = lock_table_->begin();
        it != lock_table_->end(); ++it) {
     const LockTable::lock_own_list &own_list = it->second.first;
     const LockTable::lock_pending_list &pending_list = it->second.second;
 
-    for (LockTable::lock_own_list::const_iterator it_own_list = own_list.begin();
-         it_own_list != own_list.end(); ++it_own_list) {
-      transaction_id owned_transaction = it_own_list->first;
+    for (const auto &owned_lock_info : own_list) {
+      const transaction_id owned_transaction = owned_lock_info.first;
+      const DirectedGraph::node_id owned_node = getNodeId(owned_transaction);
 
-      // TODO(Hakan): Convert them to log messages.
-      // std::cout << "Owned: " << owned_transaction << std::endl;
-
-      DirectedGraph::node_id owned_node = getNodeId(owned_transaction);
-
-      for (LockTable::lock_pending_list::const_iterator
-               it_pending_list = pending_list.begin();
-           it_pending_list != pending_list.end(); ++it_pending_list) {
-        transaction_id pending_transaction = it_pending_list->first;
-        // std::cout << "Pending: " <<  pending_transaction << std::endl;
-
-        DirectedGraph::node_id pending_node = getNodeId(pending_transaction);
+      for (const auto &pending_lock_info : pending_list) {
+        const transaction_id pending_transaction = pending_lock_info.first;
+        const DirectedGraph::node_id pending_node = getNodeId(pending_transaction);
 
         wait_for_graph_->addEdgeUnchecked(pending_node, owned_node);
-
-        // std::cout << "AddEdge(" << pending_transaction << ", "
-        //           << owned_transaction << ")" << std::endl;
       }
     }
   }
@@ -168,16 +160,16 @@ std::vector<transaction_id> DeadLockDetector::getAllVictims() {
   lock_table_->unlatchShared();
   // Critical region on LockTable ends here.
 
-  CycleDetector cycle_detector(wait_for_graph_.get());
-  std::vector<DirectedGraph::node_id> victim_nodes = cycle_detector.breakCycle();
-  for (DirectedGraph::node_id node_id : victim_nodes) {
-    transaction_id victim_tid = wait_for_graph_->getDataFromNode(node_id);
+  const CycleDetector cycle_detector(wait_for_graph_.get());
+  const std::vector<DirectedGraph::node_id> victim_nodes = cycle_detector.breakCycle();
+  for (const DirectedGraph::node_id node_id : victim_nodes) {
+    const transaction_id victim_tid = wait_for_graph_->getDataFromNode(node_id);
     result_victims.push_back(victim_tid);
   }
 
   // Destroy the wait graph. It will be reconstructed kSleepDurationSeconds
   // seconds later.
-  wait_for_graph_.release();
+  wait_for_graph_.reset();
 
   return result_victims;
 }

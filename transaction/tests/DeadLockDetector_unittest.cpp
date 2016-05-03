@@ -43,32 +43,48 @@ class DeadLockDetectorTest : public ::testing::Test {
 };
 
 TEST_F(DeadLockDetectorTest, SimpleCycle) {
-  lock_table_->putLock(transaction_id(1),
-                       ResourceId(4, 5),
+  const transaction_id transaction_one(1), transaction_two(2);
+  const ResourceId resource_one(1, 2), resource_two(4, 5);
+
+  // Produce a conflicting schedule.
+  // Transaction 1 will acquire X lock on resource 1.
+  lock_table_->putLock(transaction_one,
+                       resource_one,
                        AccessMode(AccessModeType::kXLock));
 
-  lock_table_->putLock(transaction_id(2),
-                       ResourceId(1, 2),
+  // Transaction 2 will acquire X lock on resource 2.
+  lock_table_->putLock(transaction_two,
+                       resource_two,
                        AccessMode(AccessModeType::kXLock));
 
-  lock_table_->putLock(transaction_id(1),
-                       ResourceId(1, 2),
+  // Transaction 1 will try to acquire X lock on resource 2,
+  // but it will fail since Transaction 2 has already acquired
+  // X lock on resource 2.
+  lock_table_->putLock(transaction_one,
+                       resource_two,
                        AccessMode(AccessModeType::kXLock));
 
-  lock_table_->putLock(transaction_id(2),
-                       ResourceId(4, 5),
+  // Transaction 2 will try to acquire X lock on resource 1,
+  // but it will fail since Transaction 1 has already acquired
+  // X lock on resource 2.
+  lock_table_->putLock(transaction_two,
+                       resource_one,
                        AccessMode(AccessModeType::kXLock));
 
+  // Run deadlock detector.
   DeadLockDetector dl_detector(lock_table_.get(), &status_, &victims_);
   status_.store(DeadLockDetectorStatus::kNotReady);
 
   dl_detector.start();
 
+  // Signal deadlock detector.
   while (status_.load() == DeadLockDetectorStatus::kNotReady) {
   }
 
   status_.store(DeadLockDetectorStatus::kQuit);
   dl_detector.join();
+
+  // Victim size must be 1.
   ASSERT_EQ(1u, victims_.size());
 }
 

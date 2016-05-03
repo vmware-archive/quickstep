@@ -115,4 +115,4 @@ class LockManager : public Thread {
 }  // namespace transaction
 }  // namespace quickstep
 
-#endif
+#endif  // QUICKSTEP_TRANSACTION_LOCK_MANAGER_HPP_

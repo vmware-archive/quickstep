@@ -37,52 +37,48 @@ CycleDetector::CycleDetector(DirectedGraph *wait_for_graph)
           std::make_unique<StronglyConnectedComponents>(*wait_for_graph)) {
 }
 
-std::vector<DirectedGraph::node_id> CycleDetector::breakCycle() {
+std::vector<DirectedGraph::node_id> CycleDetector::breakCycle() const {
   std::vector<DirectedGraph::node_id> nodes_to_kill;
   const std::unordered_map<std::uint64_t, std::vector<DirectedGraph::node_id>>
     component_mapping = strongly_connected_components_->getComponentMapping();
-  for (const std::pair<std::uint64_t, std::vector<DirectedGraph::node_id>>
-           &entry : component_mapping) {
+  for (const auto &entry : component_mapping) {
     // One node means no cycle.
     if (entry.second.size() == 1) {
       continue;
     }
     const std::vector<DirectedGraph::node_id> nodes
         = breakComponent(entry.second);
-      for (const DirectedGraph::node_id &node : nodes) {
-        nodes_to_kill.push_back(node);
-      }
+    nodes_to_kill.insert(nodes_to_kill.end(), nodes.begin(), nodes.end());
   }
   return nodes_to_kill;
 }
 
 std::vector<DirectedGraph::node_id>
-CycleDetector::breakComponent(const std::vector<DirectedGraph::node_id> &nodes) {
+CycleDetector::breakComponent(const std::vector<DirectedGraph::node_id> &nodes) const {
   std::vector<DirectedGraph::node_id> targets;
   // Convert it to set to ensure defensively that the elements are unique.
   std::unordered_set<DirectedGraph::node_id> nodes_set(nodes.begin(), nodes.end());
 
   while (true) {
-    const bool has_cycle = hasCycleWithin(nodes_set);
-    if (!has_cycle) {
+    if (!hasCycle(nodes_set)) {
       break;
     }
     // If there is a cycle, start to pop a node from randomly.
     // TODO(Hakan): This is very inefficient scheme, however in the
     //              future, we can use the transaction's priority
     //              as the victim selection parameter.
-    const DirectedGraph::node_id victim = *(nodes_set.begin());
+    const DirectedGraph::node_id victim = chooseVictim(nodes_set);
     nodes_set.erase(nodes_set.begin());
     targets.push_back(victim);
   }
   return targets;
 }
 
-bool CycleDetector::hasCycleWithin(
-    const std::unordered_set<DirectedGraph::node_id> &within) {
+bool CycleDetector::hasCycle(
+    const std::unordered_set<DirectedGraph::node_id> &nodes) const {
   // Keeps track of the nodes the algorithms visited.
   std::unordered_set<DirectedGraph::node_id> visited;
-  for (const DirectedGraph::node_id node_id : within) {
+  for (const DirectedGraph::node_id node_id : nodes) {
     // If it is visited, then pass to the next one.
     if (visited.count(node_id) == 1) {
       continue;
@@ -100,15 +96,15 @@ bool CycleDetector::hasCycleWithin(
       // For all adjacent nodes of this "visited" node,
       const std::vector<DirectedGraph::node_id> adjacents
           = wait_for_graph_->getAdjacentNodes(current_node);
-      for (DirectedGraph::node_id adj : adjacents) {
-        if (visited.count(adj) == 1) {
+      for (const DirectedGraph::node_id adjacent : adjacents) {
+        if (visited.count(adjacent) == 1) {
           // If this adjacent node is a node we already visited, then
           // there is a cycle.
           return true;
-        } else if (within.count(adj) == 1 && visited.count(adj) == 0) {
+        } else if (nodes.count(adjacent) == 1 && visited.count(adjacent) == 0) {
           // Otherwise, if it is a node that we did not visit before
           // mark this nodes as "to be visited".
-          to_visit.push(adj);
+          to_visit.push(adjacent);
         }
       }
     }

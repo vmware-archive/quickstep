@@ -55,6 +55,7 @@ target_link_libraries(quickstep_transaction_CycleDetector
                       quickstep_transaction_StronglyConnectedComponents
                       quickstep_utility_Macros)
 target_link_libraries(quickstep_transaction_DeadLockDetector
+                      glog
                       quickstep_transaction_CycleDetector
                       quickstep_transaction_DirectedGraph
                       quickstep_transaction_LockTable
