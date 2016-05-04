@@ -24,9 +24,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "threading/Thread.hpp"
 #include "transaction/DirectedGraph.hpp"
 #include "transaction/Transaction.hpp"
-#include "threading/Thread.hpp"
 
 namespace quickstep {
 namespace transaction {

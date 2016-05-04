@@ -25,6 +25,7 @@
 
 #include "threading/Thread.hpp"
 #include "transaction/DeadLockDetector.hpp"
+#include "transaction/LockRequest.hpp"
 #include "transaction/Transaction.hpp"
 
 namespace quickstep {
@@ -34,7 +35,6 @@ template <typename T> class ThreadSafeQueue;
 namespace transaction {
 
 class AccessMode;
-class LockRequest;
 class LockTable;
 class ResourceId;
 class TransactionTable;

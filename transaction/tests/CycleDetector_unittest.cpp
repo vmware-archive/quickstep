@@ -81,7 +81,7 @@ class CycleDetectorTest : public testing::Test {
   }
 
   bool isSelfReachableNode(
-      DirectedGraph::node_id start_node,
+      const DirectedGraph::node_id start_node,
       const std::unordered_set<DirectedGraph::node_id> &node_set) {
     std::unordered_set<DirectedGraph::node_id> marked_nodes;
     std::stack<DirectedGraph::node_id> to_be_visied_nodes;
@@ -119,7 +119,18 @@ class CycleDetectorTest : public testing::Test {
   std::unique_ptr<CycleDetector> cycle_detector_;
 };
 
-TEST_F(CycleDetectorTest, BreakCycle) {
+TEST_F(CycleDetectorTest, Interleaving) {
+  edges_ = {{0, 1},
+            {1, 0}};
+
+  initializeCycleDetector();
+
+  std::unordered_set<DirectedGraph::node_id> expected_victims = {1};
+
+  checkVictims(expected_victims);
+}
+
+TEST_F(CycleDetectorTest, MultipleCycle) {
   // This edge contains lots of cycles of degree 1, 2 and 3.
   edges_ = {{0, 1},
             {1, 2}, {1, 3}, {1, 4},
@@ -138,17 +149,6 @@ TEST_F(CycleDetectorTest, BreakCycle) {
 
   std::unordered_set<DirectedGraph::node_id> expected_victims
       = {4, 5, 7, 8, 9, 10, 11};
-
-  checkVictims(expected_victims);
-}
-
-TEST_F(CycleDetectorTest, BreakCycleSimple) {
-  edges_ = {{0, 1},
-            {1, 0}};
-
-  initializeCycleDetector();
-
-  std::unordered_set<DirectedGraph::node_id> expected_victims = {1};
 
   checkVictims(expected_victims);
 }

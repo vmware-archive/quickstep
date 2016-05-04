@@ -89,7 +89,7 @@ class LockTable {
    **/
   LockTableResult putLock(const transaction_id tid,
                           const ResourceId &rid,
-                          const AccessMode access_mode);
+                          const AccessMode &access_mode);
   /**
    * @brief Deletes the lock entry.
    *
@@ -104,7 +104,6 @@ class LockTable {
    **/
   LockTableResult deleteLock(const transaction_id tid,
                              const ResourceId &rid);
-
 
   /**
    * @brief Iterator for begin position.

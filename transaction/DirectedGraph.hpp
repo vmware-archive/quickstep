@@ -73,7 +73,6 @@ class DirectedGraph {
    *        in the node.
    * @return Id of the newly created node.
    **/
-  inline
   node_id addNodeCheckExists(const transaction_id transaction_id_payload) {
     for (const auto &node : nodes_) {
       CHECK(transaction_id_payload != node.getData());
@@ -92,7 +91,7 @@ class DirectedGraph {
    * @param fromNode The node that edge is originated.
    * @param toNode The node that edge is ended.
    **/
-  inline void addEdgeUnchecked(node_id from_node, node_id to_node) {
+  void addEdgeUnchecked(node_id from_node, node_id to_node) {
     nodes_[from_node].addOutgoingEdge(to_node);
   }
 
@@ -103,7 +102,7 @@ class DirectedGraph {
    * @param fromNode The node that edge is orginated.
    * @param toNode The node that edge is ended.
    **/
-  inline void addEdgeCheckExists(node_id from_node, node_id to_node) {
+  void addEdgeCheckExists(node_id from_node, node_id to_node) {
     CHECK(from_node < getNumNodes() && to_node < getNumNodes());
     nodes_[from_node].addOutgoingEdge(to_node);
   }
@@ -117,7 +116,7 @@ class DirectedGraph {
    * @param toNode Id of the node that edge is ended.
    * @return True if there is an edge, false otherwise.
    **/
-  inline bool hasEdge(node_id from_node, node_id to_node) const {
+  bool hasEdge(node_id from_node, node_id to_node) const {
     DCHECK(from_node < getNumNodes() && to_node < getNumNodes());
     return nodes_[from_node].hasOutgoingEdge(to_node);
   }
@@ -128,7 +127,7 @@ class DirectedGraph {
    * @param node Id of the node that the data is got from.
    * @return Id of the transaction that this node contains.
    **/
-  inline transaction_id getDataFromNode(node_id node) const {
+  transaction_id getDataFromNode(node_id node) const {
     DCHECK(node < getNumNodes());
     return nodes_[node].getData();
   }
@@ -138,7 +137,7 @@ class DirectedGraph {
    *
    * @return The number of nodes the graph has.
    **/
-  inline std::size_t getNumNodes() const {
+  std::size_t getNumNodes() const {
     return nodes_.size();
   }
 
@@ -156,18 +155,18 @@ class DirectedGraph {
   // Class for representing a graph node.
   class DirectedGraphNode {
    public:
-    explicit DirectedGraphNode(transaction_id payload)
+    explicit DirectedGraphNode(const transaction_id payload)
       : transaction_id_payload_(payload) {}
 
-    inline void addOutgoingEdge(node_id to_node) {
+    void addOutgoingEdge(node_id to_node) {
       outgoing_edges_.insert(to_node);
     }
 
-    inline bool hasOutgoingEdge(node_id to_node) const {
+    bool hasOutgoingEdge(node_id to_node) const {
       return outgoing_edges_.count(to_node) == 1;
     }
 
-    inline std::vector<node_id> getOutgoingEdges() const {
+    std::vector<node_id> getOutgoingEdges() const {
       // TODO(hakan): Benchmark this version and the alternative which the
       //              function returns const reference and the uniqueness
       //              is imposed in the outgoing_edges_ as a vector.
@@ -177,13 +176,12 @@ class DirectedGraph {
       return result;
     }
 
-    inline transaction_id getData() const {
+    transaction_id getData() const {
       return transaction_id_payload_;
     }
 
    private:
-    // Owner pointer to transaction id.
-    transaction_id transaction_id_payload_;
+    const transaction_id transaction_id_payload_;
 
     // Endpoint nodes of outgoing edges originated from this node.
     std::unordered_set<node_id> outgoing_edges_;

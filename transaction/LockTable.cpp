@@ -30,7 +30,7 @@ namespace transaction {
 LockTableResult
 LockTable::putLock(const transaction_id tid,
                    const ResourceId &rid,
-                   const AccessMode access_mode) {
+                   const AccessMode &access_mode) {
   // TODO(hakan): Lock upgrade is not supported.
   lock_list_pair &lock_list_pair = internal_map_[rid];
 

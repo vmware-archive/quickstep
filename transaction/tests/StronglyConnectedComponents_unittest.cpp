@@ -35,11 +35,11 @@ namespace transaction {
 class GraphConfiguration {
  public:
   GraphConfiguration(DirectedGraph *graph,
-                     std::size_t no_transaction,
+                     std::size_t num_transactions,
                      const std::vector<std::pair<transaction_id,
                                                  transaction_id>> &mapping)
     : graph_(graph) {
-    for (std::size_t index = 0; index < no_transaction; ++index) {
+    for (std::size_t index = 0; index < num_transactions; ++index) {
       std::unique_ptr<transaction_id> tid =
         std::make_unique<transaction_id>(transaction_id(index));
       transaction_list_.push_back(*tid);

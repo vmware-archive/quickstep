@@ -48,30 +48,32 @@ TEST_F(DeadLockDetectorTest, SimpleCycle) {
   const transaction_id transaction_one(1), transaction_two(2);
   const ResourceId resource_one(1, 2), resource_two(4, 5);
 
+  const AccessMode x_lock_mode(AccessMode::XLockMode());
+
   // Produce a conflicting schedule.
   // Transaction 1 will acquire X lock on resource 1.
   lock_table_->putLock(transaction_one,
                        resource_one,
-                       AccessMode::XLockMode());
+                       x_lock_mode);
 
   // Transaction 2 will acquire X lock on resource 2.
   lock_table_->putLock(transaction_two,
                        resource_two,
-                       AccessMode::XLockMode());
+                       x_lock_mode);
 
   // Transaction 1 will try to acquire X lock on resource 2,
   // but it will fail since Transaction 2 has already acquired
   // X lock on resource 2.
   lock_table_->putLock(transaction_one,
                        resource_two,
-                       AccessMode::XLockMode());
+                       x_lock_mode);
 
   // Transaction 2 will try to acquire X lock on resource 1,
   // but it will fail since Transaction 1 has already acquired
   // X lock on resource 2.
   lock_table_->putLock(transaction_two,
                        resource_one,
-                       AccessMode::XLockMode());
+                       x_lock_mode);
 
   // Run deadlock detector.
   DeadLockDetector deadlock_detector(lock_table_.get(), &status_, &victims_);
