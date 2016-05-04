@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <stack>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -63,11 +64,54 @@ class CycleDetectorTest : public testing::Test {
       const std::unordered_set<DirectedGraph::node_id> &expected_victims) {
     const std::vector<DirectedGraph::node_id> victims =
         cycle_detector_->chooseVictimsToBreakCycle();
-    ASSERT_EQ(expected_victims.size(), victims.size());
 
-    for (const auto victim : victims) {
-      EXPECT_EQ(expected_victims.count(victim), 1);
+    std::unordered_set<DirectedGraph::node_id> remaining_nodes;
+
+    for (DirectedGraph::node_id node = 0; node < wait_for_graph_->getNumNodes();
+         ++node) {
+      if (std::find(victims.begin(), victims.end(), node) == victims.end()) {
+        // Node is not in victims, then insert it to remaining set.
+        remaining_nodes.insert(node);
+      }
     }
+
+    for (const auto node : remaining_nodes) {
+      ASSERT_FALSE(isSelfReachableNode(node, remaining_nodes));
+    }
+  }
+
+  bool isSelfReachableNode(
+      DirectedGraph::node_id start_node,
+      const std::unordered_set<DirectedGraph::node_id> &node_set) {
+    std::unordered_set<DirectedGraph::node_id> marked_nodes;
+    std::stack<DirectedGraph::node_id> to_be_visied_nodes;
+
+    const std::vector<DirectedGraph::node_id> neighbors_of_start_node =
+        wait_for_graph_->getAdjacentNodes(start_node);
+    for (const auto node : neighbors_of_start_node) {
+      marked_nodes.insert(node);
+      to_be_visied_nodes.push(node);
+    }
+
+    while (!to_be_visied_nodes.empty()) {
+      const DirectedGraph::node_id current_node = to_be_visied_nodes.top();
+      to_be_visied_nodes.pop();
+      if (current_node == start_node) {
+        return true;
+      }
+      if (node_set.count(current_node) == 1 &&
+          marked_nodes.count(current_node) == 0) {
+        // Means, we did not visited this node yet, and it is in the node set,
+        // so we should process it (mark it and push all of its neighbors
+        // into stack).
+        marked_nodes.insert(current_node);
+        const auto neighbors = wait_for_graph_->getAdjacentNodes(current_node);
+        for (const auto neighbor : neighbors) {
+          to_be_visied_nodes.push(neighbor);
+        }
+      }
+    }
+    return false;
   }
 
   std::vector<std::pair<DirectedGraph::node_id, DirectedGraph::node_id>> edges_;
