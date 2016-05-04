@@ -137,11 +137,10 @@ std::vector<transaction_id> DeadLockDetector::getAllVictims()  {
 
   // Critical region on LockTable starts here.
   lock_table_->latchShared();
-
-  for (LockTable::const_iterator it = lock_table_->begin();
-       it != lock_table_->end(); ++it) {
-    const LockTable::lock_own_list &own_list = it->second.first;
-    const LockTable::lock_pending_list &pending_list = it->second.second;
+  for (const auto &lock_control_block : *lock_table_) {
+    const LockTable::lock_own_list &own_list = lock_control_block.second.first;
+    const LockTable::lock_pending_list &pending_list =
+        lock_control_block.second.second;
 
     for (const auto &owned_lock_info : own_list) {
       const transaction_id owned_transaction = owned_lock_info.first;
@@ -160,7 +159,8 @@ std::vector<transaction_id> DeadLockDetector::getAllVictims()  {
   // Critical region on LockTable ends here.
 
   const CycleDetector cycle_detector(wait_for_graph_.get());
-  const std::vector<DirectedGraph::node_id> victim_nodes = cycle_detector.chooseVictimsToBreakCycle();
+  const std::vector<DirectedGraph::node_id> victim_nodes =
+      cycle_detector.chooseVictimsToBreakCycle();
   for (const DirectedGraph::node_id node_id : victim_nodes) {
     const transaction_id victim_tid = wait_for_graph_->getDataFromNode(node_id);
     result_victims.push_back(victim_tid);

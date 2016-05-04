@@ -81,6 +81,9 @@ class LockManager : public Thread {
    * @param tid Id of the transaction which the resource lock is acquired for.
    * @param rid Id of the resource on which the resource lock is acquired.
    * @param access_mode Permissible access mode on resource.
+   *
+   * @return True if it can acquire the lock from root to leaf lock hierarchy,
+   *         false otherwise.
    **/
   bool acquireLock(const transaction_id tid,
                    const ResourceId &rid,
@@ -90,8 +93,12 @@ class LockManager : public Thread {
    * @brief Releases all locks hold by the transaction.
    *
    * @param tid Id of the transaction whose locks will be released.
+   * @param latch_table If it is true, the method latch the whole
+   *        lock table, which is default.
+   * @return True if tid releases all of its locks.
    **/
-  bool releaseAllLocks(const transaction_id tid);
+  bool releaseAllLocks(const transaction_id tid,
+                       const bool latch_table = true);
 
   /**
    * @brief Release the locks acquired by the transactions contained

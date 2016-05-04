@@ -149,7 +149,8 @@ bool LockManager::acquireLock(const transaction_id tid,
   return true;
 }
 
-bool LockManager::releaseAllLocks(const transaction_id tid) {
+bool LockManager::releaseAllLocks(const transaction_id tid,
+                                  const bool latch_table) {
   const std::vector<ResourceId> resource_ids
       = transaction_table_->getResourceIdList(tid);
   const TransactionTableResult transaction_deleted
@@ -158,8 +159,9 @@ bool LockManager::releaseAllLocks(const transaction_id tid) {
   CHECK(transaction_deleted != TransactionTableResult::kTransactionDeleteError)
       << "In LockManager.releaseAllLocks: Transaction could not be deleted!";
 
-  lock_table_->latchExclusive();
-
+  if (latch_table) {
+    lock_table_->latchExclusive();
+  }
   for (const auto &resource_id : resource_ids) {
     const LockTableResult lock_deleted = lock_table_->deleteLock(tid, resource_id);
 
@@ -171,8 +173,9 @@ bool LockManager::releaseAllLocks(const transaction_id tid) {
         << "In LockManager.releaseAllLock lock could not be deleted from "
            "LockTable";
   }
-
-  lock_table_->unlatchExclusive();
+  if (latch_table) {
+    lock_table_->unlatchExclusive();
+  }
   return true;
 }
 
@@ -183,39 +186,48 @@ bool LockManager::acquireLockInternal(const transaction_id tid,
   CHECK(lock_result != LockTableResult::kPutError)
       << "Unexpected result in LockManager.acquireLockInternal";
 
-  if (lock_result == LockTableResult::kAlreadyInOwned) {
+  switch (lock_result) {
+  case LockTableResult::kAlreadyInOwned: {
     return true;
-  } else if (lock_result == LockTableResult::kPlacedInOwned) {
+  }
+  case LockTableResult::kPlacedInOwned: {
     const TransactionTableResult transaction_result
         = transaction_table_->putOwnEntry(tid, rid, access_mode);
     CHECK(transaction_result == TransactionTableResult::kPlacedInOwned)
         << "Unexpected result in LockManager.acquireLockInternal: "
-           "Mismatch of table results (No.1).";
+           "Mismatch of table results: LockTable entry is owned, "
+           "whereas TransactionTable entry is not owned.";
     return true;
-  } else if (lock_result == LockTableResult::kAlreadyInPending) {
+  }
+  case LockTableResult::kAlreadyInPending: {
     return false;
-  } else if (lock_result == LockTableResult::kPlacedInPending) {
+  }
+  case LockTableResult::kPlacedInPending: {
     const TransactionTableResult transaction_result =
       transaction_table_->putPendingEntry(tid, rid, access_mode);
     CHECK(transaction_result == TransactionTableResult::kPlacedInPending)
         << "Unexpected result in LockManager.acquireLockInternal: "
-           "Mismatch of table results (No.2).";
+           "Mismatch of table results: LockTable entry is pending, "
+           "whereas TransactionTable entry is not pending";
     return false;
   }
-  return false;
+  default: {
+    return false;
+  }
+  }
 }
 
 void LockManager::killVictims() {
-  // TODO(Hakan): Find a method to latch this function
-  //              (it cannot because it calls releaseLocks)
   if (detector_status_.load() == DeadLockDetectorStatus::kDone) {
+    lock_table_->latchExclusive();
     for (const auto victim_transaction_id : victim_result_) {
-      releaseAllLocks(victim_transaction_id);
+      releaseAllLocks(victim_transaction_id, false);
       // TODO(Hakan): Find a way to kill transaction, so that requests with this
       //              tid should be ignored.
       LOG(INFO) << "Killed transaction "
                 << std::to_string(victim_transaction_id);
     }
+    lock_table_->unlatchExclusive();
   }
   victim_result_.clear();
   detector_status_.store(DeadLockDetectorStatus::kNotReady);
