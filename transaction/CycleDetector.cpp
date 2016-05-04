@@ -37,7 +37,8 @@ CycleDetector::CycleDetector(DirectedGraph *wait_for_graph)
           std::make_unique<StronglyConnectedComponents>(*wait_for_graph)) {
 }
 
-std::vector<DirectedGraph::node_id> CycleDetector::chooseVictimsToBreakCycle() const {
+std::vector<DirectedGraph::node_id>
+CycleDetector::chooseVictimsToBreakCycle() const {
   std::vector<DirectedGraph::node_id> nodes_to_kill;
   const std::unordered_map<std::uint64_t, std::vector<DirectedGraph::node_id>>
       component_mapping = strongly_connected_components_->getComponentMapping();
@@ -46,18 +47,19 @@ std::vector<DirectedGraph::node_id> CycleDetector::chooseVictimsToBreakCycle() c
     if (entry.second.size() == 1) {
       continue;
     }
-    const std::vector<DirectedGraph::node_id> nodes
-        = chooseVictimsInComponent(entry.second);
+    const std::vector<DirectedGraph::node_id> nodes =
+        chooseVictimsInComponent(entry.second);
     nodes_to_kill.insert(nodes_to_kill.end(), nodes.begin(), nodes.end());
   }
   return nodes_to_kill;
 }
 
-std::vector<DirectedGraph::node_id>
-CycleDetector::chooseVictimsInComponent(const std::vector<DirectedGraph::node_id> &nodes) const {
+std::vector<DirectedGraph::node_id> CycleDetector::chooseVictimsInComponent(
+    const std::vector<DirectedGraph::node_id> &nodes) const {
   std::vector<DirectedGraph::node_id> targets;
   // Convert it to set to ensure defensively that the elements are unique.
-  std::unordered_set<DirectedGraph::node_id> nodes_set(nodes.begin(), nodes.end());
+  std::unordered_set<DirectedGraph::node_id> nodes_set(nodes.begin(),
+                                                       nodes.end());
 
   while (true) {
     if (!hasCycle(nodes_set)) {

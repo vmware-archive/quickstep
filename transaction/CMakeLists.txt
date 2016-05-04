@@ -100,6 +100,7 @@ target_link_libraries(quickstep_transaction_StronglyConnectedComponents
                       quickstep_transaction_DirectedGraph
                       quickstep_utility_Macros)
 target_link_libraries(quickstep_transaction_TransactionTable
+                      quickstep_transaction_AccessMode
                       quickstep_transaction_Lock
                       quickstep_transaction_ResourceId
                       quickstep_transaction_Transaction
