@@ -18,6 +18,7 @@
 #include "transaction/Lock.hpp"
 
 #include <cstddef>
+#include <memory>
 #include <vector>
 
 #include "transaction/AccessMode.hpp"

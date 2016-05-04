@@ -18,15 +18,11 @@
 #include "transaction/LockTable.hpp"
 
 #include <list>
-#include <unordered_map>
 #include <utility>
 
-#include "threading/SharedMutex.hpp"
 #include "transaction/AccessMode.hpp"
 #include "transaction/Lock.hpp"
-#include "transaction/ResourceId.hpp"
 #include "transaction/Transaction.hpp"
-#include "utility/Macros.hpp"
 
 namespace quickstep {
 namespace transaction {

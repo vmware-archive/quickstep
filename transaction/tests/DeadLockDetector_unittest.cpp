@@ -21,8 +21,10 @@
 #include <memory>
 #include <vector>
 
+#include "transaction/AccessMode.hpp"
 #include "transaction/DirectedGraph.hpp"
 #include "transaction/LockTable.hpp"
+#include "transaction/ResourceId.hpp"
 #include "transaction/Transaction.hpp"
 
 #include "gtest/gtest.h"

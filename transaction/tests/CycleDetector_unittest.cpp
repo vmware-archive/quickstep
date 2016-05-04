@@ -24,7 +24,6 @@
 #include <vector>
 
 #include "transaction/DirectedGraph.hpp"
-#include "transaction/StronglyConnectedComponents.hpp"
 #include "transaction/Transaction.hpp"
 
 #include "gtest/gtest.h"

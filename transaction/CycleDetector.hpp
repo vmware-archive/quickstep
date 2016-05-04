@@ -19,7 +19,7 @@
 #define QUICKSTEP_TRANSACTION_CYCLE_DETECTOR_HPP_
 
 #include <memory>
-#include <set>
+#include <unordered_set>
 #include <vector>
 
 #include "transaction/DirectedGraph.hpp"

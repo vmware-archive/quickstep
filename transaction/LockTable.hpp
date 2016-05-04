@@ -23,7 +23,6 @@
 #include <utility>
 
 #include "threading/SharedMutex.hpp"
-#include "transaction/AccessMode.hpp"
 #include "transaction/Lock.hpp"
 #include "transaction/ResourceId.hpp"
 #include "transaction/Transaction.hpp"
@@ -31,6 +30,8 @@
 
 namespace quickstep {
 namespace transaction {
+
+class AccessMode;
 
 /** \addtogroup Transaction
  * @{

@@ -71,7 +71,6 @@ target_link_libraries(quickstep_transaction_LockManager
                       gflags_nothreads-static
                       glog
                       quickstep_utility_ThreadSafeQueue
-                      quickstep_threading_Mutex
                       quickstep_threading_Thread
                       quickstep_transaction_AccessMode
                       quickstep_transaction_DeadLockDetector
@@ -101,7 +100,6 @@ target_link_libraries(quickstep_transaction_StronglyConnectedComponents
                       quickstep_transaction_DirectedGraph
                       quickstep_utility_Macros)
 target_link_libraries(quickstep_transaction_TransactionTable
-                      quickstep_transaction_AccessMode
                       quickstep_transaction_Lock
                       quickstep_transaction_ResourceId
                       quickstep_transaction_Transaction

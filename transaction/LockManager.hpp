@@ -19,22 +19,26 @@
 #define QUICKSTEP_TRANSACTION_LOCK_MANAGER_HPP_
 
 #include <atomic>
+#include <memory>
 #include <queue>
 #include <vector>
 
-#include "threading/Mutex.hpp"
 #include "threading/Thread.hpp"
-#include "transaction/AccessMode.hpp"
 #include "transaction/DeadLockDetector.hpp"
-#include "transaction/LockRequest.hpp"
-#include "transaction/LockTable.hpp"
-#include "transaction/ResourceId.hpp"
 #include "transaction/Transaction.hpp"
-#include "transaction/TransactionTable.hpp"
-#include "utility/ThreadSafeQueue.hpp"
 
 namespace quickstep {
+
+template <typename T> class ThreadSafeQueue;
+
 namespace transaction {
+
+class AccessMode;
+class LockRequest;
+class LockTable;
+class ResourceId;
+class TransactionTable;
+
 
 /** \addtogroup Transaction
  *  @{

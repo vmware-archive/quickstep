@@ -19,7 +19,6 @@
 #define QUICKSTEP_TRANSACTION_RESOURCE_ID_HPP_
 
 #include <cstddef>
-#include <limits>
 #include <string>
 
 #include "catalog/CatalogTypedefs.hpp"

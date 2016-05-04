@@ -19,19 +19,19 @@
 #define QUICKSTEP_TRANSACTION_DEAD_LOCK_DETECTOR_HPP_
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
 #include "transaction/DirectedGraph.hpp"
-#include "transaction/Lock.hpp"
-#include "transaction/LockTable.hpp"
-#include "transaction/ResourceId.hpp"
 #include "transaction/Transaction.hpp"
 #include "threading/Thread.hpp"
 
 namespace quickstep {
 namespace transaction {
+
+class LockTable;
 
 /** \addtogroup Transaction
  *  @{

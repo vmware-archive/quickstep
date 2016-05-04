@@ -17,12 +17,12 @@
 
 #include "transaction/LockManager.hpp"
 
+#include <cstdint>
 #include <stack>
+#include <string>
 #include <utility>
 #include <vector>
 
-#include "threading/Mutex.hpp"
-#include "threading/Thread.hpp"
 #include "transaction/AccessMode.hpp"
 #include "transaction/DeadLockDetector.hpp"
 #include "transaction/LockRequest.hpp"
