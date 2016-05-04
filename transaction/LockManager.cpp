@@ -30,11 +30,21 @@
 #include "transaction/ResourceId.hpp"
 #include "transaction/Transaction.hpp"
 #include "transaction/TransactionTable.hpp"
+#include "utility/ThreadSafeQueue.hpp"
 
+#include "gflags/gflags.h"
 #include "glog/logging.h"
 
 namespace quickstep {
 namespace transaction {
+
+DEFINE_uint64(max_try_incoming, 10000,
+              "The maximum number of tries that lock manager checks incoming "
+              "request buffer until the buffer is empty.");
+
+DEFINE_uint64(max_try_inner, 6000,
+              "The maximum number of tries that lock manager checks inner "
+              "request buffer until the buffer is empty.");
 
 LockManager::LockManager(ThreadSafeQueue<LockRequest> *incoming_requests,
                          ThreadSafeQueue<LockRequest> *permitted_requests)
@@ -56,8 +66,10 @@ LockManager::~LockManager() {
 void LockManager::run() {
   deadlock_detector_->start();
 
-  constexpr std::uint64_t kMaxTryIncoming = 10000;
-  constexpr std::uint64_t kMaxTryInner = 6000;
+  const std::uint64_t kMaxTryIncoming =
+      static_cast<std::uint64_t>(FLAGS_max_try_incoming);
+  const std::uint64_t kMaxTryInner =
+      static_cast<std::uint64_t>(FLAGS_max_try_incoming);
 
   while (true) {
     for (std::uint64_t tries = 0; tries < kMaxTryIncoming; ++tries) {
@@ -71,14 +83,14 @@ void LockManager::run() {
                                request.getResourceId(),
                                request.getAccessMode())) {
           LOG(INFO) << "Transaction "
-                       + std::to_string(request.getTransactionId())
-                       + " is waiting " + request.getResourceId().toString();
+                    << std::to_string(request.getTransactionId())
+                    << " is waiting " + request.getResourceId().toString();
 
             inner_pending_requests_.push(request);
         } else {
             LOG(INFO) << "Transaction "
-                         + std::to_string(request.getTransactionId())
-                         + " acquired " + request.getResourceId().toString();
+                      << std::to_string(request.getTransactionId())
+                      << " acquired " + request.getResourceId().toString();
 
             permitted_requests_.push(request);
         }
@@ -104,7 +116,7 @@ void LockManager::run() {
 
 bool LockManager::acquireLock(const transaction_id tid,
                               const ResourceId &rid,
-                              const AccessMode access_mode) {
+                              const AccessMode &access_mode) {
   std::stack<std::pair<ResourceId, AccessMode>> stack;
   ResourceId current_rid = rid;
   AccessMode current_access_mode = access_mode;
@@ -114,8 +126,8 @@ bool LockManager::acquireLock(const transaction_id tid,
     current_rid = current_rid.getParentResourceId();
     current_access_mode = (current_access_mode.isShareLock() ||
                            current_access_mode.isIntentionShareLock())
-                              ? AccessMode(AccessModeType::kIsLock)
-                              : AccessMode(AccessModeType::kIxLock);
+                              ? AccessMode(AccessMode::IsLockMode())
+                              : AccessMode(AccessMode::IxLockMode());
 
     stack.push(std::make_pair(current_rid, current_access_mode));
   }
@@ -142,11 +154,9 @@ bool LockManager::releaseAllLocks(const transaction_id tid) {
       = transaction_table_->getResourceIdList(tid);
   const TransactionTableResult transaction_deleted
       = transaction_table_->deleteTransaction(tid);
-  if (transaction_deleted
-          == TransactionTableResult::kTransactionDeleteError) {
-    LOG(FATAL)
-        << "In LockManager.releaseAllLocks: Transaction could not be deleted!";
-  }
+
+  CHECK(transaction_deleted != TransactionTableResult::kTransactionDeleteError)
+      << "In LockManager.releaseAllLocks: Transaction could not be deleted!";
 
   lock_table_->latchExclusive();
 
@@ -154,15 +164,12 @@ bool LockManager::releaseAllLocks(const transaction_id tid) {
     const LockTableResult lock_deleted = lock_table_->deleteLock(tid, resource_id);
 
     LOG(INFO) << "Transaction "
-                 + std::to_string(tid)
-                 + " released lock:"
-                 + resource_id.toString()
-                 + "\n";
-
-    if (lock_deleted == LockTableResult::kDeleteError) {
-      LOG(FATAL) << "In LockManager.releaseAllLock lock could not be deleted "
-                    "from LockTable";
-    }
+              << std::to_string(tid)
+              << " released lock:"
+              << resource_id.toString();
+    CHECK(lock_deleted != LockTableResult::kDeleteError)
+        << "In LockManager.releaseAllLock lock could not be deleted from "
+           "LockTable";
   }
 
   lock_table_->unlatchExclusive();
@@ -171,7 +178,7 @@ bool LockManager::releaseAllLocks(const transaction_id tid) {
 
 bool LockManager::acquireLockInternal(const transaction_id tid,
                                       const ResourceId &rid,
-                                      const AccessMode access_mode) {
+                                      const AccessMode &access_mode) {
   const LockTableResult lock_result = lock_table_->putLock(tid, rid, access_mode);
   CHECK(lock_result != LockTableResult::kPutError)
       << "Unexpected result in LockManager.acquireLockInternal";
@@ -206,7 +213,8 @@ void LockManager::killVictims() {
       releaseAllLocks(victim_transaction_id);
       // TODO(Hakan): Find a way to kill transaction, so that requests with this
       //              tid should be ignored.
-      LOG(INFO) << "Killed transaction " << std::to_string(victim_transaction_id);
+      LOG(INFO) << "Killed transaction "
+                << std::to_string(victim_transaction_id);
     }
   }
   victim_result_.clear();

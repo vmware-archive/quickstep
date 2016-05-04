@@ -22,7 +22,6 @@
 #include <queue>
 #include <vector>
 
-#include "utility/ThreadSafeQueue.hpp"
 #include "threading/Mutex.hpp"
 #include "threading/Thread.hpp"
 #include "transaction/AccessMode.hpp"
@@ -32,6 +31,7 @@
 #include "transaction/ResourceId.hpp"
 #include "transaction/Transaction.hpp"
 #include "transaction/TransactionTable.hpp"
+#include "utility/ThreadSafeQueue.hpp"
 
 namespace quickstep {
 namespace transaction {
@@ -80,7 +80,7 @@ class LockManager : public Thread {
    **/
   bool acquireLock(const transaction_id tid,
                    const ResourceId &rid,
-                   const AccessMode access_mode);
+                   const AccessMode &access_mode);
 
   /**
    * @brief Releases all locks hold by the transaction.
@@ -98,7 +98,7 @@ class LockManager : public Thread {
  private:
   bool acquireLockInternal(const transaction_id tid,
                            const ResourceId &rid,
-                           const AccessMode access_mode);
+                           const AccessMode &access_mode);
 
   std::unique_ptr<LockTable> lock_table_;
   std::unique_ptr<TransactionTable> transaction_table_;

@@ -31,12 +31,12 @@ namespace transaction {
 class LockTest : public ::testing::Test {
  protected:
   LockTest()
-      : modes_({AccessMode(AccessModeType::kNoLock),
-                AccessMode(AccessModeType::kIsLock),
-                AccessMode(AccessModeType::kIxLock),
-                AccessMode(AccessModeType::kSLock),
-                AccessMode(AccessModeType::kSixLock),
-                AccessMode(AccessModeType::kXLock)}),
+      : modes_({AccessMode::NoLockMode(),
+                AccessMode::IsLockMode(),
+                AccessMode::IxLockMode(),
+                AccessMode::SLockMode(),
+                AccessMode::SixLockMode(),
+                AccessMode::XLockMode()}),
         resource_a_(3, 10, 2, 5),
         resource_b_(4, 5, 3, 2),
         locks_on_resource_a_({Lock(resource_a_, modes_[0]),

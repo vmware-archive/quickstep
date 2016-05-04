@@ -43,52 +43,52 @@ class LockTableTest : public ::testing::Test {
 TEST_F(LockTableTest, CompatibleRequestsFromDifferentTransactions) {
   EXPECT_EQ(lock_table_.putLock(tid_1_,
                                 ResourceId(2),
-                                AccessMode(AccessModeType::kIsLock)),
+                                AccessMode::IsLockMode()),
             LockTableResult::kPlacedInOwned);
 
   // Acquire the same lock mode on same resource.
   EXPECT_EQ(lock_table_.putLock(tid_1_,
                                 ResourceId(2),
-                                AccessMode(AccessModeType::kIsLock)),
+                                AccessMode::IsLockMode()),
             LockTableResult::kAlreadyInOwned);
 
   // Another transaction acquires compatible lock on the same resource.
   EXPECT_EQ(lock_table_.putLock(tid_2_,
                                 ResourceId(2),
-                                AccessMode(AccessModeType::kSLock)),
+                                AccessMode::SLockMode()),
             LockTableResult::kPlacedInOwned);
 }
 
 TEST_F(LockTableTest, IncompatibleRequestsFromDifferentTransactions) {
   EXPECT_EQ(lock_table_.putLock(tid_1_,
                                 ResourceId(2),
-                                AccessMode(AccessModeType::kIsLock)),
+                                AccessMode::IsLockMode()),
             LockTableResult::kPlacedInOwned);
 
   // Acquire the same lock mode on same resource.
   EXPECT_EQ(lock_table_.putLock(tid_1_,
                                 ResourceId(2),
-                                AccessMode(AccessModeType::kIsLock)),
+                                AccessMode::IsLockMode()),
             LockTableResult::kAlreadyInOwned);
 
   // Another transaction acquires incompatible lock on the same resource.
   EXPECT_EQ(lock_table_.putLock(tid_2_,
                                 ResourceId(2),
-                                AccessMode(AccessModeType::kXLock)),
+                                AccessMode::XLockMode()),
             LockTableResult::kPlacedInPending);
 }
 
 TEST_F(LockTableTest, StarvationProtection) {
   EXPECT_EQ(lock_table_.putLock(tid_1_,
                                 ResourceId(2),
-                                AccessMode(AccessModeType::kIsLock)),
+                                AccessMode::IsLockMode()),
             LockTableResult::kPlacedInOwned);
 
   // Another transaction requests incompatible lock on the same resource.
   // It should wait for the previous transaction.
   EXPECT_EQ(lock_table_.putLock(tid_2_,
                                 ResourceId(2),
-                                AccessMode(AccessModeType::kXLock)),
+                                AccessMode::XLockMode()),
             LockTableResult::kPlacedInPending);
 
   // Another third transaction requests a compatible lock on the same resource.
@@ -97,7 +97,7 @@ TEST_F(LockTableTest, StarvationProtection) {
   // put in the pending list.
   EXPECT_EQ(lock_table_.putLock(tid_3_,
                                 ResourceId(2),
-                                AccessMode(AccessModeType::kIsLock)),
+                                AccessMode::IsLockMode()),
             LockTableResult::kPlacedInPending);
 }
 

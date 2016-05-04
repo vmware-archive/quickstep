@@ -51,14 +51,17 @@ class CycleDetector {
    *
    * @return Vector of node ids that should be killed to break all cycles.
    */
-  std::vector<DirectedGraph::node_id> breakCycle() const;
+  std::vector<DirectedGraph::node_id> chooseVictimsToBreakCycle() const;
 
  private:
-  std::vector<DirectedGraph::node_id>
-  breakComponent(const std::vector<DirectedGraph::node_id> &nodes) const;
+  std::vector<DirectedGraph::node_id> chooseVictimsInComponent(
+      const std::vector<DirectedGraph::node_id> &nodes) const;
 
   inline DirectedGraph::node_id chooseVictim(
-      const std::unordered_set<DirectedGraph::node_id> nodes_set) const {
+      const std::unordered_set<DirectedGraph::node_id> &nodes_set) const {
+    // TODO(Hakan): This is very inefficient scheme, however in the
+    //              future, we can use the transaction's priority
+    //              as the victim selection parameter.
     return *(nodes_set.begin());
   }
 

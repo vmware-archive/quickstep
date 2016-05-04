@@ -21,6 +21,7 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
+#include <thread>  // NOLINT(build/c++11)
 #include <utility>
 #include <vector>
 
@@ -124,9 +125,8 @@ DirectedGraph::node_id DeadLockDetector::getNodeId(const transaction_id tid) {
 
 
 DirectedGraph::node_id DeadLockDetector::addNode(const transaction_id tid) {
-  transaction_id *tid_ptr = new transaction_id(tid);
   const DirectedGraph::node_id node_id =
-      wait_for_graph_->addNodeUnchecked(tid_ptr);
+      wait_for_graph_->addNodeUnchecked(tid);
   tid_node_mapping_->emplace(tid, node_id);
   return node_id;
 }
@@ -137,7 +137,6 @@ std::vector<transaction_id> DeadLockDetector::getAllVictims()  {
 
   // Critical region on LockTable starts here.
   lock_table_->latchShared();
-
 
   for (LockTable::const_iterator it = lock_table_->begin();
        it != lock_table_->end(); ++it) {
@@ -161,7 +160,7 @@ std::vector<transaction_id> DeadLockDetector::getAllVictims()  {
   // Critical region on LockTable ends here.
 
   const CycleDetector cycle_detector(wait_for_graph_.get());
-  const std::vector<DirectedGraph::node_id> victim_nodes = cycle_detector.breakCycle();
+  const std::vector<DirectedGraph::node_id> victim_nodes = cycle_detector.chooseVictimsToBreakCycle();
   for (const DirectedGraph::node_id node_id : victim_nodes) {
     const transaction_id victim_tid = wait_for_graph_->getDataFromNode(node_id);
     result_victims.push_back(victim_tid);

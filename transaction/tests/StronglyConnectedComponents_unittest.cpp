@@ -43,7 +43,7 @@ class GraphConfiguration {
       std::unique_ptr<transaction_id> tid =
         std::make_unique<transaction_id>(transaction_id(index));
       transaction_list_.push_back(*tid);
-      DirectedGraph::node_id nid = graph->addNodeUnchecked(tid.release());
+      DirectedGraph::node_id nid = graph->addNodeUnchecked(*tid);
       node_id_list_.push_back(nid);
     }
 

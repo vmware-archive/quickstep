@@ -43,70 +43,70 @@ class TransactionTableTest : public ::testing::Test {
 TEST_F(TransactionTableTest, NormalOperations) {
   EXPECT_EQ(transaction_table_.putOwnEntry(tid_1_,
                                            ResourceId(3),
-                                           AccessMode(AccessModeType::kIsLock)),
+                                           AccessMode::IsLockMode()),
             TransactionTableResult::kPlacedInOwned);
 
   EXPECT_EQ(transaction_table_.putPendingEntry(tid_1_,
                                                ResourceId(5),
-                                               AccessMode(AccessModeType::kXLock)),
+                                               AccessMode::XLockMode()),
             TransactionTableResult::kPlacedInPending);
 }
 
 TEST_F(TransactionTableTest, DeleteEntryOperations) {
   EXPECT_EQ(transaction_table_.deleteOwnEntry(tid_2_,
                                               ResourceId(5),
-                                              AccessMode(AccessModeType::kSLock)),
+                                              AccessMode::SLockMode()),
             TransactionTableResult::kDelError);
 
   EXPECT_EQ(transaction_table_.putOwnEntry(tid_2_,
                                            ResourceId(5),
-                                           AccessMode(AccessModeType::kSLock)),
+                                           AccessMode::SLockMode()),
             TransactionTableResult::kPlacedInOwned);
 
   // Tring to delete a lock with different acces mode on same resource id
   // will result in an error.
   EXPECT_EQ(transaction_table_.deleteOwnEntry(tid_2_,
                                               ResourceId(5),
-                                              AccessMode(AccessModeType::kXLock)),
+                                              AccessMode::XLockMode()),
             TransactionTableResult::kDelError);
 
   // Transaction 3 does not have a lock on this resource id.
   EXPECT_EQ(transaction_table_.deleteOwnEntry(tid_3_,
                                               ResourceId(5),
-                                              AccessMode(AccessModeType::kSLock)),
+                                              AccessMode::SLockMode()),
             TransactionTableResult::kDelError);
 
   // This will result in success since transaction 2 have acquired the lock on
   // this resource with the corresponding mode.
   EXPECT_EQ(transaction_table_.deleteOwnEntry(tid_2_,
                                               ResourceId(5),
-                                              AccessMode(AccessModeType::kSLock)),
+                                              AccessMode::SLockMode()),
             TransactionTableResult::kDelFromOwned);
 
   // Repeat the previous sequence, with pending list.
   EXPECT_EQ(transaction_table_.deletePendingEntry(tid_2_,
                                                   ResourceId(5),
-                                                  AccessMode(AccessModeType::kSLock)),
+                                                  AccessMode::SLockMode()),
             TransactionTableResult::kDelError);
 
   EXPECT_EQ(transaction_table_.putPendingEntry(tid_2_,
                                                ResourceId(5),
-                                               AccessMode(AccessModeType::kSLock)),
+                                               AccessMode::SLockMode()),
             TransactionTableResult::kPlacedInPending);
 
   EXPECT_EQ(transaction_table_.deletePendingEntry(tid_2_,
                                                   ResourceId(5),
-                                                  AccessMode(AccessModeType::kXLock)),
+                                                  AccessMode::XLockMode()),
             TransactionTableResult::kDelError);
 
   EXPECT_EQ(transaction_table_.deletePendingEntry(tid_3_,
                                                   ResourceId(5),
-                                                  AccessMode(AccessModeType::kSLock)),
+                                                  AccessMode::SLockMode()),
             TransactionTableResult::kDelError);
 
   EXPECT_EQ(transaction_table_.deletePendingEntry(tid_2_,
                                                   ResourceId(5),
-                                                  AccessMode(AccessModeType::kSLock)),
+                                                  AccessMode::SLockMode()),
             TransactionTableResult::kDelFromPending);
 }
 
@@ -116,7 +116,7 @@ TEST_F(TransactionTableTest, TransactionEntries) {
 
   EXPECT_EQ(transaction_table_.putOwnEntry(tid_1_,
                                            ResourceId(4),
-                                           AccessMode(AccessModeType::kSLock)),
+                                           AccessMode::SLockMode()),
             TransactionTableResult::kPlacedInOwned);
 
   EXPECT_EQ(transaction_table_.deleteTransaction(tid_1_),
@@ -124,7 +124,7 @@ TEST_F(TransactionTableTest, TransactionEntries) {
 
   EXPECT_EQ(transaction_table_.deleteOwnEntry(tid_1_,
                                               ResourceId(4),
-                                              AccessMode(AccessModeType::kSLock)),
+                                              AccessMode::SLockMode()),
             TransactionTableResult::kDelError);
 }
 

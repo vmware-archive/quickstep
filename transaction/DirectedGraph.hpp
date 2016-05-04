@@ -54,34 +54,32 @@ class DirectedGraph {
   /**
    * @brief Adds a new node to the graph with the given transaction id.
    *        It does not check whether the transaction id is valid or not.
-   * @warning Pointer ownership will pass to the graph, therefore it
-   *          should not be deleted.
    *
-   * @param data Pointer to the transaction id that will be contained
+   * @param transaction_id_payload Transaction id that will be contained
    *        in the node.
    * @return Id of the newly created node.
    **/
-  inline node_id addNodeUnchecked(transaction_id *data) {
-    nodes_.emplace_back(data);
+  inline
+  node_id addNodeUnchecked(const transaction_id transaction_id_payload) {
+    nodes_.emplace_back(transaction_id_payload);
     return nodes_.size() - 1;
   }
 
   /**
    * @brief Adds a new node to the graph with the given transaction id.
    *        It checks whether the transaction id is valid or not.
-   * @warning Pointer ownership will pass to the graph, therefore it
-   *          should not be deleted.
    *
-   * @param data Pointer to the transaction id that will be contained
+   * @param transaction_id_payload Transaction id that will be contained
    *        in the node.
    * @return Id of the newly created node.
    **/
-  inline node_id addNodeCheckExists(transaction_id *data) {
-    for (std::vector<DirectedGraphNode>::const_iterator
-           it = nodes_.cbegin(); it != nodes_.cend(); ++it) {
-      CHECK(*data != it->getData());
+  inline
+  node_id addNodeCheckExists(const transaction_id transaction_id_payload) {
+    for (const auto &node : nodes_) {
+      CHECK(transaction_id_payload != node.getData());
     }
-    nodes_.emplace_back(data);
+
+    nodes_.emplace_back(transaction_id_payload);
     return nodes_.size() - 1;
   }
 
@@ -158,8 +156,8 @@ class DirectedGraph {
   // Class for representing a graph node.
   class DirectedGraphNode {
    public:
-    explicit DirectedGraphNode(transaction_id *data)
-      : data_(data) {}
+    explicit DirectedGraphNode(transaction_id payload)
+      : transaction_id_payload_(payload) {}
 
     inline void addOutgoingEdge(node_id to_node) {
       outgoing_edges_.insert(to_node);
@@ -180,12 +178,12 @@ class DirectedGraph {
     }
 
     inline transaction_id getData() const {
-      return *(data_.get());
+      return transaction_id_payload_;
     }
 
    private:
     // Owner pointer to transaction id.
-    std::unique_ptr<transaction_id> data_;
+    transaction_id transaction_id_payload_;
 
     // Endpoint nodes of outgoing edges originated from this node.
     std::unordered_set<node_id> outgoing_edges_;

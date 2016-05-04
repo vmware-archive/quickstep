@@ -35,22 +35,44 @@ namespace transaction {
 class CycleDetectorTest : public testing::Test {
  protected:
   const std::uint64_t kNumberOfTransactions = 12;
+
+  CycleDetectorTest()
+      : wait_for_graph_(std::make_unique<DirectedGraph>()) {
+  }
+
   virtual void SetUp() {
+    std::vector<transaction_id> transactions(kNumberOfTransactions);
     for (std::uint64_t i = 0; i < kNumberOfTransactions; ++i) {
-      transactions_.push_back(new transaction_id(i));
+      transactions.push_back(transaction_id(i));
     }
 
-    wait_for_graph_ = std::make_unique<DirectedGraph>();
-
+    std::vector<DirectedGraph::node_id> node_ids;
     for (std::uint64_t i = 0; i < kNumberOfTransactions; ++i) {
-      node_ids_.push_back(wait_for_graph_->addNodeUnchecked(transactions_[i]));
+      node_ids.push_back(wait_for_graph_->addNodeUnchecked(transactions[i]));
+    }
+  }
+
+  void initializeCycleDetector() {
+    for (const auto &edge : edges_) {
+      wait_for_graph_->addEdgeUnchecked(edge.first, edge.second);
+    }
+
+    cycle_detector_.reset(new CycleDetector(wait_for_graph_.get()));
+  }
+
+  void checkVictims(
+      const std::unordered_set<DirectedGraph::node_id> &expected_victims) {
+    const std::vector<DirectedGraph::node_id> victims =
+        cycle_detector_->chooseVictimsToBreakCycle();
+    ASSERT_EQ(expected_victims.size(), victims.size());
+
+    for (const auto victim : victims) {
+      EXPECT_EQ(expected_victims.count(victim), 1);
     }
   }
 
   std::vector<std::pair<DirectedGraph::node_id, DirectedGraph::node_id>> edges_;
   std::unique_ptr<DirectedGraph> wait_for_graph_;
-  std::vector<transaction_id*> transactions_;
-  std::vector<DirectedGraph::node_id> node_ids_;
   std::unique_ptr<CycleDetector> cycle_detector_;
 };
 
@@ -69,43 +91,23 @@ TEST_F(CycleDetectorTest, BreakCycle) {
             {10, 11},
             {11, 9}};
 
-  for (std::uint64_t i = 0; i < edges_.size(); ++i) {
-    const std::pair<DirectedGraph::node_id, DirectedGraph::node_id> edge =
-        edges_[i];
-    wait_for_graph_->addEdgeUnchecked(edge.first, edge.second);
-  }
+  initializeCycleDetector();
 
-  cycle_detector_.reset(new CycleDetector(wait_for_graph_.get()));
-
-  std::vector<DirectedGraph::node_id> victims = cycle_detector_->breakCycle();
   std::unordered_set<DirectedGraph::node_id> expected_victims
       = {4, 5, 7, 8, 9, 10, 11};
 
-  EXPECT_EQ(expected_victims.size(), victims.size());
-  for (std::size_t i = 0; i < victims.size(); ++i) {
-    EXPECT_EQ(expected_victims.count(victims[i]), 1);
-  }
+  checkVictims(expected_victims);
 }
 
 TEST_F(CycleDetectorTest, BreakCycleSimple) {
   edges_ = {{0, 1},
             {1, 0}};
 
-  for (std::uint64_t i = 0; i < edges_.size(); ++i) {
-    std::pair<DirectedGraph::node_id, DirectedGraph::node_id> edge = edges_[i];
-    wait_for_graph_->addEdgeUnchecked(edge.first, edge.second);
-  }
+  initializeCycleDetector();
 
-  cycle_detector_.reset(new CycleDetector(wait_for_graph_.get()));
-
-  std::vector<DirectedGraph::node_id> victims = cycle_detector_->breakCycle();
   std::unordered_set<DirectedGraph::node_id> expected_victims = {1};
 
-
-  EXPECT_EQ(expected_victims.size(), victims.size());
-  for (std::size_t i = 0; i < victims.size(); ++i) {
-    EXPECT_EQ(expected_victims.count(victims[i]), 1);
-  }
+  checkVictims(expected_victims);
 }
 
 }  // namespace transaction

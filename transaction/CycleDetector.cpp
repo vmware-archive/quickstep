@@ -37,24 +37,24 @@ CycleDetector::CycleDetector(DirectedGraph *wait_for_graph)
           std::make_unique<StronglyConnectedComponents>(*wait_for_graph)) {
 }
 
-std::vector<DirectedGraph::node_id> CycleDetector::breakCycle() const {
+std::vector<DirectedGraph::node_id> CycleDetector::chooseVictimsToBreakCycle() const {
   std::vector<DirectedGraph::node_id> nodes_to_kill;
   const std::unordered_map<std::uint64_t, std::vector<DirectedGraph::node_id>>
-    component_mapping = strongly_connected_components_->getComponentMapping();
+      component_mapping = strongly_connected_components_->getComponentMapping();
   for (const auto &entry : component_mapping) {
     // One node means no cycle.
     if (entry.second.size() == 1) {
       continue;
     }
     const std::vector<DirectedGraph::node_id> nodes
-        = breakComponent(entry.second);
+        = chooseVictimsInComponent(entry.second);
     nodes_to_kill.insert(nodes_to_kill.end(), nodes.begin(), nodes.end());
   }
   return nodes_to_kill;
 }
 
 std::vector<DirectedGraph::node_id>
-CycleDetector::breakComponent(const std::vector<DirectedGraph::node_id> &nodes) const {
+CycleDetector::chooseVictimsInComponent(const std::vector<DirectedGraph::node_id> &nodes) const {
   std::vector<DirectedGraph::node_id> targets;
   // Convert it to set to ensure defensively that the elements are unique.
   std::unordered_set<DirectedGraph::node_id> nodes_set(nodes.begin(), nodes.end());
@@ -63,12 +63,12 @@ CycleDetector::breakComponent(const std::vector<DirectedGraph::node_id> &nodes) 
     if (!hasCycle(nodes_set)) {
       break;
     }
-    // If there is a cycle, start to pop a node from randomly.
-    // TODO(Hakan): This is very inefficient scheme, however in the
-    //              future, we can use the transaction's priority
-    //              as the victim selection parameter.
+    // Connected component still has a cycle, therefore choose a
+    // victim and keep trying to remove nodes until there is no cycle.
     const DirectedGraph::node_id victim = chooseVictim(nodes_set);
-    nodes_set.erase(nodes_set.begin());
+    // Remove the victim node from the connected component.
+    nodes_set.erase(victim);
+    // Removed node is a victim now.
     targets.push_back(victim);
   }
   return targets;
