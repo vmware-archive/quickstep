@@ -40,10 +40,9 @@ class GraphConfiguration {
                                                  transaction_id>> &mapping)
     : graph_(graph) {
     for (std::size_t index = 0; index < num_transactions; ++index) {
-      std::unique_ptr<transaction_id> tid =
-        std::make_unique<transaction_id>(transaction_id(index));
-      transaction_list_.push_back(*tid);
-      DirectedGraph::node_id nid = graph->addNodeUnchecked(*tid);
+      const transaction_id transaction = static_cast<transaction_id>(index);
+      transaction_list_.push_back(transaction);
+      DirectedGraph::node_id nid = graph->addNodeUnchecked(transaction);
       node_id_list_.push_back(nid);
     }
 

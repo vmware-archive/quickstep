@@ -39,7 +39,6 @@ class LockTable;
 class ResourceId;
 class TransactionTable;
 
-
 /** \addtogroup Transaction
  *  @{
  **/
