@@ -17,8 +17,6 @@
 
 #include "storage/PreloaderThread.hpp"
 
-#include "storage/StorageConfig.h"
-
 #include <cstddef>
 #include <vector>
 
@@ -51,9 +49,12 @@ void PreloaderThread::run() {
   std::size_t blocks_loaded = 0;
 
   for (const CatalogRelation &relation : database_) {
-    if (relation.hasPartitionScheme()) {
+    if (relation.hasPartitionScheme() && relation.hasNUMAPlacementScheme()) {
+#ifdef QUICKSTEP_HAVE_LIBNUMA
       blocks_loaded += preloadNUMAAware(relation, blocks_loaded, num_slots);
+#endif
     } else {
+      // NUMA agnostic preloading of relation.
       std::vector<block_id> blocks = relation.getBlocksSnapshot();
       for (block_id current_block_id : blocks) {
         try {
@@ -69,7 +70,7 @@ void PreloaderThread::run() {
           // loaded.
           printf(
               " The database is larger than the buffer pool. Only %lu blocks "
-              "were loaded", blocks_loaded);
+              "were loaded ", blocks_loaded);
           return;
         }
       }
@@ -80,11 +81,11 @@ void PreloaderThread::run() {
   printf(" Loaded %lu blocks ", blocks_loaded);
 }
 
+#ifdef QUICKSTEP_HAVE_LIBNUMA
 std::size_t PreloaderThread::preloadNUMAAware(
     const CatalogRelation &relation,
     const std::size_t num_previously_loaded_blocks,
     const std::size_t num_slots) {
-#ifdef QUICKSTEP_HAVE_LIBNUMA
   std::size_t blocks_loaded = 0;
   const NUMAPlacementScheme *placement_scheme =
       relation.getNUMAPlacementSchemePtr();
@@ -132,11 +133,7 @@ std::size_t PreloaderThread::preloadNUMAAware(
   LOG(INFO) << "Relation " << relation.getName()
             << " completely preloaded in buffer pool in a NUMA aware fashion";
   return blocks_loaded;
-#else
-  LOG(INFO) << "Relation: " << relation.getName()
-            << " has partition scheme but the system doesn't support NUMA";
-  return 0;
-#endif
 }
+#endif
 
 }  // namespace quickstep
