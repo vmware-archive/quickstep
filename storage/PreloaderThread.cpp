@@ -105,7 +105,7 @@ std::size_t PreloaderThread::preloadNUMAAware(
         BlockReference current_block = storage_manager_->getBlock(
             curr_block_id, relation, partition_numa_node_id);
       } catch (...) {
-        LOG(ERROR) << "Error while preloading: " << " After loading total "
+        LOG(ERROR) << "Error while preloading: After loading total "
                    << blocks_loaded + num_previously_loaded_blocks
                    << " blocks and " << blocks_loaded
                    << " blocks of relation " << relation.getName();
