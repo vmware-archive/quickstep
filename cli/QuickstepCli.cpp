@@ -18,10 +18,10 @@
 /* A standalone command-line interface to QuickStep */
 
 #include <chrono>
+#include <memory>
 #include <cstddef>
 #include <cstdio>
 #include <exception>
-#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -54,6 +54,7 @@ typedef quickstep::LineReaderDumb LineReaderImpl;
 #include "query_execution/Foreman.hpp"
 #include "query_execution/StreamCoordinatorThread.hpp"
 #include "query_execution/QueryExecutionTypedefs.hpp"
+#include "query_execution/QueryExecutionUtil.hpp"
 #include "query_execution/Worker.hpp"
 #include "query_execution/WorkerDirectory.hpp"
 #include "query_execution/WorkerMessage.hpp"
@@ -105,6 +106,7 @@ using quickstep::ParseResult;
 using quickstep::ParseStatement;
 using quickstep::PrintToScreen;
 using quickstep::PtrVector;
+using quickstep::QueryExecutionUtil;
 using quickstep::QueryHandle;
 using quickstep::QueryPlan;
 using quickstep::QueryProcessor;
@@ -114,6 +116,7 @@ using quickstep::Worker;
 using quickstep::WorkerDirectory;
 using quickstep::WorkerMessage;
 using quickstep::kPoisonMessage;
+using quickstep::kStreamCoordinatorPoisonMessage;
 
 using tmb::client_id;
 
@@ -170,7 +173,7 @@ int main(int argc, char* argv[]) {
            real_num_workers,
            (static_cast<double>(quickstep::FLAGS_buffer_pool_slots) * quickstep::kSlotSizeBytes)/quickstep::kAGigaByte);
   } else {
-    LOG(FATAL) << "Quickstep needs at least one worker thread";
+    LOG(FATAL) << "Quickstep needs at least one worker thread to run";
   }
 
 #ifdef QUICKSTEP_HAVE_FILE_MANAGER_HDFS
@@ -192,6 +195,7 @@ int main(int argc, char* argv[]) {
   // The TMB client id for the main thread, used to kill workers at the end.
   const client_id main_thread_client_id = bus.Connect();
   bus.RegisterClientAsSender(main_thread_client_id, kPoisonMessage);
+  bus.RegisterClientAsSender(main_thread_client_id, kStreamCoordinatorPoisonMessage);
 
   // Setup the paths used by StorageManager.
   string fixed_storage_path(quickstep::FLAGS_storage_path);
@@ -263,14 +267,19 @@ int main(int argc, char* argv[]) {
       DefaultsConfigurator::GetNumNUMANodesCoveredByWorkers(worker_cpu_affinities);
 
   if (quickstep::FLAGS_preload_buffer_pool) {
+    std::chrono::time_point<std::chrono::steady_clock> preload_start, preload_end;
+    preload_start = std::chrono::steady_clock::now();
+    printf("Preloading the buffer pool ... ");
+    fflush(stdout);
     quickstep::PreloaderThread preloader(*query_processor->getDefaultDatabase(),
                                          query_processor->getStorageManager(),
                                          worker_cpu_affinities.front());
-    printf("Preloading buffer pool... ");
-    fflush(stdout);
+
     preloader.start();
     preloader.join();
-    printf("DONE\n");
+    preload_end = std::chrono::steady_clock::now();
+    printf("in %g seconds\n",
+           std::chrono::duration<double>(preload_end - preload_start).count());
   }
 
   Foreman foreman(&bus,
@@ -404,7 +413,25 @@ int main(int argc, char* argv[]) {
           break;
         }
         printf("Query Complete\n");
-        stream_coordinator.join();
+
+        
+        std::unique_ptr<WorkerMessage> poison_message(WorkerMessage::PoisonMessage());
+        	  TaggedMessage poison_tagged_message(poison_message.get(),
+        	                                      sizeof(*poison_message),
+        	                                      kStreamCoordinatorPoisonMessage);
+
+        const tmb::MessageBus::SendStatus send_status =
+        	      QueryExecutionUtil::SendTMBMessage(&bus,
+        	    		  main_thread_client_id,
+        	    		  stream_coordinator.get_client_id(),
+        	              std::move(poison_tagged_message));
+
+        CHECK(send_status == tmb::MessageBus::SendStatus::kOK) <<
+        	      "Message could not be sent from CLI with TMB client ID "
+        	      << main_thread_client_id << " to StreamCoordinator with TMB client ID "
+        	      << stream_coordinator.get_client_id();  
+
+        stream_coordinator.join();        
         
       } else {
         if (result.condition == ParseResult::kError) {
@@ -453,3 +480,4 @@ int main(int argc, char* argv[]) {
 
   return 0;
   }
+

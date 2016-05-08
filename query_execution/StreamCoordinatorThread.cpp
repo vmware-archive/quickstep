@@ -35,18 +35,27 @@ namespace quickstep {
 void StreamCoordinatorThread::run()
 {
     
-    for(;;)
-    {
-    
-    if(query_dag_== NULL) {
-    	sleep(10);
+    for(;;){
+    	tmb::AnnotatedMessage annotated_msg;
+    	bus_->ReceiveIfAvailable(stream_coordinator_client_id_,&annotated_msg);
+    	const TaggedMessage &tagged_message = annotated_msg.tagged_message;
+    	switch (tagged_message.message_type()) {
+
+    	case kStreamCoordinatorPoisonMessage:
+                     return;
     }
-	initializeTimer();
-	if(op_timer_heap_.size()==0) sleep(10);
-	processTimerEvents();
-	sleep(sleep_time_/1000);	
     
-    }
+    	if(query_dag_== NULL) {
+    	sleep(0.001);
+        }
+    	initializeTimer();
+    	if(op_timer_heap_.size()==0){
+    			sleep(0.001);
+    		}
+    	processTimerEvents();
+    	sleep(sleep_time_/1000);
+    
+}
 
 }
 

@@ -1,6 +1,8 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
  *   Copyright 2015-2016 Pivotal Software, Inc.
+ *   Copyright 2016, Quickstep Research Group, Computer Sciences Department,
+ *     University of Wisconsin—Madison.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -105,8 +107,6 @@ class ExecutionGenerator {
 #ifdef QUICKSTEP_DISTRIBUTED
     catalog_database_cache_proto_ = DCHECK_NOTNULL(query_handle->getCatalogDatabaseCacheProtoMutable());
 #endif
-
-    setupCostModel();
   }
 
   /**
@@ -162,13 +162,6 @@ class ExecutionGenerator {
    *                      plan is created.
    */
   void generatePlanInternal(const physical::PhysicalPtr &physical_plan);
-
-  /**
-   * @brief Sets up the cost model.
-   */
-  void setupCostModel() {
-    cost_model_.reset(new cost::SimpleCostModel());
-  }
 
   /**
    * @brief Finds the CatalogRelationInfo from <physical_to_output_relation_map_>

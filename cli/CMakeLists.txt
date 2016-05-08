@@ -66,6 +66,7 @@ add_library(quickstep_cli_DefaultsConfigurator ../empty_src.cpp DefaultsConfigur
 add_library(quickstep_cli_InputParserUtil InputParserUtil.cpp InputParserUtil.hpp)
 add_library(quickstep_cli_PrintToScreen PrintToScreen.cpp PrintToScreen.hpp)
 
+
 # Link dependencies:
 target_link_libraries(quickstep_cli_CommandExecutor
                       glog
@@ -110,6 +111,7 @@ target_link_libraries(quickstep_cli_PrintToScreen
 add_library(quickstep_cli ../empty_src.cpp CliModule.hpp)
 
 target_link_libraries(quickstep_cli
+                      quickstep_queryexecution_QueryExecutionUtil
                       quickstep_cli_CommandExecutor
                       quickstep_cli_DefaultsConfigurator
                       quickstep_cli_DropRelation

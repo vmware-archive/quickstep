@@ -309,6 +309,10 @@ void TextScanWorkOrder::execute() {
                }
       }
     } while (have_row);
+
+    // Drop the consumed blob produced by TextSplitWorkOrder.
+    blob.release();
+    storage_manager_->deleteBlockOrBlobFile(text_blob_);
   }
   output_destination_->returnBlock(std::move(output_block), return_block_as_full_);
 }

@@ -38,9 +38,15 @@ public:
       { 
       stream_coordinator_client_id_ = bus_->Connect();
       bus_->RegisterClientAsSender(stream_coordinator_client_id_, kStreamCoordinatorMessage);
+      bus_->RegisterClientAsReceiver(stream_coordinator_client_id_, kStreamCoordinatorPoisonMessage);
   }
 
     ~StreamCoordinatorThread() override {}
+
+    tmb::client_id get_client_id()
+    {
+    	return stream_coordinator_client_id_;
+    }
 
 protected:
  

@@ -24,6 +24,9 @@ namespace tmbbench {
 static constexpr std::size_t kPoisonMessage
     = std::numeric_limits<std::size_t>::max();
 
+static constexpr std::size_t kStreamCoordinatorPoisonMessage
+    = std::numeric_limits<std::size_t>::max();
+
 struct RunDescription {
   int num_senders;
   int num_receivers;
