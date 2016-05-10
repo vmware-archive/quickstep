@@ -162,9 +162,11 @@ std::size_t PrintToScreen::GetNumTuplesInRelation(
 void PrintToScreen::PrintOutputSize(const CatalogRelation &relation,
                                     StorageManager *storage_manager,
                                     FILE *out) {
+  const std::size_t num_rows = GetNumTuplesInRelation(relation, storage_manager);
   fprintf(out,
-          "( %lu rows )\n",
-          GetNumTuplesInRelation(relation, storage_manager));
+          "(%lu %s)\n",
+          num_rows,
+          (num_rows == 1) ? "row" : "rows");
 }
 
 }  // namespace quickstep
