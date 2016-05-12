@@ -136,7 +136,8 @@ class QueryContext {
                const tmb::client_id scheduler_client_id,
                tmb::MessageBus *bus);
 
-  ~QueryContext() {}
+  ~QueryContext() {
+  }
 
   /**
    * @brief Check whether a serialization::QueryContext is fully-formed and
@@ -216,7 +217,7 @@ class QueryContext {
    *
    * @param id The BloomFilter id.
    *
-   * @return The constant pointer to BloomFilter that is 
+   * @return The constant pointer to BloomFilter that is
    *         already created in the constructor.
    **/
   inline const BloomFilter* getBloomFilter(const bloom_filter_id id) const {

@@ -473,6 +473,7 @@ target_link_libraries(AggregationOperator_unittest
                       gflags_nothreads-static
                       glog
                       gtest
+                      gtest_main
                       quickstep_catalog_CatalogAttribute
                       quickstep_catalog_CatalogDatabase
                       quickstep_catalog_CatalogRelation
