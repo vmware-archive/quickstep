@@ -635,7 +635,7 @@ target_link_libraries(quickstep_storage_HashTable
                       quickstep_utility_HashPair
                       quickstep_utility_Macros)
 target_link_libraries(quickstep_storage_HashTableBase
-                      quickstep_utility_Macros)                    
+                      quickstep_utility_Macros)
 target_link_libraries(quickstep_storage_HashTable_proto
                       quickstep_types_Type_proto
                       ${PROTOBUF_LIBRARY})

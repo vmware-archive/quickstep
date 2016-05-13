@@ -44,6 +44,34 @@ class ValueAccessor;
  *  @{
  */
 
+template <typename HandleT, typename StateT, typename HashTableT>
+class HashTableMerger {
+ public:
+  HashTableMerger(const HandleT &handle,
+                  AggregationStateHashTableBase *destination_hash_table)
+      : handle_(handle),
+        destination_hash_table_(
+            static_cast<HashTableT *>(destination_hash_table)) {}
+
+  inline void operator()(const std::vector<TypedValue> &group_by_key,
+                         const HandleT &source_state) {
+    StateT *destination_state =
+        destination_hash_table_->getSingleCompositeKey(group_by_key);
+    if (destination_state != nullptr) {
+      LOG(INFO) << "Key found, merging in the destination hash table";
+      handle_.mergeStates(source_state, destination_state);
+    } else {
+      LOG(INFO) << "Key not found, entering in the destination hash table";
+      destination_hash_table_->putComposite(group_by_key, source_state);
+    }
+  }
+
+ private:
+  const HandleT &handle_;
+  HashTableT *destination_hash_table_;
+
+  DISALLOW_COPY_AND_ASSIGN(HashTableMerger);
+};
 
 /**
  * @brief The helper intermediate subclass of AggregationHandle that provides
@@ -85,6 +113,10 @@ class AggregationConcreteHandle : public AggregationHandle {
       ValueAccessor *accessor,
       const std::vector<attribute_id> &key_ids,
       AggregationStateHashTableBase *distinctify_hash_table) const override;
+
+  /*void mergeHashTables(
+      const AggregationStateHashTableBase &source_hash_table,
+      AggregationStateHashTableBase *destination_hash_table) override;*/
 
  protected:
   AggregationConcreteHandle() {
@@ -139,6 +171,11 @@ class AggregationConcreteHandle : public AggregationHandle {
         << "Could not find entry for specified group_key in HashTable";
     return static_cast<const HandleT*>(this)->finalizeHashTableEntry(*group_state);
   }
+
+  template <typename HandleT, typename StateT, typename HashTableT>
+  void mergeGroupByHashTablesHelper(
+      const AggregationStateHashTableBase &source_hash_table,
+      AggregationStateHashTableBase *destination_hash_table) const;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(AggregationConcreteHandle);
@@ -371,6 +408,23 @@ ColumnVector* AggregationConcreteHandle::finalizeHashTableHelper(
       return result;
     }
   }
+}
+
+template <typename HandleT,
+          typename StateT,
+          typename HashTableT>
+void AggregationConcreteHandle::mergeGroupByHashTablesHelper(
+    const AggregationStateHashTableBase &source_hash_table,
+    AggregationStateHashTableBase *destination_hash_table) const {
+  const HandleT &handle = static_cast<const HandleT &>(*this);
+  const HashTableT &source_hash_table_concrete =
+      static_cast<const HashTableT &>(source_hash_table);
+  HashTableT *destination_hash_table_concrete =
+      static_cast<HashTableT *>(destination_hash_table);
+
+  HashTableMerger<HandleT, StateT, HashTableT> merger(handle, destination_hash_table);
+
+  destination_hash_table_concrete->forEachCompositeKey(&merger);
 }
 
 }  // namespace quickstep

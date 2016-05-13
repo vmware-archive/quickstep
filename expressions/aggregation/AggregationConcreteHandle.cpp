@@ -68,4 +68,10 @@ void AggregationConcreteHandle::insertValueAccessorIntoDistinctifyHashTable(
   }
 }
 
+/*void AggregationConcreteHandle::mergeHashTables(
+    const AggregationStateHashTableBase &source_hash_table,
+    AggregationStateHashTableBase *destination_hash_table) {
+
+}*/
+
 }  // namespace quickstep

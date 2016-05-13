@@ -92,7 +92,6 @@ AggregationOperationState::AggregationOperationState(
     arguments_.push_back({});
     is_distinct_.emplace_back(false);
 
-    std::cout << "Group by hash table for distinct\n";
     /*group_by_hashtables_.emplace_back(handles_.back()->createGroupByHashTable(
         hash_table_impl_type,
         group_by_types,
@@ -484,7 +483,7 @@ void AggregationOperationState::finalizeHashTable(InsertDestination *output_dest
     AggregationStateHashTableBase *agg_hash_table = group_by_hashtable_pools_[agg_idx]->getHashTable();
     DCHECK(agg_hash_table);
     ColumnVector* agg_result_col =
-        //handles_[agg_idx]->finalizeHashTable(*group_by_hashtables_[agg_idx],
+        // handles_[agg_idx]->finalizeHashTable(*group_by_hashtables_[agg_idx],
         handles_[agg_idx]->finalizeHashTable(*agg_hash_table,
                                              &group_by_keys);
     group_by_hashtable_pools_[agg_idx]->returnHashTable(agg_hash_table);

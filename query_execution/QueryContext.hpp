@@ -136,8 +136,7 @@ class QueryContext {
                const tmb::client_id scheduler_client_id,
                tmb::MessageBus *bus);
 
-  ~QueryContext() {
-  }
+  ~QueryContext() {}
 
   /**
    * @brief Check whether a serialization::QueryContext is fully-formed and
