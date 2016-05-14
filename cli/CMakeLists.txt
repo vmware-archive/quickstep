@@ -75,7 +75,7 @@ target_link_libraries(quickstep_cli_CommandExecutor
                       quickstep_catalog_CatalogRelationSchema
                       quickstep_cli_PrintToScreen 
                       quickstep_parser_ParseStatement
-                      quickstep_storage_StorageManager
+                      quickstep_storage_StorageBlockInfo
                       quickstep_utility_Macros
                       quickstep_utility_PtrVector                        
                       quickstep_utility_SqlError)
