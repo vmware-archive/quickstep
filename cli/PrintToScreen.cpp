@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <cstdio>
+#include <cmath>
 #include <memory>
 #include <vector>
 
@@ -47,6 +48,9 @@ DEFINE_bool(printing_enabled, true,
             "If true, print query results to screen normally. If false, skip "
             "printing output (e.g. for benchmarking).");
 
+int PrintToScreen::GetNumberOfDigits(std::size_t number) {
+  return number > 0 ? static_cast<int>(log10 (number)) + 1 : 1;
+}
 void PrintToScreen::PrintRelation(const CatalogRelation &relation,
                                   StorageManager *storage_manager,
                                   FILE *out) {
