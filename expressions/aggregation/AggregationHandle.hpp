@@ -349,9 +349,18 @@ class AggregationHandle {
       const AggregationStateHashTableBase &distinctify_hash_table,
       AggregationStateHashTableBase *aggregation_hash_table) const = 0;
 
-  /*virtual void mergeHashTables(
+  /**
+   * @brief Merge two GROUP BY hash tables in one.
+   *
+   * @note Both the hash tables should have the same structure.
+   *
+   * @param source_hash_table The hash table which will get merged.
+   * @param destination_hash_table The hash table to which we will merge the
+   *        other hash table.
+   **/
+  virtual void mergeGroupByHashTables(
       const AggregationStateHashTableBase &source_hash_table,
-      AggregationStateHashTableBase *destination_hash_table) const = 0;*/
+      AggregationStateHashTableBase *destination_hash_table) const = 0;
 
  protected:
   AggregationHandle() {

@@ -44,6 +44,23 @@ class ValueAccessor;
  *  @{
  */
 
+template <typename HandleT, typename StateT>
+class HashTableStateUpserter {
+ public:
+  HashTableStateUpserter(const HandleT &handle, StateT *state)
+      : handle_(handle), state_(state) {}
+
+  void operator()(StateT *state) {
+    handle_.iterateUnaryInl(state, handle_.finalize(*state));
+  }
+
+ private:
+  const HandleT &handle_;
+  StateT *state_;
+
+  DISALLOW_COPY_AND_ASSIGN(HashTableStateUpserter);
+};
+
 template <typename HandleT, typename StateT, typename HashTableT>
 class HashTableMerger {
  public:
@@ -54,15 +71,19 @@ class HashTableMerger {
             static_cast<HashTableT *>(destination_hash_table)) {}
 
   inline void operator()(const std::vector<TypedValue> &group_by_key,
-                         const HandleT &source_state) {
-    StateT *destination_state =
+                         const StateT &source_state) {
+    const StateT *original_state =
         destination_hash_table_->getSingleCompositeKey(group_by_key);
-    if (destination_state != nullptr) {
+    if (original_state != nullptr) {
+      StateT original_state_copy(*original_state);
       LOG(INFO) << "Key found, merging in the destination hash table";
-      handle_.mergeStates(source_state, destination_state);
+      handle_.mergeStates(source_state, &original_state_copy);
+      HashTableStateUpserter<HandleT, StateT> upserter(handle_, &original_state_copy);
+      destination_hash_table_->upsertCompositeKey(
+          group_by_key, *original_state, &upserter);
     } else {
       LOG(INFO) << "Key not found, entering in the destination hash table";
-      destination_hash_table_->putComposite(group_by_key, source_state);
+      destination_hash_table_->putCompositeKey(group_by_key, source_state);
     }
   }
 
@@ -422,9 +443,9 @@ void AggregationConcreteHandle::mergeGroupByHashTablesHelper(
   HashTableT *destination_hash_table_concrete =
       static_cast<HashTableT *>(destination_hash_table);
 
-  HashTableMerger<HandleT, StateT, HashTableT> merger(handle, destination_hash_table);
+  HashTableMerger<HandleT, StateT, HashTableT> merger(handle, destination_hash_table_concrete);
 
-  destination_hash_table_concrete->forEachCompositeKey(&merger);
+  source_hash_table_concrete.forEachCompositeKey(&merger);
 }
 
 }  // namespace quickstep
