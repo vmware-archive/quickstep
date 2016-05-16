@@ -622,9 +622,9 @@ predicate_cost_t SMAIndexSubBlock::estimatePredicateEvaluationCost(
     const ComparisonPredicate &predicate) const {
   DCHECK(initialized_);
 
-  // Check that at least one of the operands has a static values.
-  if (predicate.getRightOperand().hasStaticValue() ||
-      predicate.getLeftOperand().hasStaticValue()) {
+  // Check that at least one of the operands has a static value.
+  if (predicate.getLeftOperand().hasStaticValue() ||
+      predicate.getRightOperand().hasStaticValue()) {
     Selectivity selectivity = getSelectivityForPredicate(predicate);
     if (selectivity == Selectivity::kAll || selectivity == Selectivity::kNone) {
       return predicate_cost::kConstantTime;
