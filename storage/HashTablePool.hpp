@@ -74,9 +74,10 @@ class HashTablePool {
     hash_tables_.push_back(std::unique_ptr<AggregationStateHashTableBase>(hash_table));
   }
 
-  const std::vector<std::unique_ptr<AggregationStateHashTableBase>>&
-      getAllHashTables() const {
-    return hash_tables_;
+  const std::vector<std::unique_ptr<AggregationStateHashTableBase>>*
+      getAllHashTables() {
+    std::cout << hash_tables_.size() << " hash tables in the pool\n";
+    return &hash_tables_;
   }
 
  private:

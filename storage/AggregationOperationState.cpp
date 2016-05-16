@@ -464,6 +464,18 @@ void AggregationOperationState::finalizeHashTable(InsertDestination *output_dest
   // group (which is also the prefix of the finalized Tuple for that group).
   std::vector<std::vector<TypedValue>> group_by_keys;
 
+  for (std::size_t agg_idx = 0; agg_idx < handles_.size(); ++agg_idx) {
+    auto *hash_tables = group_by_hashtable_pools_[agg_idx]->getAllHashTables();
+    if (hash_tables->size() > 1) {
+      for (int hash_table_index = 0; hash_table_index < hash_tables->size() - 1; ++hash_table_index) {
+        // Merge each hash table to the last hash table.
+        handles_[agg_idx]->mergeGroupByHashTables(
+            (*(*hash_tables)[hash_table_index]),
+            hash_tables->back().get());
+      }
+    }
+  }
+
   // Collect per-aggregate finalized values.
   std::vector<std::unique_ptr<ColumnVector>> final_values;
   for (std::size_t agg_idx = 0;
@@ -471,22 +483,26 @@ void AggregationOperationState::finalizeHashTable(InsertDestination *output_dest
        ++agg_idx) {
     if (is_distinct_[agg_idx]) {
       DCHECK(group_by_hashtable_pools_[agg_idx] != nullptr);
-      AggregationStateHashTableBase *agg_hash_table = group_by_hashtable_pools_[agg_idx]->getHashTable();
+      // AggregationStateHashTableBase *agg_hash_table = group_by_hashtable_pools_[agg_idx]->getHashTable();
+      auto *hash_tables = group_by_hashtable_pools_[agg_idx]->getAllHashTables();
+      DCHECK(hash_tables != nullptr);
+      AggregationStateHashTableBase *agg_hash_table = hash_tables->back().get();
       handles_[agg_idx]->aggregateOnDistinctifyHashTableForGroupBy(
           *distinctify_hashtables_[agg_idx],
           // group_by_hashtables_[agg_idx].get());
           agg_hash_table);
-      group_by_hashtable_pools_[agg_idx]->returnHashTable(agg_hash_table);
+      // group_by_hashtable_pools_[agg_idx]->returnHashTable(agg_hash_table);
     }
 
-    DCHECK(group_by_hashtable_pools_[agg_idx] != nullptr);
-    AggregationStateHashTableBase *agg_hash_table = group_by_hashtable_pools_[agg_idx]->getHashTable();
-    DCHECK(agg_hash_table);
+    auto *hash_tables = group_by_hashtable_pools_[agg_idx]->getAllHashTables();
+    DCHECK(hash_tables != nullptr);
+    AggregationStateHashTableBase *agg_hash_table = hash_tables->back().get();
+    DCHECK(agg_hash_table != nullptr);
     ColumnVector* agg_result_col =
         // handles_[agg_idx]->finalizeHashTable(*group_by_hashtables_[agg_idx],
         handles_[agg_idx]->finalizeHashTable(*agg_hash_table,
                                              &group_by_keys);
-    group_by_hashtable_pools_[agg_idx]->returnHashTable(agg_hash_table);
+    // group_by_hashtable_pools_[agg_idx]->returnHashTable(agg_hash_table);
     if (agg_result_col != nullptr) {
       final_values.emplace_back(agg_result_col);
     }

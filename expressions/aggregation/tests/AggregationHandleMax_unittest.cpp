@@ -29,6 +29,8 @@
 #include "expressions/aggregation/AggregationHandle.hpp"
 #include "expressions/aggregation/AggregationHandleMax.hpp"
 #include "expressions/aggregation/AggregationID.hpp"
+#include "storage/HashTableBase.hpp"
+#include "storage/StorageManager.hpp"
 #include "types/CharType.hpp"
 #include "types/DatetimeIntervalType.hpp"
 #include "types/DatetimeLit.hpp"
@@ -413,6 +415,7 @@ class AggregationHandleMaxTest : public ::testing::Test {
 
   std::unique_ptr<AggregationHandle> aggregation_handle_max_;
   std::unique_ptr<AggregationState> aggregation_handle_max_state_;
+  std::unique_ptr<StorageManager> storage_manager_;
 };
 
 template <>
@@ -635,6 +638,85 @@ TEST_F(AggregationHandleMaxTest, ResultTypeForArgumentTypeTest) {
   EXPECT_TRUE(ResultTypeForArgumentTypeTest(kLong, kLong));
   EXPECT_TRUE(ResultTypeForArgumentTypeTest(kFloat, kFloat));
   EXPECT_TRUE(ResultTypeForArgumentTypeTest(kDouble, kDouble));
+}
+
+TEST_F(AggregationHandleMaxTest, GroupByTableMergeTest) {
+  const Type &int_non_null_type = IntType::Instance(false);
+  initializeHandle(int_non_null_type);
+  storage_manager_.reset(new StorageManager("./test_max_data"));
+  std::unique_ptr<AggregationStateHashTableBase> source_hash_table(
+      aggregation_handle_max_->createGroupByHashTable(
+          HashTableImplType::kSimpleScalarSeparateChaining,
+          std::vector<const Type *>(1, &int_non_null_type),
+          10,
+          storage_manager_.get()));
+  std::unique_ptr<AggregationStateHashTableBase> destination_hash_table(
+      aggregation_handle_max_->createGroupByHashTable(
+          HashTableImplType::kSimpleScalarSeparateChaining,
+          std::vector<const Type *>(1, &int_non_null_type),
+          10,
+          storage_manager_.get()));
+
+  AggregationStateHashTable<AggregationStateMax> *source_hash_table_derived =
+      static_cast<AggregationStateHashTable<AggregationStateMax> *>(
+          source_hash_table.get());
+
+  AggregationStateHashTable<AggregationStateMax> *destination_hash_table_derived =
+      static_cast<AggregationStateHashTable<AggregationStateMax> *>(
+          destination_hash_table.get());
+
+  std::vector<std::vector<TypedValue>> group_by_keys;
+  std::vector<TypedValue> key1;
+  key1.emplace_back(1);
+  std::vector<TypedValue> key0;
+  key0.emplace_back(0);
+
+  group_by_keys.emplace_back(key1);
+
+  std::unique_ptr<AggregationHandleMax> aggregation_handle_max1, aggregation_handle_max0;
+  std::unique_ptr<AggregationStateMax> aggregation_state1, aggregation_state0;
+
+  aggregation_handle_max1.reset(
+      static_cast<AggregationHandleMax*>(AggregateFunctionFactory::Get(AggregationID::kMax).createHandle(
+          std::vector<const Type*>(1, &int_non_null_type))));
+  aggregation_state1.reset(static_cast<AggregationStateMax*>(
+      aggregation_handle_max1->createInitialState()));
+
+  aggregation_handle_max0.reset(
+      static_cast<AggregationHandleMax*>(AggregateFunctionFactory::Get(AggregationID::kMax).createHandle(
+          std::vector<const Type*>(1, &int_non_null_type))));
+  aggregation_state0.reset(static_cast<AggregationStateMax*>(
+      aggregation_handle_max0->createInitialState()));
+
+  // Add 3000 as the max value for key = 1
+  TypedValue val(3000);
+  aggregation_handle_max1->iterateUnaryInl(aggregation_state1.get(), val);
+  int expected_val = val.getLiteral<int>();
+  int actual_val = aggregation_handle_max1->finalize(*aggregation_state1).getLiteral<int>();
+  EXPECT_EQ(expected_val, actual_val);
+
+  // Add 300 as the max value for key = 0
+  TypedValue val0(3000);
+  aggregation_handle_max0->iterateUnaryInl(aggregation_state0.get(), val0);
+  int expected_val0 = val0.getLiteral<int>();
+  int actual_val0 = aggregation_handle_max0->finalize(*aggregation_state0).getLiteral<int>();
+  EXPECT_EQ(expected_val0, actual_val0);
+
+  // Add key = 1 and value = 3000 in the source hash table.
+  source_hash_table_derived->putCompositeKey(key1, *aggregation_state1);
+  EXPECT_EQ(1u, source_hash_table_derived->numEntries());
+
+  // Add key = 1 and value = 3000 in the destination hash table.
+  destination_hash_table_derived->putCompositeKey(key0, *aggregation_state0);
+  EXPECT_EQ(1u, destination_hash_table_derived->numEntries());
+
+  aggregation_handle_max_->mergeGroupByHashTables(*source_hash_table,
+                                                  destination_hash_table.get());
+
+  EXPECT_EQ(2u, destination_hash_table_derived->numEntries());
+
+  CheckMaxValue<int>(val.getLiteral<int>(), *aggregation_handle_max1, *(destination_hash_table_derived->getSingleCompositeKey(key1)));
+  CheckMaxValue<int>(val0.getLiteral<int>(), *aggregation_handle_max0, *(destination_hash_table_derived->getSingleCompositeKey(key0)));
 }
 
 }  // namespace quickstep
