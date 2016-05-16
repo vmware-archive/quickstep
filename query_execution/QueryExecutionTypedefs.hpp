@@ -68,6 +68,19 @@ enum QueryExecutionMessageType : message_type_id {
   kQueryResultRelationMessage,
   kQueryResultRelationResponseMessage,
   kPoisonMessage,  // From the CLI shell to Foreman, then from Foreman to Workers.
+
+  // BlockLocator related messages used only in the distributed version.
+  kBlockDomainRegistrationMessage,  // From Worker to BlockLocator.
+  kBlockDomainRegistrationResponseMessage,  // From BlockLocator to Worker.
+  kAddBlockLocationMessage,  // From StorageManager to BlockLocator.
+  kAddBlockLocationResponseMessage,  // From BlockLocator to StorageManager.
+  kDeleteBlockLocationMessage,  // From StorageManager to BlockLocator.
+  kDeleteBlockLocationResponseMessage,  // From BlockLocator to StorageManager.
+  kLocateBlockMessage,  // From StorageManager to BlockLocator.
+  kLocateBlockResponseMessage,  // From BlockLocator to StorageManager.
+  kGetDomainNetworkInfoMessage,  // From StorageManager to BlockLocator.
+  kGetDomainNetworkInfoResponseMessage,  // From BlockLocator to StorageManager.
+  kBlockDomainUnregistrationMessage,  // From Worker to BlockLocator.
 };
 
 /** @} */

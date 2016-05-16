@@ -106,3 +106,45 @@ message QueryResultRelationMessage {
 message QueryResultRelationResponseMessage {
   required int32 relation_id = 1;
 }
+
+// BlockLocator related messages.
+message BlockDomainRegistrationMessage {
+  // Format IP:Port, i.e., "0.0.0.0:0".
+  required string domain_network_info = 1;
+}
+
+message BlockDomainRegistrationResponseMessage {
+  required uint32 block_domain = 1;
+}
+
+// Used when StorageManager loads a block from its buffer pool.
+message AddBlockLocationMessage {
+  required uint64 block_id = 1;
+  required uint32 block_domain = 2;
+}
+
+// Used when StorageManager evicts a block from its buffer pool.
+message DeleteBlockLocationMessage {
+  required uint64 block_id = 1;
+  required uint32 block_domain = 2;
+}
+
+message LocateBlockMessage {
+  required uint64 block_id = 1;
+}
+
+message LocateBlockResponseMessage {
+  repeated uint32 block_domains = 1;
+}
+
+message GetDomainNetworkInfoMessage {
+  required uint64 block_id = 1;
+}
+
+message GetDomainNetworkInfoResponseMessage {
+  repeated string domain_network_infos = 1;
+}
+
+message BlockDomainUnregistrationMessage {
+  required uint32 block_domain = 1;
+}

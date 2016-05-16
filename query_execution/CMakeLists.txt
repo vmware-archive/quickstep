@@ -20,6 +20,7 @@ QS_PROTOBUF_GENERATE_CPP(queryexecution_QueryExecutionMessages_proto_srcs
                          QueryExecutionMessages.proto)
 
 # Declare micro-libs:
+add_library(quickstep_queryexecution_BlockLocator BlockLocator.cpp BlockLocator.hpp)
 add_library(quickstep_queryexecution_Foreman Foreman.cpp Foreman.hpp)
 add_library(quickstep_queryexecution_ForemanDistributed ForemanDistributed.cpp ForemanDistributed.hpp)
 add_library(quickstep_queryexecution_ForemanLite ../empty_src.cpp ForemanLite.hpp)
@@ -42,6 +43,16 @@ add_library(quickstep_queryexecution_WorkerMessage ../empty_src.cpp WorkerMessag
 add_library(quickstep_queryexecution_WorkerSelectionPolicy ../empty_src.cpp WorkerSelectionPolicy.hpp)
 
 # Link dependencies:
+target_link_libraries(quickstep_queryexecution_BlockLocator
+                      glog
+                      quickstep_queryexecution_QueryExecutionMessages_proto
+                      quickstep_queryexecution_QueryExecutionTypedefs
+                      quickstep_queryexecution_QueryExecutionUtil
+                      quickstep_storage_StorageBlockInfo
+                      quickstep_threading_Thread
+                      quickstep_threading_ThreadUtil
+                      quickstep_utility_Macros
+                      tmb)
 target_link_libraries(quickstep_queryexecution_Foreman
                       glog
                       gtest
@@ -191,6 +202,7 @@ target_link_libraries(quickstep_queryexecution_WorkerSelectionPolicy
 # Module all-in-one library:
 add_library(quickstep_queryexecution ../empty_src.cpp QueryExecutionModule.hpp)
 target_link_libraries(quickstep_queryexecution
+                      quickstep_queryexecution_BlockLocator
                       quickstep_queryexecution_Foreman
                       quickstep_queryexecution_ForemanDistributed
                       quickstep_queryexecution_ForemanLite
