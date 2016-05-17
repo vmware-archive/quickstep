@@ -48,9 +48,16 @@ DEFINE_bool(printing_enabled, true,
             "If true, print query results to screen normally. If false, skip "
             "printing output (e.g. for benchmarking).");
 
-int PrintToScreen::GetNumberOfDigits(std::size_t number) {
-  return number > 0 ? static_cast<int>(log10 (number)) + 1 : 1;
+int PrintToScreen::GetNumberOfDigits(int number) {
+  if (number > 0) {
+    return static_cast<int>(log10 (number)) + 1;
+  } else if (number < 0) {
+    return static_cast<int>(log10 ( abs(number) )) + 2;
+  } else {
+    return 1;
+  }
 }
+
 void PrintToScreen::PrintRelation(const CatalogRelation &relation,
                                   StorageManager *storage_manager,
                                   FILE *out) {

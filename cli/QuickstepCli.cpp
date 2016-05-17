@@ -366,7 +366,8 @@ int main(int argc, char* argv[]) {
             quickstep::cli::executeCommand(
                 *result.parsed_statement,
                 *(query_processor->getDefaultDatabase()),
-                query_processor->getStorageManager(), stdout);
+                query_processor->getStorageManager(),
+                stdout);
           } catch (const quickstep::SqlError &sql_error) {
             fprintf(stderr, "%s",
                     sql_error.formatMessage(*command_string).c_str());

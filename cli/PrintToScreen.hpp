@@ -75,7 +75,7 @@ class PrintToScreen {
    * @param number The input number.
    * @param out The number of digits in the input number.
    **/
-  static int GetNumberOfDigits(std::size_t number);
+  static int GetNumberOfDigits(int number);
 
  private:
   // Undefined default constructor. Class is all-static and should not be

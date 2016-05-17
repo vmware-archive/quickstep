@@ -82,7 +82,7 @@ void executeDescribeDatabase(
                                     max_column_width);
     num_blocks.push_back(relation->size_blocks());
     num_tuples.push_back(PrintToScreen::GetNumTuplesInRelation(
-        reinterpret_cast<const CatalogRelation &>(*relation),
+        *relation,
         storage_manager));
   }
   // Only if we have relations work on the printing logic.
