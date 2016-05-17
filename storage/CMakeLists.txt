@@ -666,7 +666,8 @@ target_link_libraries(quickstep_storage_HashTablePool
                       quickstep_expressions_aggregation_AggregationHandle
                       quickstep_storage_HashTableBase
                       quickstep_threading_SpinMutex
-                      quickstep_utility_Macros)
+                      quickstep_utility_Macros
+                      quickstep_utility_StringUtil)
 target_link_libraries(quickstep_storage_IndexSubBlock
                       quickstep_catalog_CatalogTypedefs
                       quickstep_expressions_predicate_PredicateCost

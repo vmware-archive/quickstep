@@ -19,6 +19,7 @@
 
 #include "storage/AggregationOperationState.hpp"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdio>
 #include <memory>
@@ -464,7 +465,9 @@ void AggregationOperationState::finalizeHashTable(InsertDestination *output_dest
   // group (which is also the prefix of the finalized Tuple for that group).
   std::vector<std::vector<TypedValue>> group_by_keys;
 
+  std::chrono::time_point<std::chrono::steady_clock> start, end;
   for (std::size_t agg_idx = 0; agg_idx < handles_.size(); ++agg_idx) {
+    // start = std::chrono::steady_clock::now();
     auto *hash_tables = group_by_hashtable_pools_[agg_idx]->getAllHashTables();
     if (hash_tables->size() > 1) {
       for (int hash_table_index = 0; hash_table_index < hash_tables->size() - 1; ++hash_table_index) {
@@ -474,6 +477,11 @@ void AggregationOperationState::finalizeHashTable(InsertDestination *output_dest
             hash_tables->back().get());
       }
     }
+    /*end = std::chrono::steady_clock::now();
+    std::chrono::duration<double, std::milli> time_ms = end - start;
+    printf("Merge handle %lu # HT: %lu Time: %s ms\n", agg_idx, hash_tables->size(),
+           quickstep::DoubleToStringWithSignificantDigits(
+               time_ms.count(), 3).c_str());*/
   }
 
   // Collect per-aggregate finalized values.
