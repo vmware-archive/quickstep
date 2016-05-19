@@ -52,7 +52,8 @@ StorageBlockLayout::StorageBlockLayout(const CatalogRelationSchema &relation,
 // TODO(chasseur): Align sub-blocks to cache line boundaries.
 void StorageBlockLayout::finalize() {
   CHECK(DescriptionIsValid(relation_, layout_description_))
-      << "Called StorageBlockLayout::finalize() with incomplete or invalid layout.";
+      << "Called StorageBlockLayout::finalize() with incomplete or invalid layout:\n"
+      << layout_description_.DebugString();
 
   // Reset the header and copy the layout from this StorageBlockLayout.
   block_header_.Clear();

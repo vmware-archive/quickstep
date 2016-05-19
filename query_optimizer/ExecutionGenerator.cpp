@@ -104,6 +104,8 @@
 #include "relational_operators/TextScanOperator.hpp"
 #include "relational_operators/UpdateOperator.hpp"
 #include "storage/AggregationOperationState.pb.h"
+#include "storage/BasicColumnStoreTupleStorageSubBlock.hpp"
+#include "storage/CompressedColumnStoreTupleStorageSubBlock.hpp"
 #include "storage/HashTable.pb.h"
 #include "storage/HashTableFactory.hpp"
 #include "storage/InsertDestination.pb.h"
@@ -147,6 +149,8 @@ DEFINE_bool(parallelize_load, true, "Parallelize loading data files.");
 
 DEFINE_bool(optimize_joins, false,
             "Enable post execution plan generation optimizations for joins.");
+
+DEFINE_bool(use_column_store, true, "Use the column store for blocks in temporary relations.");
 
 namespace E = ::quickstep::optimizer::expressions;
 namespace P = ::quickstep::optimizer::physical;
@@ -298,26 +302,77 @@ std::string ExecutionGenerator::getNewRelationName() {
 void ExecutionGenerator::createTemporaryCatalogRelation(
     const P::PhysicalPtr &physical,
     const CatalogRelation **catalog_relation_output,
-    S::InsertDestination *insert_destination_proto) {
+    S::InsertDestination *insert_destination_proto,
+    const bool has_explicit_sort) {
   std::unique_ptr<CatalogRelation> catalog_relation(
       new CatalogRelation(optimizer_context_->catalog_database(),
                           getNewRelationName(),
                           -1 /* id */,
                           true /* is_temporary*/));
+
+  const bool use_column_store = FLAGS_use_column_store && !has_explicit_sort;
   attribute_id aid = 0;
+  bool has_non_ascii_string_aid = false;
+  attribute_id first_non_ascii_string_aid = 0;
+  vector<attribute_id> variable_length_aids;
   for (const E::NamedExpressionPtr &project_expression :
        physical->getOutputAttributes()) {
+    const Type &type = project_expression->getValueType();
+
     // The attribute name is simply set to the attribute id to make it distinct.
     std::unique_ptr<CatalogAttribute> catalog_attribute(
         new CatalogAttribute(catalog_relation.get(),
                              std::to_string(aid),
-                             project_expression->getValueType(),
+                             type,
                              aid,
                              project_expression->attribute_alias()));
     attribute_substitution_map_[project_expression->id()] =
         catalog_attribute.get();
     catalog_relation->addAttribute(catalog_attribute.release());
+
+    if (use_column_store) {
+      if (!has_non_ascii_string_aid &&
+          type.getSuperTypeID() != Type::kAsciiString) {
+        has_non_ascii_string_aid = true;
+        first_non_ascii_string_aid = aid;
+      }
+
+      if (type.isVariableLength()) {
+        variable_length_aids.push_back(aid);
+      }
+    }
+
     ++aid;
+  }
+
+  if (use_column_store) {
+    StorageBlockLayoutDescription layout_description;
+    layout_description.set_num_slots(1);
+
+    TupleStorageSubBlockDescription *tuple_store_description = layout_description.mutable_tuple_store_description();
+
+    // TODO(quickstep): Pick up the best attribute to sort.
+    const attribute_id sort_attribute_id =
+        has_non_ascii_string_aid
+            ? first_non_ascii_string_aid
+            : 0;
+
+    bool description_is_valid = false;
+    if (variable_length_aids.empty()) {
+      tuple_store_description->set_sub_block_type(TupleStorageSubBlockDescription::BASIC_COLUMN_STORE);
+
+      tuple_store_description->SetExtension(BasicColumnStoreTupleStorageSubBlockDescription::sort_attribute_id,
+                                            sort_attribute_id);
+
+      description_is_valid = BasicColumnStoreTupleStorageSubBlock::DescriptionIsValid(*catalog_relation, *tuple_store_description);
+    }
+
+    if (description_is_valid) {
+      unique_ptr<StorageBlockLayout> layout(
+          new StorageBlockLayout(*catalog_relation, layout_description));
+      layout->finalize();
+      catalog_relation->setDefaultStorageBlockLayout(layout.release());
+    }
   }
 
   *catalog_relation_output = catalog_relation.get();
@@ -330,6 +385,9 @@ void ExecutionGenerator::createTemporaryCatalogRelation(
 
   insert_destination_proto->set_insert_destination_type(S::InsertDestinationType::BLOCK_POOL);
   insert_destination_proto->set_relation_id(output_rel_id);
+
+  insert_destination_proto->mutable_layout()->MergeFrom(
+      (*catalog_relation_output)->getDefaultStorageBlockLayout().getDescription());
 }
 
 void ExecutionGenerator::dropAllTemporaryRelations() {
@@ -1476,7 +1534,7 @@ void ExecutionGenerator::convertSort(const P::SortPtr &physical_sort) {
   S::InsertDestination *initial_runs_destination_proto =
       query_context_proto_->add_insert_destinations();
   createTemporaryCatalogRelation(
-      physical_sort, &initial_runs_relation, initial_runs_destination_proto);
+      physical_sort, &initial_runs_relation, initial_runs_destination_proto, true);
 
   const CatalogRelationInfo *input_relation_info =
       findRelationInfoOutputByPhysical(physical_sort->input());
@@ -1522,7 +1580,8 @@ void ExecutionGenerator::convertSort(const P::SortPtr &physical_sort) {
     query_context_proto_->add_insert_destinations();
   createTemporaryCatalogRelation(physical_sort,
                                  &merged_runs_relation,
-                                 merged_runs_destination_proto);
+                                 merged_runs_destination_proto,
+                                 true);
   const CatalogRelation *sorted_relation;
   const QueryContext::insert_destination_id sorted_output_destination_id =
     query_context_proto_->insert_destinations_size();
@@ -1530,7 +1589,8 @@ void ExecutionGenerator::convertSort(const P::SortPtr &physical_sort) {
     query_context_proto_->add_insert_destinations();
   createTemporaryCatalogRelation(physical_sort,
                                  &sorted_relation,
-                                 sorted_output_destination_proto);
+                                 sorted_output_destination_proto,
+                                 true);
 
   // TODO(qzeng): Make the merge factor configurable.
   const QueryPlan::DAGNodeIndex merge_run_operator_index =

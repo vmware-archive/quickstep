@@ -190,11 +190,14 @@ class ExecutionGenerator {
    * @param catalog_relation_output The output catalog relation.
    * @param insert_destination_proto The output insert destination in proto
    *        form.
+   * @param has_explicit_sort Whether the relation will have an explict sorted
+   *        attribute. True for SortOperators.
    */
   void createTemporaryCatalogRelation(
       const physical::PhysicalPtr &physical,
       const CatalogRelation **catalog_relation_output,
-      serialization::InsertDestination *insert_destination_proto);
+      serialization::InsertDestination *insert_destination_proto,
+      const bool has_explicit_sort = false);
 
   /**
    * @brief Returns a new distinct relation name.

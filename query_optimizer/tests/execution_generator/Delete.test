@@ -1,5 +1,5 @@
 #   Copyright 2011-2015 Quickstep Technologies LLC.
-#   Copyright 2015 Pivotal Software, Inc.
+#   Copyright 2015-2016 Pivotal Software, Inc.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -14,24 +14,26 @@
 #   limitations under the License.
 
 DELETE FROM test WHERE int_col+float_col > 0;
-SELECT int_col+float_col FROM test;
+SELECT int_col+float_col
+FROM test
+ORDER BY 1 NULLS LAST;
 --
 +-------------------+
 |(int_col+float_col)|
 +-------------------+
-|               NULL|
-|                  0|
-|        -1.26794922|
-|        -2.76393199|
-|          -4.354249|
-|                 -6|
-|               NULL|
-|        -7.68337536|
-|        -9.39444923|
-|        -11.1270161|
-|         -12.876894|
-|        -14.6411009|
-|               NULL|
-|        -16.4174232|
 |        -18.2041683|
+|        -16.4174232|
+|        -14.6411009|
+|         -12.876894|
+|        -11.1270161|
+|        -9.39444923|
+|        -7.68337536|
+|                 -6|
+|          -4.354249|
+|        -2.76393199|
+|        -1.26794922|
+|                  0|
+|               NULL|
+|               NULL|
+|               NULL|
 +-------------------+

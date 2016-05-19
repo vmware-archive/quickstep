@@ -51,11 +51,11 @@ SELECT * FROM generate_series(10, 1, -2);
 +---------------+
 |generate_series|
 +---------------+
-|             10|
-|              8|
-|              6|
-|              4|
 |              2|
+|              4|
+|              6|
+|              8|
+|             10|
 +---------------+
 ==
 
@@ -153,7 +153,8 @@ SELECT i, j, k
 FROM generate_series(1, 9) AS gs1(i),
      generate_series(1, 9) AS gs2(j),
      generate_series(1, 81) AS gs3(k)
-WHERE i <= j AND i * j = k;
+WHERE i <= j AND i * j = k
+ORDER BY i, j;
 --
 +-----------+-----------+-----------+
 |i          |j          |k          |
@@ -254,5 +255,3 @@ SELECT * FROM generate_series(1, 5, -1);
 ERROR: Invalid step width (1 : 15)
 SELECT * FROM generate_series(1, 5, -1);
               ^
-==
-
