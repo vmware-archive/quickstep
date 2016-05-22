@@ -181,19 +181,22 @@ Selectivity getSelectivity(const TypedValue &literal,
 }
 
 SMAPredicate* SMAPredicate::ExtractSMAPredicate(const ComparisonPredicate &predicate) {
-  if (predicate.getLeftOperand().hasStaticValue()) {
-    DLOG_IF(FATAL, predicate.getRightOperand().getDataSource() != Scalar::kAttribute);
+  // Check that the predicate is contains an attribute and a literal value.
+  if (predicate.getLeftOperand().hasStaticValue() &&
+      predicate.getRightOperand().getDataSource() == Scalar::kAttribute) {
     return new SMAPredicate(
          static_cast<const ScalarAttribute&>(predicate.getRightOperand()).getAttribute().getID(),
          flipComparisonID(predicate.getComparison().getComparisonID()),
          predicate.getLeftOperand().getStaticValue().makeReferenceToThis());
-  } else {
-    DLOG_IF(FATAL, predicate.getLeftOperand().getDataSource() != Scalar::kAttribute);
+  } else if (predicate.getRightOperand().hasStaticValue() &&
+      predicate.getLeftOperand().getDataSource() == Scalar::kAttribute) {
     return new SMAPredicate(
         static_cast<const ScalarAttribute&>(predicate.getLeftOperand()).getAttribute().getID(),
         predicate.getComparison().getComparisonID(),
         predicate.getRightOperand().getStaticValue().makeReferenceToThis());
   }
+  // Predicate is improper form, so return nullptr.
+  return nullptr;
 }
 
 /**
@@ -603,6 +606,11 @@ Selectivity SMAIndexSubBlock::getSelectivityForPredicate(const ComparisonPredica
   }
 
   std::unique_ptr<SMAPredicate> sma_predicate(SMAPredicate::ExtractSMAPredicate(predicate));
+  // The predicate did not contain a static value to compare against.
+  if (!sma_predicate) {
+    return Selectivity::kUnknown;
+  }
+
   const SMAEntry *entry = getEntryChecked(sma_predicate->attribute);
 
   // The attribute wasn't indexed.
@@ -623,12 +631,9 @@ predicate_cost_t SMAIndexSubBlock::estimatePredicateEvaluationCost(
   DCHECK(initialized_);
 
   // Check that at least one of the operands has a static value.
-  if (predicate.getLeftOperand().hasStaticValue() ||
-      predicate.getRightOperand().hasStaticValue()) {
-    Selectivity selectivity = getSelectivityForPredicate(predicate);
-    if (selectivity == Selectivity::kAll || selectivity == Selectivity::kNone) {
-      return predicate_cost::kConstantTime;
-    }
+  Selectivity selectivity = getSelectivityForPredicate(predicate);
+  if (selectivity == Selectivity::kAll || selectivity == Selectivity::kNone) {
+    return predicate_cost::kConstantTime;
   }
   return predicate_cost::kInfinite;
 }
