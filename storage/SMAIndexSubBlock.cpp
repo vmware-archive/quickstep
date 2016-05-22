@@ -617,6 +617,36 @@ Selectivity SMAIndexSubBlock::getSelectivityForPredicate(const ComparisonPredica
   if (entry == nullptr || !entry->min_entry_ref.valid || !entry->max_entry_ref.valid) {
     return Selectivity::kUnknown;
   }
+
+  // Check that the type of the comparison is the same or can be coerced the
+  // type of the underlying attribute.
+  if (sma_predicate->literal.getTypeID() != entry->type_id) {
+    // Try to coerce the literal type to the entry type.
+    // It may have to account for variable length attributes.
+    int literal_length = -1;
+    if (TypeFactory::TypeRequiresLengthParameter(sma_predicate->literal.getTypeID())) {
+      literal_length = sma_predicate->literal.getAsciiStringLength();
+    }
+
+    const Type &literal_type = literal_length == -1 ?
+        TypeFactory::GetType(sma_predicate->literal.getTypeID(), false) :
+        TypeFactory::GetType(sma_predicate->literal.getTypeID(), static_cast<std::size_t>(literal_length), false);
+    const Type &attribute_type = literal_length == -1 ?
+        TypeFactory::GetType(entry->type_id, false) :
+        TypeFactory::GetType(entry->type_id, static_cast<std::size_t>(literal_length), false);
+    if (attribute_type.isSafelyCoercibleFrom(literal_type)) {
+      // Convert the literal's type inside the predicate.
+      SMAPredicate *replacement = new SMAPredicate(
+          sma_predicate->attribute,
+          sma_predicate->comparison,
+          attribute_type.coerceValue(sma_predicate->literal, literal_type));
+      sma_predicate.reset(replacement);
+    } else {
+      // The literal type cannot be converted, so do not evaluate with the SMA.
+      return Selectivity::kUnknown;
+    }
+  }
+
   return sma_internal::getSelectivity(
     sma_predicate->literal,
     sma_predicate->comparison,
