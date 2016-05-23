@@ -48,7 +48,6 @@ AggregationStateHashTableBase* AggregationHandleMax::createGroupByHashTable(
     const std::vector<const Type*> &group_by_types,
     const std::size_t estimated_num_groups,
     StorageManager *storage_manager) const {
-  LOG(INFO) << "Creating Hash table of key vector of size: " << group_by_types.size();
   return AggregationStateHashTableFactory<AggregationStateMax>::CreateResizable(
       hash_table_impl,
       group_by_types,

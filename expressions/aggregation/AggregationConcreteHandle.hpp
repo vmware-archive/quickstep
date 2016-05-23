@@ -132,10 +132,6 @@ class AggregationConcreteHandle : public AggregationHandle {
       const std::vector<attribute_id> &key_ids,
       AggregationStateHashTableBase *distinctify_hash_table) const override;
 
-  /*void mergeHashTables(
-      const AggregationStateHashTableBase &source_hash_table,
-      AggregationStateHashTableBase *destination_hash_table) override;*/
-
  protected:
   AggregationConcreteHandle() {
   }

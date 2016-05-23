@@ -19,7 +19,6 @@
 
 #include "storage/AggregationOperationState.hpp"
 
-#include <chrono>
 #include <cstddef>
 #include <cstdio>
 #include <memory>
