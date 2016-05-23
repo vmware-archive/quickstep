@@ -467,7 +467,6 @@ void AggregationOperationState::finalizeHashTable(InsertDestination *output_dest
 
   std::chrono::time_point<std::chrono::steady_clock> start, end;
   for (std::size_t agg_idx = 0; agg_idx < handles_.size(); ++agg_idx) {
-    // start = std::chrono::steady_clock::now();
     auto *hash_tables = group_by_hashtable_pools_[agg_idx]->getAllHashTables();
     if (hash_tables->size() > 1) {
       for (int hash_table_index = 0; hash_table_index < hash_tables->size() - 1; ++hash_table_index) {
@@ -477,11 +476,6 @@ void AggregationOperationState::finalizeHashTable(InsertDestination *output_dest
             hash_tables->back().get());
       }
     }
-    /*end = std::chrono::steady_clock::now();
-    std::chrono::duration<double, std::milli> time_ms = end - start;
-    printf("Merge handle %lu # HT: %lu Time: %s ms\n", agg_idx, hash_tables->size(),
-           quickstep::DoubleToStringWithSignificantDigits(
-               time_ms.count(), 3).c_str());*/
   }
 
   // Collect per-aggregate finalized values.
@@ -494,7 +488,17 @@ void AggregationOperationState::finalizeHashTable(InsertDestination *output_dest
       // AggregationStateHashTableBase *agg_hash_table = group_by_hashtable_pools_[agg_idx]->getHashTable();
       auto *hash_tables = group_by_hashtable_pools_[agg_idx]->getAllHashTables();
       DCHECK(hash_tables != nullptr);
+      if (hash_tables->empty()) {
+        // We may have a case where hash_tables is empty, e.g. no input blocks.
+        // However for aggregateOnDistinctifyHashTableForGroupBy to work
+        // correctly, we should create an empty group by hash table.
+        AggregationStateHashTableBase *new_hash_table = group_by_hashtable_pools_[agg_idx]->getHashTable();
+        group_by_hashtable_pools_[agg_idx]->returnHashTable(new_hash_table);
+        hash_tables = group_by_hashtable_pools_[agg_idx]->getAllHashTables();
+      }
+      DCHECK(hash_tables->back() != nullptr);
       AggregationStateHashTableBase *agg_hash_table = hash_tables->back().get();
+      DCHECK(agg_hash_table != nullptr);
       handles_[agg_idx]->aggregateOnDistinctifyHashTableForGroupBy(
           *distinctify_hashtables_[agg_idx],
           // group_by_hashtables_[agg_idx].get());
@@ -504,6 +508,14 @@ void AggregationOperationState::finalizeHashTable(InsertDestination *output_dest
 
     auto *hash_tables = group_by_hashtable_pools_[agg_idx]->getAllHashTables();
     DCHECK(hash_tables != nullptr);
+    // We may have a case where hash_tables is empty, e.g. no input blocks.
+    // However for finalizeHashTable to work correctly, we should create an
+    // empty group by hash table.
+    if (hash_tables->empty()) {
+      AggregationStateHashTableBase *new_hash_table = group_by_hashtable_pools_[agg_idx]->getHashTable();
+      group_by_hashtable_pools_[agg_idx]->returnHashTable(new_hash_table);
+      hash_tables = group_by_hashtable_pools_[agg_idx]->getAllHashTables();
+    }
     AggregationStateHashTableBase *agg_hash_table = hash_tables->back().get();
     DCHECK(agg_hash_table != nullptr);
     ColumnVector* agg_result_col =
