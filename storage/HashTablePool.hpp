@@ -47,6 +47,10 @@ class Type;
  **/
 class HashTablePool {
  public:
+  /**
+   * @brief Constructor.
+   *
+   **/
   HashTablePool(const std::size_t estimated_num_entries,
                 const HashTableImplType hash_table_impl_type,
                 const std::vector<const Type *> &group_by_types,
@@ -56,20 +60,14 @@ class HashTablePool {
         hash_table_impl_type_(hash_table_impl_type),
         group_by_types_(group_by_types),
         agg_handle_(DCHECK_NOTNULL(agg_handle)),
-        storage_manager_(DCHECK_NOTNULL(storage_manager)) {
-        // std::cout << "Agg HT estimated # entries: " << estimated_num_entries << " changing to " << estimated_num_entries_ << "\n";
-    /*const std::size_t estimated_num_hash_tables = 20;
-    std::cout << "Prepopulating " << estimated_num_hash_tables << " hash tables\n";
-    for (std::size_t hash_table_index = 0; hash_table_index < estimated_num_hash_tables; ++hash_table_index) {
-      hash_tables_.push_back(std::unique_ptr<AggregationStateHashTableBase>(createNewHashTable()));
-    }*/
-  }
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
 
   AggregationStateHashTableBase* getHashTable() {
     {
       SpinMutexLock lock(mutex_);
       if (!hash_tables_.empty()) {
-        std::unique_ptr<AggregationStateHashTableBase> ret_hash_table(std::move(hash_tables_.back()));
+        std::unique_ptr<AggregationStateHashTableBase> ret_hash_table(
+            std::move(hash_tables_.back()));
         hash_tables_.pop_back();
         DCHECK(ret_hash_table != nullptr);
         return ret_hash_table.release();
@@ -80,28 +78,21 @@ class HashTablePool {
 
   void returnHashTable(AggregationStateHashTableBase *hash_table) {
     SpinMutexLock lock(mutex_);
-    hash_tables_.push_back(std::unique_ptr<AggregationStateHashTableBase>(hash_table));
+    hash_tables_.push_back(
+        std::unique_ptr<AggregationStateHashTableBase>(hash_table));
   }
 
   const std::vector<std::unique_ptr<AggregationStateHashTableBase>>*
       getAllHashTables() {
-    // std::cout << hash_tables_.size() << " hash tables in the pool\n";
     return &hash_tables_;
   }
 
  private:
   AggregationStateHashTableBase* createNewHashTable() {
-    /*std::chrono::time_point<std::chrono::steady_clock> start, end;
-    start = std::chrono::steady_clock::now();*/
-    AggregationStateHashTableBase *ret_ht = agg_handle_->createGroupByHashTable(hash_table_impl_type_,
+    return agg_handle_->createGroupByHashTable(hash_table_impl_type_,
                                                group_by_types_,
                                                estimated_num_entries_,
                                                storage_manager_);
-    /*end = std::chrono::steady_clock::now();
-    std::chrono::duration<double, std::milli> time_ms = end - start;
-    printf("Hash table create time %s ms\n",
-           DoubleToStringWithSignificantDigits(time_ms.count(), 3).c_str());*/
-    return ret_ht;
   }
 
   std::vector<std::unique_ptr<AggregationStateHashTableBase>> hash_tables_;

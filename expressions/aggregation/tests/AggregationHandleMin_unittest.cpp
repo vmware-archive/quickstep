@@ -661,7 +661,8 @@ TEST_F(AggregationHandleMinTest, GroupByTableMergeTest) {
       static_cast<AggregationStateHashTable<AggregationStateMin> *>(
           source_hash_table.get());
 
-  AggregationHandleMin *aggregation_handle_min_derived = static_cast<AggregationHandleMin*>(aggregation_handle_min_.get());
+  AggregationHandleMin *aggregation_handle_min_derived =
+      static_cast<AggregationHandleMin *>(aggregation_handle_min_.get());
   // We create three keys: first is present in both the hash tables, second key
   // is present only in the source hash table while the third key is present
   // the destination hash table only.

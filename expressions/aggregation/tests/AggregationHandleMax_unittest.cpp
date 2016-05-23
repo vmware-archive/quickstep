@@ -665,7 +665,8 @@ TEST_F(AggregationHandleMaxTest, GroupByTableMergeTest) {
       static_cast<AggregationStateHashTable<AggregationStateMax> *>(
           source_hash_table.get());
 
-  AggregationHandleMax *aggregation_handle_max_derived = static_cast<AggregationHandleMax*>(aggregation_handle_max_.get());
+  AggregationHandleMax *aggregation_handle_max_derived =
+      static_cast<AggregationHandleMax *>(aggregation_handle_max_.get());
   // We create three keys: first is present in both the hash tables, second key
   // is present only in the source hash table while the third key is present
   // the destination hash table only.

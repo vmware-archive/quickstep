@@ -469,7 +469,9 @@ void AggregationOperationState::finalizeHashTable(InsertDestination *output_dest
   for (std::size_t agg_idx = 0; agg_idx < handles_.size(); ++agg_idx) {
     auto *hash_tables = group_by_hashtable_pools_[agg_idx]->getAllHashTables();
     if (hash_tables->size() > 1) {
-      for (int hash_table_index = 0; hash_table_index < hash_tables->size() - 1; ++hash_table_index) {
+      for (int hash_table_index = 0;
+           hash_table_index < static_cast<int>(hash_tables->size() - 1);
+           ++hash_table_index) {
         // Merge each hash table to the last hash table.
         handles_[agg_idx]->mergeGroupByHashTables(
             (*(*hash_tables)[hash_table_index]),

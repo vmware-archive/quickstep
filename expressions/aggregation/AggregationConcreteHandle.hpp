@@ -440,9 +440,8 @@ void AggregationConcreteHandle::mergeGroupByHashTablesHelper(
   HashTableT *destination_hash_table_concrete =
       static_cast<HashTableT *>(destination_hash_table);
 
-  LOG(INFO) << "Source: " << source_hash_table_concrete.numEntries() << " Dest: " << destination_hash_table_concrete->numEntries();
-
-  HashTableMerger<HandleT, StateT, HashTableT> merger(handle, destination_hash_table);
+  HashTableMerger<HandleT, StateT, HashTableT> merger(handle,
+                                                      destination_hash_table);
 
   source_hash_table_concrete.forEachCompositeKey(&merger);
 }
