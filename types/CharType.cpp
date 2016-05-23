@@ -123,12 +123,13 @@ bool CharType::parseValueFromString(const std::string &value_string,
     return false;
   }
 
-  *value = TypedValue(kChar,
-                      value_string.c_str(),
-                      value_string.length() == length_
-                          ? value_string.length()
-                          : value_string.length() + 1);
-  value->ensureNotReference();
+  void *value_data = std::malloc(length_);
+  memcpy(value_data, value_string.c_str(), value_string.length());
+  if (value_string.length() < length_) {
+    reinterpret_cast<char *>(value_data)[value_string.length()] = 0;
+  }
+
+  *value = TypedValue::CreateWithOwnedData(kChar, value_data, length_);
   return true;
 }
 

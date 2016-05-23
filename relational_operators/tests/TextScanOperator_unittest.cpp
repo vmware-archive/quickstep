@@ -1,5 +1,7 @@
 /**
  *   Copyright 2015-2016 Pivotal Software, Inc.
+ *   Copyright 2016, Quickstep Research Group, Computer Sciences Department,
+ *     University of Wisconsin—Madison.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -191,7 +193,6 @@ TEST_F(TextScanOperatorTest, ScanTest) {
       new TextScanOperator(input_filename,
                            '\t',
                            true,
-                           false,
                            *relation_,
                            output_destination_index));
 
@@ -210,6 +211,8 @@ TEST_F(TextScanOperatorTest, ScanTest) {
                                storage_manager_.get(),
                                print_stream.file());
   std::string printed(print_stream.str());
+  std::cout << golden_string << "\n\n------------------\n\n";
+  std::cout << printed << "\n";
 
   EXPECT_EQ(golden_string, printed);
   if (golden_string != printed) {

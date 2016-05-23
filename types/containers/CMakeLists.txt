@@ -21,6 +21,7 @@ add_library(quickstep_types_containers_ColumnVector ColumnVector.cpp ColumnVecto
 add_library(quickstep_types_containers_ColumnVectorUtil ../../empty_src.cpp ColumnVectorUtil.hpp)
 add_library(quickstep_types_containers_ColumnVectorsValueAccessor ../../empty_src.cpp ColumnVectorsValueAccessor.hpp)
 add_library(quickstep_types_containers_Tuple ../../empty_src.cpp Tuple.hpp)
+add_library(quickstep_types_containers_TupleVectorValueAccessor ../../empty_src.cpp TupleVectorValueAccessor.hpp)
 add_library(quickstep_types_containers_Tuple_proto ${types_containers_Tuple_proto_srcs})
 
 # Link dependencies:
@@ -48,6 +49,14 @@ target_link_libraries(quickstep_types_containers_Tuple
                       quickstep_types_TypedValue
                       quickstep_types_containers_Tuple_proto
                       quickstep_utility_Macros)
+target_link_libraries(quickstep_types_containers_TupleVectorValueAccessor
+                      glog
+                      quickstep_catalog_CatalogTypedefs
+                      quickstep_storage_StorageBlockInfo
+                      quickstep_storage_ValueAccessor
+                      quickstep_types_TypedValue
+                      quickstep_types_containers_Tuple
+                      quickstep_utility_Macros)
 target_link_libraries(quickstep_types_containers_Tuple_proto
                       quickstep_types_TypedValue_proto
                       ${PROTOBUF_LIBRARY})
@@ -59,6 +68,7 @@ target_link_libraries(quickstep_types_containers
                       quickstep_types_containers_ColumnVectorUtil
                       quickstep_types_containers_ColumnVectorsValueAccessor
                       quickstep_types_containers_Tuple
+                      quickstep_types_containers_TupleVectorValueAccessor
                       quickstep_types_containers_Tuple_proto)
 
 # Tests:

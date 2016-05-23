@@ -182,13 +182,13 @@ void CheckParseForString(const std::string &sample_string) {
 
   // No null-terminator if CHAR type is exactly big enough for the string.
   ASSERT_TRUE(char_type.parseValueFromString(sample_string, &parsed_value));
-  EXPECT_EQ(sample_string.length(), parsed_value.getDataSize());
+  EXPECT_EQ(char_type.maximumByteLength(), parsed_value.getDataSize());
   EXPECT_EQ(0, strncmp(sample_string.c_str(),
                        static_cast<const char*>(parsed_value.getDataPtr()),
                        sample_string.length()));
 
   ASSERT_TRUE(longer_char_type.parseValueFromString(sample_string, &parsed_value));
-  EXPECT_EQ(sample_string.length() + 1, parsed_value.getDataSize());
+  EXPECT_EQ(longer_char_type.maximumByteLength(), parsed_value.getDataSize());
   EXPECT_STREQ(sample_string.c_str(), static_cast<const char*>(parsed_value.getDataPtr()));
 }
 
