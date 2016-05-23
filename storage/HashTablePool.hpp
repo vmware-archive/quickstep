@@ -41,15 +41,32 @@ class Type;
  */
 
 /**
- * @brief A pool of HashTables used for a single "group by" clause by the
- *        aggregation WorkOrders for reduced contension. This class has similar
- *        functionality as InsertDestination, but for checking out HashTables.
+ * @brief A pool of HashTables used for a single aggregation handle. This class
+ *        has similar functionality as InsertDestination, but for checking out
+ *        HashTables. A worker thread can check out a hash table for insertion,
+ *        perform the insertions and return the hash table to the pool. While
+ *        one thread is using a hash table, no other thread can access it.
  **/
 class HashTablePool {
  public:
   /**
    * @brief Constructor.
    *
+   * @param estimated_num_entries The maximum number of entries in a hash table.
+   * @param hash_table_impl_type The type of hash table implementation.
+   * @param group_by_types A vector of pointer of types which form the group by
+   *        key.
+   * @param agg_handle The aggregation handle.
+   * @param storage_manager A pointer to the storage manager.
+   *
+   * @note The estimate of number of entries is quite inaccurate at this time.
+   *       If we go by the current estimate, each hash table demands much
+   *       larger space than it actually needs, which causes the system to
+   *       either trigger evictions or worse - run out of memory. To fix this
+   *       issue, we divide the estimate by 100. The division will not affect
+   *       correctness, however it may allocate some hash tables smaller space
+   *       than their requirement, causing them to be resized during build
+   *       phase, which has a performance penalty.
    **/
   HashTablePool(const std::size_t estimated_num_entries,
                 const HashTableImplType hash_table_impl_type,
@@ -62,6 +79,11 @@ class HashTablePool {
         agg_handle_(DCHECK_NOTNULL(agg_handle)),
         storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
 
+  /**
+   * @brief Check out a hash table for insertion.
+   *
+   * @return A hash table pointer.
+   **/
   AggregationStateHashTableBase* getHashTable() {
     {
       SpinMutexLock lock(mutex_);
@@ -76,12 +98,27 @@ class HashTablePool {
     return createNewHashTable();
   }
 
+  /**
+   * @brief Return a previously checked out hash table.
+   *
+   * @param hash_table A pointer to the checked out hash table.
+   **/
   void returnHashTable(AggregationStateHashTableBase *hash_table) {
     SpinMutexLock lock(mutex_);
     hash_tables_.push_back(
         std::unique_ptr<AggregationStateHashTableBase>(hash_table));
   }
 
+  /**
+   * @brief Get all the hash tables from the pool.
+   *
+   * @warning The caller should ensure that this call is made when no hash table
+   *          is being checked in or checked out from the pool. In other words
+   *          the hash table pool is in read-only state.
+   *
+   * @param All the hash tables in the pool.
+   *
+   **/
   const std::vector<std::unique_ptr<AggregationStateHashTableBase>>*
       getAllHashTables() {
     return &hash_tables_;
