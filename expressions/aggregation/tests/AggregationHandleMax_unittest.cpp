@@ -657,66 +657,105 @@ TEST_F(AggregationHandleMaxTest, GroupByTableMergeTest) {
           10,
           storage_manager_.get()));
 
-  AggregationStateHashTable<AggregationStateMax> *source_hash_table_derived =
-      static_cast<AggregationStateHashTable<AggregationStateMax> *>(
-          source_hash_table.get());
-
   AggregationStateHashTable<AggregationStateMax> *destination_hash_table_derived =
       static_cast<AggregationStateHashTable<AggregationStateMax> *>(
           destination_hash_table.get());
 
-  std::vector<std::vector<TypedValue>> group_by_keys;
-  std::vector<TypedValue> key1;
-  key1.emplace_back(1);
-  std::vector<TypedValue> key0;
-  key0.emplace_back(0);
+  AggregationStateHashTable<AggregationStateMax> *source_hash_table_derived =
+      static_cast<AggregationStateHashTable<AggregationStateMax> *>(
+          source_hash_table.get());
 
-  group_by_keys.emplace_back(key1);
+  AggregationHandleMax *aggregation_handle_max_derived = static_cast<AggregationHandleMax*>(aggregation_handle_max_.get());
+  // We create three keys: first is present in both the hash tables, second key
+  // is present only in the source hash table while the third key is present
+  // the destination hash table only.
+  std::vector<TypedValue> common_key;
+  common_key.emplace_back(0);
+  std::vector<TypedValue> exclusive_source_key, exclusive_destination_key;
+  exclusive_source_key.emplace_back(1);
+  exclusive_destination_key.emplace_back(2);
 
-  std::unique_ptr<AggregationHandleMax> aggregation_handle_max1, aggregation_handle_max0;
-  std::unique_ptr<AggregationStateMax> aggregation_state1, aggregation_state0;
+  const int common_key_source_max = 3000;
+  TypedValue common_key_source_max_val(common_key_source_max);
 
-  aggregation_handle_max1.reset(
-      static_cast<AggregationHandleMax*>(AggregateFunctionFactory::Get(AggregationID::kMax).createHandle(
-          std::vector<const Type*>(1, &int_non_null_type))));
-  aggregation_state1.reset(static_cast<AggregationStateMax*>(
-      aggregation_handle_max1->createInitialState()));
+  const int common_key_destination_max = 4000;
+  TypedValue common_key_destination_max_val(common_key_destination_max);
 
-  aggregation_handle_max0.reset(
-      static_cast<AggregationHandleMax*>(AggregateFunctionFactory::Get(AggregationID::kMax).createHandle(
-          std::vector<const Type*>(1, &int_non_null_type))));
-  aggregation_state0.reset(static_cast<AggregationStateMax*>(
-      aggregation_handle_max0->createInitialState()));
+  const int exclusive_key_source_max = 100;
+  TypedValue exclusive_key_source_max_val(exclusive_key_source_max);
 
-  // Add 3000 as the max value for key = 1
-  TypedValue val(3000);
-  aggregation_handle_max1->iterateUnaryInl(aggregation_state1.get(), val);
-  int expected_val = val.getLiteral<int>();
-  int actual_val = aggregation_handle_max1->finalize(*aggregation_state1).getLiteral<int>();
-  EXPECT_EQ(expected_val, actual_val);
+  const int exclusive_key_destination_max = 200;
+  TypedValue exclusive_key_destination_max_val(exclusive_key_destination_max);
 
-  // Add 300 as the max value for key = 0
-  TypedValue val0(3000);
-  aggregation_handle_max0->iterateUnaryInl(aggregation_state0.get(), val0);
-  int expected_val0 = val0.getLiteral<int>();
-  int actual_val0 = aggregation_handle_max0->finalize(*aggregation_state0).getLiteral<int>();
-  EXPECT_EQ(expected_val0, actual_val0);
+  std::unique_ptr<AggregationStateMax> common_key_source_state(
+      static_cast<AggregationStateMax *>(
+          aggregation_handle_max_->createInitialState()));
+  std::unique_ptr<AggregationStateMax> common_key_destination_state(
+      static_cast<AggregationStateMax *>(
+          aggregation_handle_max_->createInitialState()));
+  std::unique_ptr<AggregationStateMax> exclusive_key_source_state(
+      static_cast<AggregationStateMax *>(
+          aggregation_handle_max_->createInitialState()));
+  std::unique_ptr<AggregationStateMax> exclusive_key_destination_state(
+      static_cast<AggregationStateMax *>(
+          aggregation_handle_max_->createInitialState()));
 
-  // Add key = 1 and value = 3000 in the source hash table.
-  source_hash_table_derived->putCompositeKey(key1, *aggregation_state1);
-  EXPECT_EQ(1u, source_hash_table_derived->numEntries());
+  // Create max value states for keys.
+  aggregation_handle_max_derived->iterateUnaryInl(common_key_source_state.get(),
+                                                  common_key_source_max_val);
+  int actual_val = aggregation_handle_max_->finalize(*common_key_source_state)
+                       .getLiteral<int>();
+  EXPECT_EQ(common_key_source_max_val.getLiteral<int>(), actual_val);
 
-  // Add key = 1 and value = 3000 in the destination hash table.
-  destination_hash_table_derived->putCompositeKey(key0, *aggregation_state0);
-  EXPECT_EQ(1u, destination_hash_table_derived->numEntries());
+  aggregation_handle_max_derived->iterateUnaryInl(
+      common_key_destination_state.get(), common_key_destination_max_val);
+  actual_val = aggregation_handle_max_->finalize(*common_key_destination_state)
+                   .getLiteral<int>();
+  EXPECT_EQ(common_key_destination_max_val.getLiteral<int>(), actual_val);
+
+  aggregation_handle_max_derived->iterateUnaryInl(
+      exclusive_key_destination_state.get(), exclusive_key_destination_max_val);
+  actual_val =
+      aggregation_handle_max_->finalize(*exclusive_key_destination_state)
+          .getLiteral<int>();
+  EXPECT_EQ(exclusive_key_destination_max_val.getLiteral<int>(), actual_val);
+
+  aggregation_handle_max_derived->iterateUnaryInl(
+      exclusive_key_source_state.get(), exclusive_key_source_max_val);
+  actual_val = aggregation_handle_max_->finalize(*exclusive_key_source_state)
+                   .getLiteral<int>();
+  EXPECT_EQ(exclusive_key_source_max_val.getLiteral<int>(), actual_val);
+
+  // Add the key-state pairs to the hash tables.
+  source_hash_table_derived->putCompositeKey(common_key,
+                                             *common_key_source_state);
+  destination_hash_table_derived->putCompositeKey(
+      common_key, *common_key_destination_state);
+  source_hash_table_derived->putCompositeKey(exclusive_source_key,
+                                             *exclusive_key_source_state);
+  destination_hash_table_derived->putCompositeKey(
+      exclusive_destination_key, *exclusive_key_destination_state);
+
+  EXPECT_EQ(2u, destination_hash_table_derived->numEntries());
+  EXPECT_EQ(2u, source_hash_table_derived->numEntries());
 
   aggregation_handle_max_->mergeGroupByHashTables(*source_hash_table,
                                                   destination_hash_table.get());
 
-  EXPECT_EQ(2u, destination_hash_table_derived->numEntries());
+  EXPECT_EQ(3u, destination_hash_table_derived->numEntries());
 
-  CheckMaxValue<int>(val.getLiteral<int>(), *aggregation_handle_max1, *(destination_hash_table_derived->getSingleCompositeKey(key1)));
-  CheckMaxValue<int>(val0.getLiteral<int>(), *aggregation_handle_max0, *(destination_hash_table_derived->getSingleCompositeKey(key0)));
+  CheckMaxValue<int>(
+      common_key_destination_max_val.getLiteral<int>(),
+      *aggregation_handle_max_derived,
+      *(destination_hash_table_derived->getSingleCompositeKey(common_key)));
+  CheckMaxValue<int>(exclusive_key_destination_max_val.getLiteral<int>(),
+                     *aggregation_handle_max_derived,
+                     *(destination_hash_table_derived->getSingleCompositeKey(
+                         exclusive_destination_key)));
+  CheckMaxValue<int>(exclusive_key_source_max_val.getLiteral<int>(),
+                     *aggregation_handle_max_derived,
+                     *(source_hash_table_derived->getSingleCompositeKey(
+                         exclusive_source_key)));
 }
 
 }  // namespace quickstep
