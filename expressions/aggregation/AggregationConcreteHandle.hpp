@@ -433,8 +433,6 @@ void AggregationConcreteHandle::mergeGroupByHashTablesHelper(
   const HandleT &handle = static_cast<const HandleT &>(*this);
   const HashTableT &source_hash_table_concrete =
       static_cast<const HashTableT &>(source_hash_table);
-  HashTableT *destination_hash_table_concrete =
-      static_cast<HashTableT *>(destination_hash_table);
 
   HashTableMerger<HandleT, StateT, HashTableT> merger(handle,
                                                       destination_hash_table);

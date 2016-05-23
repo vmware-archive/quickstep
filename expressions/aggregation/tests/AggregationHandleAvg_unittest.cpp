@@ -483,28 +483,15 @@ TEST_F(AggregationHandleAvgTest, GroupByTableMergeTestAvg) {
   // Create avg value states for keys.
   aggregation_handle_avg_derived->iterateUnaryInl(common_key_source_state.get(),
                                                   common_key_source_avg_val);
-  /*double actual_val = aggregation_handle_avg_->finalize(*common_key_source_state)
-                       .getLiteral<double>();
-  EXPECT_EQ(common_key_source_avg_val.getLiteral<double>(), actual_val);*/
 
   aggregation_handle_avg_derived->iterateUnaryInl(
       common_key_destination_state.get(), common_key_destination_avg_val);
-  /*actual_val = aggregation_handle_avg_->finalize(*common_key_destination_state)
-                   .getLiteral<std::int64_t>();
-  EXPECT_EQ(common_key_destination_avg_val.getLiteral<std::int64_t>(), actual_val);*/
 
   aggregation_handle_avg_derived->iterateUnaryInl(
       exclusive_key_destination_state.get(), exclusive_key_destination_avg_val);
-  /*actual_val =
-      aggregation_handle_avg_->finalize(*exclusive_key_destination_state)
-          .getLiteral<std::int64_t>();
-  EXPECT_EQ(exclusive_key_destination_avg_val.getLiteral<std::int64_t>(), actual_val);*/
 
   aggregation_handle_avg_derived->iterateUnaryInl(
       exclusive_key_source_state.get(), exclusive_key_source_avg_val);
-  /*actual_val = aggregation_handle_avg_->finalize(*exclusive_key_source_state)
-                   .getLiteral<std::int64_t>();
-  EXPECT_EQ(exclusive_key_source_avg_val.getLiteral<std::int64_t>(), actual_val);*/
 
   // Add the key-state pairs to the hash tables.
   source_hash_table_derived->putCompositeKey(common_key,
