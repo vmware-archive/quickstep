@@ -44,12 +44,30 @@ class ValueAccessor;
  *  @{
  */
 
+/**
+ * @brief An upserter class for modifying the destination hash table while
+ *        merging two group by hash tables.
+ **/
 template <typename HandleT, typename StateT>
 class HashTableStateUpserter {
  public:
+  /**
+   * @brief Constructor.
+   *
+   * @param handle The aggregation handle being used.
+   * @param source_state The aggregation state in the source aggregation hash
+   *        table. The corresponding state (for the same key) in the destination
+   *        hash table will be upserted.
+   **/
   HashTableStateUpserter(const HandleT &handle, const StateT &source_state)
       : handle_(handle), source_state_(source_state) {}
 
+  /**
+   * @brief The operator for the functor required for the upsert.
+   *
+   * @param destination_state The aggregation state in the aggregation hash
+   *        table that is being upserted.
+   **/
   void operator()(StateT *destination_state) {
     handle_.mergeStates(source_state_, destination_state);
   }
@@ -61,15 +79,32 @@ class HashTableStateUpserter {
   DISALLOW_COPY_AND_ASSIGN(HashTableStateUpserter);
 };
 
+/**
+ * @brief A class to support the functor for merging group by hash tables.
+ **/
 template <typename HandleT, typename StateT, typename HashTableT>
 class HashTableMerger {
  public:
+  /**
+   * @brief Constructor
+   *
+   * @param handle The Aggregation handle being used.
+   * @param destination_hash_table The destination hash table to which other
+   *        hash tables will be merged.
+   **/
   HashTableMerger(const HandleT &handle,
                   AggregationStateHashTableBase *destination_hash_table)
       : handle_(handle),
         destination_hash_table_(
             static_cast<HashTableT *>(destination_hash_table)) {}
 
+  /**
+   * @brief The operator for the functor.
+   *
+   * @param group_by_key The group by key being merged.
+   * @param source_state The aggregation state for the given key in the source
+   *        aggregation hash table.
+   **/
   inline void operator()(const std::vector<TypedValue> &group_by_key,
                          const StateT &source_state) {
     const StateT *original_state =

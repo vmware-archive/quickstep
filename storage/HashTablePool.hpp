@@ -132,8 +132,9 @@ class HashTablePool {
                                                storage_manager_);
   }
 
-  std::size_t reduceEstimatedCardinality(const std::size_t original_estimate) const {
-    DCHECK(kEstimateReductionFactor != 0);
+  inline std::size_t reduceEstimatedCardinality(
+      const std::size_t original_estimate) const {
+    DCHECK_NE(kEstimateReductionFactor, 0);
     if (original_estimate < kEstimateReductionFactor) {
       return original_estimate;
     } else {
