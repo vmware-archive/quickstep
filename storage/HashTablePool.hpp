@@ -73,7 +73,7 @@ class HashTablePool {
                 const std::vector<const Type *> &group_by_types,
                 AggregationHandle *agg_handle,
                 StorageManager *storage_manager)
-      : estimated_num_entries_(estimated_num_entries / 100),
+      : estimated_num_entries_(reduceEstimatedCardinality(estimated_num_entries)),
         hash_table_impl_type_(hash_table_impl_type),
         group_by_types_(group_by_types),
         agg_handle_(DCHECK_NOTNULL(agg_handle)),
@@ -131,6 +131,17 @@ class HashTablePool {
                                                estimated_num_entries_,
                                                storage_manager_);
   }
+
+  std::size_t reduceEstimatedCardinality(const std::size_t original_estimate) const {
+    DCHECK(kEstimateReductionFactor != 0);
+    if (original_estimate < kEstimateReductionFactor) {
+      return original_estimate;
+    } else {
+      return original_estimate / kEstimateReductionFactor;
+    }
+  }
+
+  static constexpr std::size_t kEstimateReductionFactor = 100;
 
   std::vector<std::unique_ptr<AggregationStateHashTableBase>> hash_tables_;
 
