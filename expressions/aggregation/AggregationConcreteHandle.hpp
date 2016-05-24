@@ -112,6 +112,9 @@ class HashTableMerger {
     if (original_state != nullptr) {
       HashTableStateUpserter<HandleT, StateT> upserter(
           handle_, source_state);
+      // The CHECK is required as upsertCompositeKey can return false if the
+      // hash table runs out of space during the upsert process. The ideal
+      // solution will be to retry again if the upsert fails.
       CHECK(destination_hash_table_->upsertCompositeKey(
           group_by_key, *original_state, &upserter));
     } else {

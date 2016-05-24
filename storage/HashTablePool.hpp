@@ -134,10 +134,10 @@ class HashTablePool {
 
   inline std::size_t reduceEstimatedCardinality(
       const std::size_t original_estimate) const {
-    DCHECK_NE(kEstimateReductionFactor, 0);
     if (original_estimate < kEstimateReductionFactor) {
       return original_estimate;
     } else {
+      DCHECK_GT(kEstimateReductionFactor, 0u);
       return original_estimate / kEstimateReductionFactor;
     }
   }

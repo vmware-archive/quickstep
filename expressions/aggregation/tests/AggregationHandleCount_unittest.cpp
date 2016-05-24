@@ -504,6 +504,8 @@ TEST_F(AggregationHandleCountTest, GroupByTableMergeTestCount) {
       static_cast<AggregationStateHashTable<AggregationStateCount> *>(
           source_hash_table.get());
 
+  // TODO(harshad) - Use TemplateUtil::CreateBoolInstantiatedInstance to
+  // generate all the combinations of the bool template arguments and test them.
   AggregationHandleCount<true, false> *aggregation_handle_count_derived =
       static_cast<AggregationHandleCount<true, false> *>(
           aggregation_handle_count_.get());
