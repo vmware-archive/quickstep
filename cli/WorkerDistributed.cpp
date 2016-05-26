@@ -20,15 +20,20 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "catalog/CatalogDatabase.hpp"
 #include "cli/InputParserUtil.hpp"
+#include "query_execution/QueryExecutionMessages.pb.h"
+#include "query_execution/QueryExecutionTypedefs.hpp"
 #include "query_execution/Shiftboss.hpp"
 #include "query_execution/Worker.hpp"
 #include "query_execution/WorkerDirectory.hpp"
 #include "storage/StorageConfig.h"  // For QUICKSTEP_HAVE_FILE_MANAGER_HDFS.
+#include "storage/DataExchangerAsync.hpp"
 
 #ifdef QUICKSTEP_HAVE_FILE_MANAGER_HDFS
 #include "storage/FileManagerHdfs.hpp"
@@ -42,9 +47,12 @@
 #include "glog/logging.h"
 #include "grpc/grpc.h"
 
+#include "tmb/address.h"
 #include "tmb/id_typedefs.h"
 #include "tmb/message_bus.h"
+#include "tmb/message_style.h"
 #include "tmb/native_net_client_message_bus.h"
+#include "tmb/tagged_message.h"
 
 using std::fflush;
 using std::fprintf;
@@ -55,7 +63,11 @@ using std::vector;
 
 using quickstep::InputParserUtil;
 using quickstep::Worker;
+using quickstep::kBlockDomainRegistrationMessage;
+using quickstep::kBlockDomainRegistrationResponseMessage;
 
+using tmb::MessageBus;
+using tmb::TaggedMessage;
 using tmb::client_id;
 
 namespace quickstep {
@@ -125,16 +137,55 @@ int main(int argc, char* argv[]) {
 
   // Setup the paths used by StorageManager.
   string fixed_storage_path(quickstep::FLAGS_storage_path);
-  if (!fixed_storage_path.empty()
-      && (fixed_storage_path.back() != quickstep::kPathSeparator)) {
+  if (!fixed_storage_path.empty() &&
+      (fixed_storage_path.back() != quickstep::kPathSeparator)) {
     fixed_storage_path.push_back(quickstep::kPathSeparator);
   }
 
-  quickstep::StorageManager storage_manager(fixed_storage_path);
+  quickstep::DataExchangerAsync data_exchanger;
+  data_exchanger.start();
 
   tmb::NativeNetClientMessageBus bus;
   bus.AddServer(quickstep::FLAGS_tmb_server_ip.c_str(), quickstep::FLAGS_tmb_server_port);
   bus.Initialize();
+
+  const client_id worker_client_id = bus.Connect();
+
+  bus.RegisterClientAsSender(worker_client_id, kBlockDomainRegistrationMessage);
+  bus.RegisterClientAsReceiver(worker_client_id, kBlockDomainRegistrationResponseMessage);
+
+  tmb::Address all_addresses;
+  all_addresses.All(true);
+
+  tmb::MessageStyle style;
+
+  quickstep::serialization::BlockDomainRegistrationMessage proto;
+  proto.set_domain_network_address(data_exchanger.network_address());
+
+  const size_t proto_length = proto.ByteSize();
+  char *proto_bytes = static_cast<char*>(std::malloc(proto_length));
+  CHECK(proto.SerializeToArray(proto_bytes, proto_length));
+
+  TaggedMessage message(static_cast<const void*>(proto_bytes),
+                        proto_length,
+                        kBlockDomainRegistrationMessage);
+  std::free(proto_bytes);
+
+  MessageBus::SendStatus send_status =
+      bus.Send(worker_client_id, all_addresses, style, std::move(message));
+  DCHECK(send_status == MessageBus::SendStatus::kOK);
+
+  const tmb::AnnotatedMessage annotated_message(bus.Receive(worker_client_id, 0, true));
+  const TaggedMessage &tagged_message = annotated_message.tagged_message;
+  CHECK_EQ(kBlockDomainRegistrationResponseMessage, tagged_message.message_type());
+
+  quickstep::serialization::BlockDomainRegistrationResponseMessage response_proto;
+  CHECK(response_proto.ParseFromArray(tagged_message.message(), tagged_message.message_bytes()));
+
+  quickstep::StorageManager storage_manager(fixed_storage_path,
+                                            response_proto.block_domain(),
+                                            annotated_message.sender,
+                                            &bus);
 
   // Parse the CPU affinities for workers and the preloader thread, if enabled
   // to warm up the buffer pool.
@@ -205,6 +256,7 @@ int main(int argc, char* argv[]) {
     worker.join();
   }
   shiftboss.join();
+  data_exchanger.join();
 
   return 0;
 }

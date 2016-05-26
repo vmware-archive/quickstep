@@ -51,7 +51,7 @@ void BlockLocator::run() {
   for (;;) {
     // Receive() is a blocking call, causing this thread to sleep until next
     // message is received.
-    const AnnotatedMessage annotated_message = bus_->Receive(locator_client_id_, 0, true);
+    const tmb::AnnotatedMessage annotated_message = bus_->Receive(locator_client_id_, 0, true);
     const TaggedMessage &tagged_message = annotated_message.tagged_message;
     const client_id sender = annotated_message.sender;
     LOG(INFO) << "BlockLocator received the typed '" << tagged_message.message_type()
@@ -61,11 +61,11 @@ void BlockLocator::run() {
         serialization::BlockDomainRegistrationMessage proto;
         CHECK(proto.ParseFromArray(tagged_message.message(), tagged_message.message_bytes()));
 
-        processBlockDomainRegistrationMessage(sender, proto.domain_network_info());
+        processBlockDomainRegistrationMessage(sender, proto.domain_network_address());
         break;
       }
       case kAddBlockLocationMessage: {
-        serialization::AddBlockLocationMessage proto;
+        serialization::BlockLocationMessage proto;
         CHECK(proto.ParseFromArray(tagged_message.message(), tagged_message.message_bytes()));
 
         const block_id block = proto.block_id();
@@ -83,7 +83,7 @@ void BlockLocator::run() {
         break;
       }
       case kDeleteBlockLocationMessage: {
-        serialization::DeleteBlockLocationMessage proto;
+        serialization::BlockLocationMessage proto;
         CHECK(proto.ParseFromArray(tagged_message.message(), tagged_message.message_bytes()));
 
         const block_id block = proto.block_id();
@@ -107,11 +107,11 @@ void BlockLocator::run() {
         processLocateBlockMessage(sender, proto.block_id());
         break;
       }
-      case kGetDomainNetworkInfoMessage: {
-        serialization::GetDomainNetworkInfoMessage proto;
+      case kGetPeerDomainNetworkAddressMessage: {
+        serialization::GetPeerDomainNetworkAddressMessage proto;
         CHECK(proto.ParseFromArray(tagged_message.message(), tagged_message.message_bytes()));
 
-        processGetDomainNetworkInfoMessage(sender, proto.block_id());
+        processGetPeerDomainNetworkAddressMessage(sender, proto.block_id());
         break;
       }
       case kBlockDomainUnregistrationMessage: {
@@ -120,7 +120,7 @@ void BlockLocator::run() {
 
         const block_id_domain domain = proto.block_domain();
 
-        domain_network_info_.erase(domain);
+        domain_network_addresses_.erase(domain);
 
         for (const block_id block : domain_blocks_[domain]) {
           block_locations_[block].erase(domain);
@@ -138,10 +138,10 @@ void BlockLocator::run() {
 }
 
 void BlockLocator::processBlockDomainRegistrationMessage(const client_id receiver,
-                                                         const std::string &network_info) {
+                                                         const std::string &network_address) {
   DCHECK_LT(block_domain_, kMaxDomain);
 
-  domain_network_info_.emplace(++block_domain_, network_info);
+  domain_network_addresses_.emplace(++block_domain_, network_address);
   domain_blocks_[block_domain_];
 
   serialization::BlockDomainRegistrationResponseMessage response_proto;
@@ -192,12 +192,12 @@ void BlockLocator::processLocateBlockMessage(const client_id receiver,
                                      move(response_message));
 }
 
-void BlockLocator::processGetDomainNetworkInfoMessage(const client_id receiver,
-                                                      const block_id block) {
-  serialization::GetDomainNetworkInfoResponseMessage response_proto;
+void BlockLocator::processGetPeerDomainNetworkAddressMessage(const client_id receiver,
+                                                             const block_id block) {
+  serialization::GetPeerDomainNetworkAddressResponseMessage response_proto;
 
   for (const block_id_domain domain : block_locations_[block]) {
-    response_proto.add_domain_network_infos(domain_network_info_[domain]);
+    response_proto.add_domain_network_addresses(domain_network_addresses_[domain]);
   }
 
   const size_t response_proto_length = response_proto.ByteSize();
@@ -206,11 +206,12 @@ void BlockLocator::processGetDomainNetworkInfoMessage(const client_id receiver,
 
   TaggedMessage response_message(static_cast<const void*>(response_proto_bytes),
                                  response_proto_length,
-                                 kGetDomainNetworkInfoResponseMessage);
+                                 kGetPeerDomainNetworkAddressResponseMessage);
   free(response_proto_bytes);
 
   LOG(INFO) << "BlockLocator (id '" << locator_client_id_
-            << "') sent GetDomainNetworkInfoResponseMessage (typed '" << kGetDomainNetworkInfoResponseMessage
+            << "') sent GetPeerDomainNetworkAddressResponseMessage (typed '"
+            << kGetPeerDomainNetworkAddressResponseMessage
             << "') to StorageManager (id '" << receiver << "')";
   QueryExecutionUtil::SendTMBMessage(bus_,
                                      locator_client_id_,

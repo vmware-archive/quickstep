@@ -752,6 +752,7 @@ if (ENABLE_NATIVENET)
                         quickstep_catalog_CatalogTypedefs
                         quickstep_catalog_Catalog_proto
                         quickstep_parser_SqlParserWrapper
+                        quickstep_queryexecution_BlockLocator
                         quickstep_queryexecution_ForemanDistributed
                         quickstep_queryexecution_QueryExecutionMessages_proto
                         quickstep_queryexecution_QueryExecutionTypedefs
@@ -777,9 +778,11 @@ if (ENABLE_NATIVENET)
                         glog
                         quickstep_catalog_CatalogDatabase
                         quickstep_cli_InputParserUtil
+                        quickstep_queryexecution_QueryExecutionMessages_proto
                         quickstep_queryexecution_Shiftboss
                         quickstep_queryexecution_Worker
                         quickstep_queryexecution_WorkerDirectory
+                        quickstep_storage_DataExchangerAsync
                         quickstep_storage_PreloaderThread
                         quickstep_storage_StorageManager
                         quickstep_utility_PtrVector

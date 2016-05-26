@@ -114,6 +114,13 @@ configure_file (
 QS_PROTOBUF_GENERATE_CPP(storage_AggregationOperationState_proto_srcs
                          storage_AggregationOperationState_proto_hdrs
                          AggregationOperationState.proto)
+if (ENABLE_NATIVENET)
+  GRPC_GENERATE_CPP(storage_DataExchange_proto_srcs
+                    storage_DataExchange_proto_hdrs
+                    .
+                    DataExchange.proto)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR}/storage)
+endif()
 QS_PROTOBUF_GENERATE_CPP(storage_HashTable_proto_srcs
                          storage_HashTable_proto_hdrs
                          HashTable.proto)
@@ -155,6 +162,12 @@ add_library(quickstep_storage_CompressedTupleStorageSubBlock
             CompressedTupleStorageSubBlock.hpp)
 add_library(quickstep_storage_CountedReference ../empty_src.cpp CountedReference.hpp)
 add_library(quickstep_storage_CSBTreeIndexSubBlock CSBTreeIndexSubBlock.cpp CSBTreeIndexSubBlock.hpp)
+if (ENABLE_NATIVENET)
+  add_library(quickstep_storage_DataExchange_proto
+              ${storage_DataExchange_proto_srcs}
+              ${storage_DataExchange_proto_hdrs})
+  add_library(quickstep_storage_DataExchangerAsync DataExchangerAsync.cpp DataExchangerAsync.hpp)
+endif()
 add_library(quickstep_storage_EvictionPolicy EvictionPolicy.cpp EvictionPolicy.hpp)
 add_library(quickstep_storage_FileManager ../empty_src.cpp FileManager.hpp)
 if (QUICKSTEP_HAVE_FILE_MANAGER_HDFS)
@@ -467,6 +480,17 @@ target_link_libraries(quickstep_storage_CSBTreeIndexSubBlock
                       quickstep_utility_Macros
                       quickstep_utility_PtrVector
                       quickstep_utility_ScopedBuffer)
+if (ENABLE_NATIVENET)
+  target_link_libraries(quickstep_storage_DataExchange_proto
+                        ${PROTOBUF3_LIBRARY})
+  target_link_libraries(quickstep_storage_DataExchangerAsync
+                        glog
+                        quickstep_storage_DataExchange_proto
+                        quickstep_storage_StorageManager
+                        quickstep_threading_Thread
+                        quickstep_utility_Macros
+                        ${GRPCXX_LIBRARIES})
+endif()
 target_link_libraries(quickstep_storage_EvictionPolicy
                       quickstep_storage_StorageBlockInfo
                       quickstep_storage_StorageConstants
@@ -789,6 +813,7 @@ target_link_libraries(quickstep_storage_StorageManager
                       gflags_nothreads-static
                       glog
                       gtest
+                      quickstep_catalog_CatalogTypedefs
                       quickstep_storage_CountedReference
                       quickstep_storage_EvictionPolicy
                       quickstep_storage_FileManager
@@ -801,6 +826,8 @@ target_link_libraries(quickstep_storage_StorageManager
                       quickstep_storage_StorageBlockLayout_proto
                       quickstep_storage_StorageConstants
                       quickstep_storage_StorageErrors
+                      quickstep_threading_Mutex
+                      quickstep_threading_SharedMutex
                       quickstep_threading_SpinSharedMutex
                       quickstep_utility_Alignment
                       quickstep_utility_Macros
@@ -812,6 +839,15 @@ endif()
 if (QUICKSTEP_HAVE_LIBNUMA)
   target_link_libraries(quickstep_storage_StorageManager
                         ${LIBNUMA_LIBRARY})
+endif()
+if (ENABLE_NATIVENET)
+  target_link_libraries(quickstep_storage_StorageManager
+                        quickstep_queryexecution_QueryExecutionMessages_proto
+                        quickstep_queryexecution_QueryExecutionTypedefs
+                        quickstep_queryexecution_QueryExecutionUtil
+                        quickstep_storage_DataExchange_proto
+                        tmb
+                        ${GRPCXX_LIBRARIES})
 endif()
 target_link_libraries(quickstep_storage_SubBlockTypeRegistry
                       quickstep_storage_StorageBlockLayout_proto
@@ -923,6 +959,11 @@ if (QUICKSTEP_HAVE_FILE_MANAGER_POSIX)
 elseif (QUICKSTEP_HAVE_FILE_MANAGER_WINDOWS)
   target_link_libraries(quickstep_storage
                         quickstep_storage_FileManagerWindows)
+endif()
+if (ENABLE_NATIVENET)
+  target_link_libraries(quickstep_storage
+                        quickstep_storage_DataExchange_proto
+                        quickstep_storage_DataExchangerAsync)
 endif()
 
 # Tests:

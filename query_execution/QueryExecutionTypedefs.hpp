@@ -73,13 +73,11 @@ enum QueryExecutionMessageType : message_type_id {
   kBlockDomainRegistrationMessage,  // From Worker to BlockLocator.
   kBlockDomainRegistrationResponseMessage,  // From BlockLocator to Worker.
   kAddBlockLocationMessage,  // From StorageManager to BlockLocator.
-  kAddBlockLocationResponseMessage,  // From BlockLocator to StorageManager.
   kDeleteBlockLocationMessage,  // From StorageManager to BlockLocator.
-  kDeleteBlockLocationResponseMessage,  // From BlockLocator to StorageManager.
   kLocateBlockMessage,  // From StorageManager to BlockLocator.
   kLocateBlockResponseMessage,  // From BlockLocator to StorageManager.
-  kGetDomainNetworkInfoMessage,  // From StorageManager to BlockLocator.
-  kGetDomainNetworkInfoResponseMessage,  // From BlockLocator to StorageManager.
+  kGetPeerDomainNetworkAddressMessage,  // From StorageManager to BlockLocator.
+  kGetPeerDomainNetworkAddressResponseMessage,  // From BlockLocator to StorageManager.
   kBlockDomainUnregistrationMessage,  // From Worker to BlockLocator.
 };
 

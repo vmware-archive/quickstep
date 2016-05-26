@@ -32,6 +32,7 @@
 #include "catalog/CatalogRelation.hpp"
 #include "catalog/CatalogTypedefs.hpp"
 #include "parser/SqlParserWrapper.hpp"
+#include "query_execution/BlockLocator.hpp"
 #include "query_execution/ForemanDistributed.hpp"
 #include "query_execution/QueryExecutionMessages.pb.h"
 #include "query_execution/QueryExecutionTypedefs.hpp"
@@ -45,7 +46,6 @@
 #include "grpc/grpc.h"
 
 #include "tmb/id_typedefs.h"
-#include "tmb/message_bus.h"
 #include "tmb/native_net_client_message_bus.h"
 #include "tmb/tagged_message.h"
 
@@ -140,6 +140,9 @@ int main(int argc, char* argv[]) {
   bus.RegisterClientAsReceiver(conductor_id, kSqlQueryMessage);
   bus.RegisterClientAsSender(conductor_id, kQueryExecutionSuccessMessage);
   bus.RegisterClientAsSender(conductor_id, kQueryExecutionErrorMessage);
+
+  quickstep::BlockLocator locator(&bus);
+  locator.start();
 
   quickstep::ForemanDistributed foreman(&bus, query_processor->getDefaultDatabase());
 
@@ -277,6 +280,8 @@ int main(int argc, char* argv[]) {
       }
     }
   }
+
+  locator.join();
 
   return 0;
 }

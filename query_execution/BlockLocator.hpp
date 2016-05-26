@@ -63,16 +63,13 @@ class BlockLocator : public Thread {
     bus_->RegisterClientAsSender(locator_client_id_, kBlockDomainRegistrationResponseMessage);
 
     bus_->RegisterClientAsReceiver(locator_client_id_, kAddBlockLocationMessage);
-    bus_->RegisterClientAsSender(locator_client_id_, kAddBlockLocationResponseMessage);
-
     bus_->RegisterClientAsReceiver(locator_client_id_, kDeleteBlockLocationMessage);
-    bus_->RegisterClientAsSender(locator_client_id_, kDeleteBlockLocationResponseMessage);
 
     bus_->RegisterClientAsReceiver(locator_client_id_, kLocateBlockMessage);
     bus_->RegisterClientAsSender(locator_client_id_, kLocateBlockResponseMessage);
 
-    bus_->RegisterClientAsReceiver(locator_client_id_, kGetDomainNetworkInfoMessage);
-    bus_->RegisterClientAsSender(locator_client_id_, kGetDomainNetworkInfoResponseMessage);
+    bus_->RegisterClientAsReceiver(locator_client_id_, kGetPeerDomainNetworkAddressMessage);
+    bus_->RegisterClientAsSender(locator_client_id_, kGetPeerDomainNetworkAddressResponseMessage);
 
     bus_->RegisterClientAsReceiver(locator_client_id_, kBlockDomainUnregistrationMessage);
 
@@ -94,9 +91,9 @@ class BlockLocator : public Thread {
   void run() override;
 
  private:
-  void processBlockDomainRegistrationMessage(const tmb::client_id receiver, const std::string &network_info);
+  void processBlockDomainRegistrationMessage(const tmb::client_id receiver, const std::string &network_address);
   void processLocateBlockMessage(const tmb::client_id receiver, const block_id block);
-  void processGetDomainNetworkInfoMessage(const tmb::client_id receiver, const block_id block);
+  void processGetPeerDomainNetworkAddressMessage(const tmb::client_id receiver, const block_id block);
 
   tmb::MessageBus *bus_;
 
@@ -107,7 +104,7 @@ class BlockLocator : public Thread {
 
   // From a block domain to its network info in the ip:port format, i.e.,
   // "0.0.0.0:0".
-  std::unordered_map<block_id_domain, const std::string> domain_network_info_;
+  std::unordered_map<block_id_domain, const std::string> domain_network_addresses_;
 
   // From a block to its domains.
   std::unordered_map<block_id, std::unordered_set<block_id_domain>> block_locations_;
