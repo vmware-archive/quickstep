@@ -32,14 +32,21 @@ bool DestroyHashOperator::getAllWorkOrders(
     tmb::MessageBus *bus) {
   if (blocking_dependencies_met_ && !work_generated_) {
     work_generated_ = true;
-    container->addNormalWorkOrder(new DestroyHashWorkOrder(hash_table_index_, query_context),
-                                  op_index_);
+    container->addNormalWorkOrder(
+        new DestroyHashWorkOrder(hash_table_group_index_, query_context, num_partitions_, is_numa_aware_join_),
+        op_index_);
   }
   return work_generated_;
 }
 
 void DestroyHashWorkOrder::execute() {
-  query_context_->destroyJoinHashTable(hash_table_index_);
+  if (is_numa_aware_join_) {
+    for (std::size_t part_id = 0; part_id < num_partitions_; ++part_id) {
+      query_context_->destroyJoinHashTable(hash_table_group_index_, part_id);
+    }
+  } else {
+    query_context_->destroyJoinHashTable(hash_table_group_index_);
+  }
 }
 
 }  // namespace quickstep

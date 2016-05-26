@@ -38,6 +38,7 @@
 #ifdef QUICKSTEP_HAVE_LIBNUMA
 #include <numa.h>
 #include <numaif.h>
+#include "catalog/NUMAPlacementScheme.hpp"
 #endif
 
 #include <atomic>

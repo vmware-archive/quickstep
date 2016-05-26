@@ -37,6 +37,10 @@
 #include "utility/Macros.hpp"
 #include "utility/ShardedLockManager.hpp"
 
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+#include "catalog/NUMAPlacementScheme.hpp"
+#endif
+
 #include "gflags/gflags.h"
 #include "gtest/gtest_prod.h"
 

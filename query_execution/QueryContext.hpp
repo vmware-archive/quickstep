@@ -84,6 +84,11 @@ class QueryContext {
   static constexpr insert_destination_id kInvalidInsertDestinationId = static_cast<insert_destination_id>(-1);
 
   /**
+   * @brief A unique identifier for a group of hash tables per query.
+   **/
+  typedef std::uint32_t join_hash_table_group_id;
+
+  /**
    * @brief A unique identifier for a JoinHashTable per query.
    **/
   typedef std::uint32_t join_hash_table_id;
@@ -298,34 +303,39 @@ class QueryContext {
   /**
    * @brief Whether the given JoinHashTable id is valid.
    *
+   * @param gid The JoinHashTable group id.
    * @param id The JoinHashTable id.
    *
    * @return True if valid, otherwise false.
    **/
-  bool isValidJoinHashTableId(const join_hash_table_id id) const {
-    return id < join_hash_tables_.size();
+  bool isValidJoinHashTableId(const join_hash_table_group_id gid, const join_hash_table_id id = 0) const {
+    return gid < join_hash_table_groups_.size() && id < join_hash_table_groups_[gid].size();
   }
 
   /**
    * @brief Get the JoinHashTable.
    *
+   * @param gid The JoinHashTable group id.
    * @param id The JoinHashTable id in the query.
    *
    * @return The JoinHashTable, already created in the constructor.
    **/
-  inline JoinHashTable* getJoinHashTable(const join_hash_table_id id) {
-    DCHECK_LT(id, join_hash_tables_.size());
-    return join_hash_tables_[id].get();
+  inline JoinHashTable* getJoinHashTable(const join_hash_table_group_id gid, const join_hash_table_id id = 0) {
+    DCHECK_LT(gid, join_hash_table_groups_.size());
+    DCHECK_LT(id, join_hash_table_groups_[gid].size());
+    return join_hash_table_groups_[gid][id].get();
   }
 
   /**
    * @brief Destory the given JoinHashTable.
    *
+   * @param gid The JoinHashTable group id.
    * @param id The id of the JoinHashTable to destroy.
    **/
-  inline void destroyJoinHashTable(const join_hash_table_id id) {
-    DCHECK_LT(id, join_hash_tables_.size());
-    join_hash_tables_[id].reset();
+  inline void destroyJoinHashTable(const join_hash_table_group_id gid, const join_hash_table_id id = 0) {
+    DCHECK_LT(gid, join_hash_table_groups_.size());
+    DCHECK_LT(id, join_hash_table_groups_[gid].size());
+    join_hash_table_groups_[gid][id].reset();
   }
 
   /**
@@ -465,7 +475,7 @@ class QueryContext {
   std::vector<std::unique_ptr<BloomFilter>> bloom_filters_;
   std::vector<std::unique_ptr<const GeneratorFunctionHandle>> generator_functions_;
   std::vector<std::unique_ptr<InsertDestination>> insert_destinations_;
-  std::vector<std::unique_ptr<JoinHashTable>> join_hash_tables_;
+  std::vector<std::vector<std::unique_ptr<JoinHashTable>>> join_hash_table_groups_;
   std::vector<std::unique_ptr<const Predicate>> predicates_;
   std::vector<std::vector<std::unique_ptr<const Scalar>>> scalar_groups_;
   std::vector<std::unique_ptr<const SortConfiguration>> sort_configs_;

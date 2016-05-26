@@ -294,11 +294,11 @@ TEST_P(HashJoinOperatorTest, LongKeyHashJoinTest) {
   // Setup the hash table proto in the query context proto.
   serialization::QueryContext query_context_proto;
 
-  const QueryContext::join_hash_table_id join_hash_table_index =
-      query_context_proto.join_hash_tables_size();
+  const QueryContext::join_hash_table_group_id join_hash_table_group_index =
+      query_context_proto.join_hash_table_groups_size();
 
   serialization::HashTable *hash_table_proto =
-      query_context_proto.add_join_hash_tables();
+      query_context_proto.add_join_hash_table_groups()->add_join_hash_tables();
   switch (GetParam()) {
     case HashTableImplType::kLinearOpenAddressing:
       hash_table_proto->set_hash_table_impl_type(
@@ -336,7 +336,7 @@ TEST_P(HashJoinOperatorTest, LongKeyHashJoinTest) {
                             true /* is_stored */,
                             std::vector<attribute_id>(1, dim_col_long.getID()),
                             dim_col_long.getType().isNullable(),
-                            join_hash_table_index));
+                            join_hash_table_group_index));
 
   // Create the prober operator with one selection attribute.
   const QueryContext::scalar_group_id selection_index = query_context_proto.scalar_groups_size();
@@ -366,7 +366,7 @@ TEST_P(HashJoinOperatorTest, LongKeyHashJoinTest) {
                            fact_col_long.getType().isNullable(),
                            *result_table,
                            output_destination_index,
-                           join_hash_table_index,
+                           join_hash_table_group_index,
                            QueryContext::kInvalidPredicateId /* residual_predicate_index */,
                            selection_index));
 
@@ -421,7 +421,7 @@ TEST_P(HashJoinOperatorTest, LongKeyHashJoinTest) {
   }
 
   // Create cleaner operator.
-  unique_ptr<DestroyHashOperator> cleaner(new DestroyHashOperator(join_hash_table_index));
+  unique_ptr<DestroyHashOperator> cleaner(new DestroyHashOperator(join_hash_table_group_index));
   cleaner->informAllBlockingDependenciesMet();
   fetchAndExecuteWorkOrders(cleaner.get());
 
@@ -432,11 +432,11 @@ TEST_P(HashJoinOperatorTest, IntDuplicateKeyHashJoinTest) {
   // Setup the hash table proto in the query context proto.
   serialization::QueryContext query_context_proto;
 
-  const QueryContext::join_hash_table_id join_hash_table_index =
-      query_context_proto.join_hash_tables_size();
+  const QueryContext::join_hash_table_group_id join_hash_table_group_index =
+      query_context_proto.join_hash_table_groups_size();
 
   serialization::HashTable *hash_table_proto =
-      query_context_proto.add_join_hash_tables();
+      query_context_proto.add_join_hash_table_groups()->add_join_hash_tables();
   switch (GetParam()) {
     case HashTableImplType::kLinearOpenAddressing:
       hash_table_proto->set_hash_table_impl_type(
@@ -477,7 +477,7 @@ TEST_P(HashJoinOperatorTest, IntDuplicateKeyHashJoinTest) {
                             true /* is_stored */,
                             std::vector<attribute_id>(1, dim_col_int.getID()),
                             dim_col_int.getType().isNullable(),
-                            join_hash_table_index));
+                            join_hash_table_group_index));
 
   // Create the prober operator with two selection attributes.
   const QueryContext::scalar_group_id selection_index = query_context_proto.scalar_groups_size();
@@ -512,7 +512,7 @@ TEST_P(HashJoinOperatorTest, IntDuplicateKeyHashJoinTest) {
                            fact_col_int.getType().isNullable(),
                            *result_table,
                            output_destination_index,
-                           join_hash_table_index,
+                           join_hash_table_group_index,
                            QueryContext::kInvalidPredicateId /* residual_predicate_index */,
                            selection_index));
 
@@ -588,7 +588,7 @@ TEST_P(HashJoinOperatorTest, IntDuplicateKeyHashJoinTest) {
   }
 
   // Create cleaner operator.
-  unique_ptr<DestroyHashOperator> cleaner(new DestroyHashOperator(join_hash_table_index));
+  unique_ptr<DestroyHashOperator> cleaner(new DestroyHashOperator(join_hash_table_group_index));
   cleaner->informAllBlockingDependenciesMet();
   fetchAndExecuteWorkOrders(cleaner.get());
 
@@ -599,11 +599,11 @@ TEST_P(HashJoinOperatorTest, CharKeyCartesianProductHashJoinTest) {
   // Setup the hash table proto in the query context proto.
   serialization::QueryContext query_context_proto;
 
-  const QueryContext::join_hash_table_id join_hash_table_index =
-      query_context_proto.join_hash_tables_size();
+  const QueryContext::join_hash_table_group_id join_hash_table_group_index =
+      query_context_proto.join_hash_table_groups_size();
 
   serialization::HashTable *hash_table_proto =
-      query_context_proto.add_join_hash_tables();
+      query_context_proto.add_join_hash_table_groups()->add_join_hash_tables();
   switch (GetParam()) {
     case HashTableImplType::kLinearOpenAddressing:
       hash_table_proto->set_hash_table_impl_type(
@@ -636,7 +636,7 @@ TEST_P(HashJoinOperatorTest, CharKeyCartesianProductHashJoinTest) {
                             true /* is_stored */,
                             std::vector<attribute_id>(1, dim_col_char.getID()),
                             dim_col_char.getType().isNullable(),
-                            join_hash_table_index));
+                            join_hash_table_group_index));
 
   // Create prober operator with one selection attribute.
   const QueryContext::scalar_group_id selection_index = query_context_proto.scalar_groups_size();
@@ -666,7 +666,7 @@ TEST_P(HashJoinOperatorTest, CharKeyCartesianProductHashJoinTest) {
                            fact_col_char.getType().isNullable(),
                            *result_table,
                            output_destination_index,
-                           join_hash_table_index,
+                           join_hash_table_group_index,
                            QueryContext::kInvalidPredicateId /* residual_predicate_index */,
                            selection_index));
 
@@ -721,7 +721,7 @@ TEST_P(HashJoinOperatorTest, CharKeyCartesianProductHashJoinTest) {
   }
 
   // Create cleaner operator.
-  unique_ptr<DestroyHashOperator> cleaner(new DestroyHashOperator(join_hash_table_index));
+  unique_ptr<DestroyHashOperator> cleaner(new DestroyHashOperator(join_hash_table_group_index));
   cleaner->informAllBlockingDependenciesMet();
   fetchAndExecuteWorkOrders(cleaner.get());
 
@@ -732,11 +732,11 @@ TEST_P(HashJoinOperatorTest, VarCharDuplicateKeyHashJoinTest) {
   // Setup the hash table proto in the query context proto.
   serialization::QueryContext query_context_proto;
 
-  const QueryContext::join_hash_table_id join_hash_table_index =
-      query_context_proto.join_hash_tables_size();
+  const QueryContext::join_hash_table_group_id join_hash_table_group_index =
+      query_context_proto.join_hash_table_groups_size();
 
   serialization::HashTable *hash_table_proto =
-      query_context_proto.add_join_hash_tables();
+      query_context_proto.add_join_hash_table_groups()->add_join_hash_tables();
   switch (GetParam()) {
     case HashTableImplType::kLinearOpenAddressing:
       hash_table_proto->set_hash_table_impl_type(
@@ -770,7 +770,7 @@ TEST_P(HashJoinOperatorTest, VarCharDuplicateKeyHashJoinTest) {
                             true /* is_stored */,
                             std::vector<attribute_id>(1, dim_col_varchar.getID()),
                             dim_col_varchar.getType().isNullable(),
-                            join_hash_table_index));
+                            join_hash_table_group_index));
 
   // Create prober operator with two selection attributes.
   const QueryContext::scalar_group_id selection_index = query_context_proto.scalar_groups_size();
@@ -805,7 +805,7 @@ TEST_P(HashJoinOperatorTest, VarCharDuplicateKeyHashJoinTest) {
                            fact_col_varchar.getType().isNullable(),
                            *result_table,
                            output_destination_index,
-                           join_hash_table_index,
+                           join_hash_table_group_index,
                            QueryContext::kInvalidPredicateId /* residual_predicate_index */,
                            selection_index));
 
@@ -885,7 +885,7 @@ TEST_P(HashJoinOperatorTest, VarCharDuplicateKeyHashJoinTest) {
   }
 
   // Create the cleaner operator.
-  unique_ptr<DestroyHashOperator> cleaner(new DestroyHashOperator(join_hash_table_index));
+  unique_ptr<DestroyHashOperator> cleaner(new DestroyHashOperator(join_hash_table_group_index));
   cleaner->informAllBlockingDependenciesMet();
   fetchAndExecuteWorkOrders(cleaner.get());
 
@@ -896,11 +896,11 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinTest) {
   // Setup the hash table proto in the query context proto.
   serialization::QueryContext query_context_proto;
 
-  const QueryContext::join_hash_table_id join_hash_table_index =
-      query_context_proto.join_hash_tables_size();
+  const QueryContext::join_hash_table_group_id join_hash_table_group_index =
+      query_context_proto.join_hash_table_groups_size();
 
   serialization::HashTable *hash_table_proto =
-      query_context_proto.add_join_hash_tables();
+      query_context_proto.add_join_hash_table_groups()->add_join_hash_tables();
   switch (GetParam()) {
     case HashTableImplType::kLinearOpenAddressing:
       hash_table_proto->set_hash_table_impl_type(
@@ -939,7 +939,7 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinTest) {
                             true /* is_stored */,
                             dim_key_attrs,
                             dim_col_long.getType().isNullable() || dim_col_varchar.getType().isNullable(),
-                            join_hash_table_index));
+                            join_hash_table_group_index));
 
   // Create the prober operator with two selection attributes.
   const QueryContext::scalar_group_id selection_index = query_context_proto.scalar_groups_size();
@@ -978,7 +978,7 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinTest) {
                            fact_col_long.getType().isNullable() || fact_col_varchar.getType().isNullable(),
                            *result_table,
                            output_destination_index,
-                           join_hash_table_index,
+                           join_hash_table_group_index,
                            QueryContext::kInvalidPredicateId /* residual_predicate_index */,
                            selection_index));
 
@@ -1058,7 +1058,7 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinTest) {
   }
 
   // Create cleaner operator.
-  unique_ptr<DestroyHashOperator> cleaner(new DestroyHashOperator(join_hash_table_index));
+  unique_ptr<DestroyHashOperator> cleaner(new DestroyHashOperator(join_hash_table_group_index));
   cleaner->informAllBlockingDependenciesMet();
   fetchAndExecuteWorkOrders(cleaner.get());
 
@@ -1070,11 +1070,11 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinWithResidualPredicateTest) {
   // Setup the hash table proto in the query context proto.
   serialization::QueryContext query_context_proto;
 
-  const QueryContext::join_hash_table_id join_hash_table_index =
-      query_context_proto.join_hash_tables_size();
+  const QueryContext::join_hash_table_group_id join_hash_table_group_index =
+      query_context_proto.join_hash_table_groups_size();
 
   serialization::HashTable *hash_table_proto =
-      query_context_proto.add_join_hash_tables();
+      query_context_proto.add_join_hash_table_groups()->add_join_hash_tables();
   switch (GetParam()) {
     case HashTableImplType::kLinearOpenAddressing:
       hash_table_proto->set_hash_table_impl_type(
@@ -1113,7 +1113,7 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinWithResidualPredicateTest) {
                             true /* is_stored */,
                             dim_key_attrs,
                             dim_col_long.getType().isNullable() || dim_col_varchar.getType().isNullable(),
-                            join_hash_table_index));
+                            join_hash_table_group_index));
 
   // Create prober operator with two selection attributes.
   const QueryContext::scalar_group_id selection_index = query_context_proto.scalar_groups_size();
@@ -1162,7 +1162,7 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinWithResidualPredicateTest) {
                            fact_col_long.getType().isNullable() || fact_col_varchar.getType().isNullable(),
                            *result_table,
                            output_destination_index,
-                           join_hash_table_index,
+                           join_hash_table_group_index,
                            residual_pred_index,
                            selection_index));
 
@@ -1242,7 +1242,7 @@ TEST_P(HashJoinOperatorTest, CompositeKeyHashJoinWithResidualPredicateTest) {
   }
 
   // Create cleaner operator.
-  unique_ptr<DestroyHashOperator> cleaner(new DestroyHashOperator(join_hash_table_index));
+  unique_ptr<DestroyHashOperator> cleaner(new DestroyHashOperator(join_hash_table_group_index));
   cleaner->informAllBlockingDependenciesMet();
   fetchAndExecuteWorkOrders(cleaner.get());
 

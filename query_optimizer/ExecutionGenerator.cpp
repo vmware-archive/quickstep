@@ -42,6 +42,8 @@
 #include "catalog/CatalogRelation.hpp"
 #include "catalog/CatalogRelationSchema.hpp"
 #include "catalog/CatalogTypedefs.hpp"
+#include "catalog/PartitionScheme.hpp"
+#include "catalog/PartitionSchemeHeader.hpp"
 #include "expressions/Expressions.pb.h"
 #include "expressions/aggregation/AggregateFunction.hpp"
 #include "expressions/aggregation/AggregateFunction.pb.h"
@@ -117,6 +119,10 @@
 #include "types/containers/Tuple.pb.h"
 #include "utility/SqlError.hpp"
 
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+#include "catalog/NUMAPlacementScheme.hpp"
+#endif
+
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 
@@ -128,7 +134,6 @@ using std::vector;
 
 namespace quickstep {
 namespace optimizer {
-
 DEFINE_string(join_hashtable_type, "SeparateChaining",
               "HashTable implementation to use for hash joins (valid options "
               "are SeparateChaining or LinearOpenAddressing)");
@@ -332,6 +337,63 @@ void ExecutionGenerator::createTemporaryCatalogRelation(
   insert_destination_proto->set_relation_id(output_rel_id);
 }
 
+void ExecutionGenerator::createPartitionedTemporaryCatalogRelation(
+    const P::PhysicalPtr &physical,
+    const CatalogRelation **catalog_relation_output,
+    S::InsertDestination *insert_destination_proto,
+    const attribute_id part_attr_id,
+    const std::size_t num_partitions) {
+  attribute_id pid;
+  std::unique_ptr<CatalogRelation> catalog_relation(
+      new CatalogRelation(optimizer_context_->catalog_database(),
+                          getNewRelationName(),
+                          -1 /* id */,
+                          true /* is_temporary*/));
+  attribute_id aid = 0;
+  for (const E::NamedExpressionPtr &project_expression :
+       physical->getOutputAttributes()) {
+    // The attribute name is simply set to the attribute id to make it distinct.
+    std::unique_ptr<CatalogAttribute> catalog_attribute(
+        new CatalogAttribute(catalog_relation.get(),
+                             std::to_string(aid),
+                             project_expression->getValueType(),
+                             aid,
+                             project_expression->attribute_alias()));
+    attribute_substitution_map_[project_expression->id()] =
+        catalog_attribute.get();
+    if (part_attr_id == catalog_attribute.get()->getID()) {
+      pid = aid;
+    }
+    catalog_relation->addAttribute(catalog_attribute.release());
+    ++aid;
+  }
+
+  PartitionSchemeHeader *part_scheme_header = new HashPartitionSchemeHeader(num_partitions, pid);
+  PartitionScheme *partition_scheme = new PartitionScheme(part_scheme_header);
+  catalog_relation->setPartitionScheme(partition_scheme);
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+  NUMAPlacementScheme *placement_scheme = new NUMAPlacementScheme(num_partitions);
+  catalog_relation->setNUMAPlacementScheme(placement_scheme);
+#endif
+
+  *catalog_relation_output = catalog_relation.get();
+  const relation_id output_rel_id = optimizer_context_->catalog_database()->addRelation(
+      catalog_relation.release());
+
+#ifdef QUICKSTEP_DISTRIBUTED
+  referenced_relation_ids_.insert(output_rel_id);
+#endif
+
+  insert_destination_proto->set_insert_destination_type(S::InsertDestinationType::PARTITION_AWARE);
+  insert_destination_proto->set_relation_id(output_rel_id);
+  insert_destination_proto->MutableExtension(S::PartitionAwareInsertDestination::partition_scheme)
+      ->MergeFrom(partition_scheme->getProto());
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+  insert_destination_proto->MutableExtension(S::PartitionAwareInsertDestination::placement_scheme)
+      ->MergeFrom(placement_scheme->getProto());
+#endif
+}
+
 void ExecutionGenerator::dropAllTemporaryRelations() {
   CatalogDatabase *catalog_database = optimizer_context_->catalog_database();
   for (const CatalogRelationInfo &temporary_relation_info :
@@ -511,14 +573,34 @@ void ExecutionGenerator::convertSelection(
   const QueryContext::insert_destination_id insert_destination_index =
       query_context_proto_->insert_destinations_size();
   S::InsertDestination *insert_destination_proto = query_context_proto_->add_insert_destinations();
-  createTemporaryCatalogRelation(physical_selection,
-                                 &output_relation,
-                                 insert_destination_proto);
 
   // Create and add a Select operator.
   const CatalogRelationInfo *input_relation_info =
       findRelationInfoOutputByPhysical(physical_selection->input());
   DCHECK(input_relation_info != nullptr);
+
+  bool is_temp_relation_partitioned = false;
+  P::TableReferencePtr table_reference;
+  if (P::SomeTableReference::MatchesWithConditionalCast(physical_selection->input(), &table_reference) &&
+      table_reference->relation()->hasPartitionScheme()) {
+    const attribute_id partition_attr_id =
+       table_reference->relation()->getPartitionScheme().getPartitionSchemeHeader().getPartitionAttributeId();
+    const E::AttributeReferencePtr &attr = table_reference->attribute_list()[partition_attr_id];
+    if (E::ContainsExpression(physical_selection->getOutputAttributes(), attr)) {
+      is_temp_relation_partitioned = true;
+    }
+  }
+
+  if (is_temp_relation_partitioned) {
+    createPartitionedTemporaryCatalogRelation(
+        physical_selection,
+        &output_relation,
+        insert_destination_proto,
+        input_relation_info->relation->getPartitionScheme().getPartitionSchemeHeader().getPartitionAttributeId(),
+        input_relation_info->relation->getPartitionScheme().getPartitionSchemeHeader().getNumPartitions());
+  } else {
+    createTemporaryCatalogRelation(physical_selection, &output_relation, insert_destination_proto);
+  }
 
   // Use the "simple" form of the selection operator (a pure projection that
   // doesn't require any expression evaluation or intermediate copies) if
@@ -713,25 +795,73 @@ void ExecutionGenerator::convertHashJoin(const P::HashJoinPtr &physical_plan) {
   }
 
   // Create join hash table proto.
-  const QueryContext::join_hash_table_id join_hash_table_index =
-      query_context_proto_->join_hash_tables_size();
-  S::HashTable *hash_table_proto = query_context_proto_->add_join_hash_tables();
+  const QueryContext::join_hash_table_group_id join_hash_table_group_index =
+      query_context_proto_->join_hash_table_groups_size();
+  query_context_proto_->add_join_hash_table_groups();
+  std::vector<S::HashTable *> hash_table_proto;
 
-  // SimplifyHashTableImplTypeProto() switches the hash table implementation
-  // from SeparateChaining to SimpleScalarSeparateChaining when there is a
-  // single scalar key type with a reversible hash function.
-  hash_table_proto->set_hash_table_impl_type(
-      SimplifyHashTableImplTypeProto(
-          HashTableImplTypeProtoFromString(FLAGS_join_hashtable_type),
-          key_types));
+  bool is_numa_aware_join = false;
+  if (build_relation_info->relation->hasPartitionScheme() && probe_operator_info->relation->hasPartitionScheme()) {
+    if (build_relation_info->relation->getPartitionScheme().getPartitionSchemeHeader().getNumPartitions() ==
+        probe_operator_info->relation->getPartitionScheme().getPartitionSchemeHeader().getNumPartitions()) {
+      // check if partitioning attribute == join attribute for both the probe and the build relations.
+      if (std::find(build_attribute_ids.begin(),
+                    build_attribute_ids.end(),
+                    build_relation_info->relation->getPartitionScheme()
+                        .getPartitionSchemeHeader()
+                        .getPartitionAttributeId()) != build_attribute_ids.end() &&
+          std::find(probe_attribute_ids.begin(),
+                    probe_attribute_ids.end(),
+                    probe_operator_info->relation->getPartitionScheme()
+                        .getPartitionSchemeHeader()
+                        .getPartitionAttributeId()) != probe_attribute_ids.end()) {
+        is_numa_aware_join = true;
+        const std::size_t num_partitions =
+            build_relation_info->relation->getPartitionScheme().getPartitionSchemeHeader().getNumPartitions();
+        hash_table_proto.resize(num_partitions);
+        for (std::size_t part_id = 0; part_id < num_partitions; ++part_id) {
+          hash_table_proto[part_id] = query_context_proto_->mutable_join_hash_table_groups(
+                                                                join_hash_table_group_index)->add_join_hash_tables();
 
-  const CatalogRelationSchema *build_relation = build_relation_info->relation;
-  for (const attribute_id build_attribute : build_attribute_ids) {
-    hash_table_proto->add_key_types()->CopyFrom(
-        build_relation->getAttributeById(build_attribute)->getType().getProto());
+          // SimplifyHashTableImplTypeProto() switches the hash table implementation
+          // from SeparateChaining to SimpleScalarSeparateChaining when there is a
+          // single scalar key type with a reversible hash function.
+          hash_table_proto[part_id]->set_hash_table_impl_type(
+              SimplifyHashTableImplTypeProto(
+                  HashTableImplTypeProtoFromString(FLAGS_join_hashtable_type),
+                  key_types));
+
+          const CatalogRelationSchema *build_relation = build_relation_info->relation;
+          for (const attribute_id build_attribute : build_attribute_ids) {
+            hash_table_proto[part_id]->add_key_types()->CopyFrom(
+                build_relation->getAttributeById(build_attribute)->getType().getProto());
+          }
+
+          hash_table_proto[part_id]->set_estimated_num_entries(build_cardinality);
+        }
+      }
+    }
   }
 
-  hash_table_proto->set_estimated_num_entries(build_cardinality);
+  if (!is_numa_aware_join) {
+    hash_table_proto.emplace_back(
+        query_context_proto_->mutable_join_hash_table_groups(join_hash_table_group_index)->add_join_hash_tables());
+    // SimplifyHashTableImplTypeProto() switches the hash table implementation
+    // from SeparateChaining to SimpleScalarSeparateChaining when there is a
+    // single scalar key type with a reversible hash function.
+    hash_table_proto.front()->set_hash_table_impl_type(
+        SimplifyHashTableImplTypeProto(
+            HashTableImplTypeProtoFromString(FLAGS_join_hashtable_type),
+            key_types));
+
+    const CatalogRelationSchema *build_relation = build_relation_info->relation;
+    for (const attribute_id build_attribute : build_attribute_ids) {
+      hash_table_proto.front()->add_key_types()->CopyFrom(
+          build_relation->getAttributeById(build_attribute)->getType().getProto());
+    }
+
+    hash_table_proto.front()->set_estimated_num_entries(build_cardinality);
+  }
 
   // Create three operators.
   const QueryPlan::DAGNodeIndex build_operator_index =
@@ -741,7 +871,8 @@ void ExecutionGenerator::convertHashJoin(const P::HashJoinPtr &physical_plan) {
               build_relation_info->isStoredRelation(),
               build_attribute_ids,
               any_build_attributes_nullable,
-              join_hash_table_index));
+              join_hash_table_group_index,
+              is_numa_aware_join));
 
   // Create InsertDestination proto.
   const CatalogRelation *output_relation = nullptr;
@@ -784,16 +915,23 @@ void ExecutionGenerator::convertHashJoin(const P::HashJoinPtr &physical_plan) {
               any_probe_attributes_nullable,
               *output_relation,
               insert_destination_index,
-              join_hash_table_index,
+              join_hash_table_group_index,
               residual_predicate_index,
               project_expressions_group_index,
+              is_numa_aware_join,
               is_selection_on_build.get(),
               join_type));
   insert_destination_proto->set_relational_op_index(join_operator_index);
 
+  std::size_t num_partitions = 0;
+
+  if (build_relation_info->relation->hasPartitionScheme()) {
+    num_partitions = build_relation_info->relation->getPartitionScheme().getPartitionSchemeHeader().getNumPartitions();
+  }
+
   const QueryPlan::DAGNodeIndex destroy_operator_index =
       execution_plan_->addRelationalOperator(
-          new DestroyHashOperator(join_hash_table_index));
+          new DestroyHashOperator(join_hash_table_group_index, num_partitions, is_numa_aware_join));
 
   if (!build_relation_info->isStoredRelation()) {
     execution_plan_->addDirectDependency(build_operator_index,
@@ -835,7 +973,7 @@ void ExecutionGenerator::convertHashJoin(const P::HashJoinPtr &physical_plan) {
                                            referenced_stored_probe_relation,
                                            std::move(build_original_attribute_ids),
                                            std::move(probe_original_attribute_ids),
-                                           join_hash_table_index);
+                                           join_hash_table_group_index);
   }
 }
 
@@ -920,14 +1058,30 @@ void ExecutionGenerator::convertCopyFrom(
       query_context_proto_->insert_destinations_size();
   S::InsertDestination *insert_destination_proto = query_context_proto_->add_insert_destinations();
 
-  insert_destination_proto->set_insert_destination_type(S::InsertDestinationType::BLOCK_POOL);
-  insert_destination_proto->set_relation_id(output_relation->getID());
-  insert_destination_proto->mutable_layout()->MergeFrom(
-      output_relation->getDefaultStorageBlockLayout().getDescription());
-
-  const vector<block_id> blocks(physical_plan->catalog_relation()->getBlocksSnapshot());
-  for (const block_id block : blocks) {
-    insert_destination_proto->AddExtension(S::BlockPoolInsertDestination::blocks, block);
+  if (physical_plan->catalog_relation()->hasPartitionScheme()) {
+    const PartitionScheme &partition_scheme = physical_plan->catalog_relation()->getPartitionScheme();
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+    const NUMAPlacementScheme &placement_scheme = physical_plan->catalog_relation()->getNUMAPlacementScheme();
+#endif
+    insert_destination_proto->set_insert_destination_type(S::InsertDestinationType::PARTITION_AWARE);
+    insert_destination_proto->set_relation_id(output_relation->getID());
+    insert_destination_proto->mutable_layout()->MergeFrom(
+        output_relation->getDefaultStorageBlockLayout().getDescription());
+    insert_destination_proto->MutableExtension(S::PartitionAwareInsertDestination::partition_scheme)
+        ->MergeFrom(partition_scheme.getProto());
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+    insert_destination_proto->MutableExtension(S::PartitionAwareInsertDestination::placement_scheme)
+        ->MergeFrom(placement_scheme.getProto());
+#endif
+  } else {
+    insert_destination_proto->set_insert_destination_type(S::InsertDestinationType::BLOCK_POOL);
+    insert_destination_proto->set_relation_id(output_relation->getID());
+    insert_destination_proto->mutable_layout()->MergeFrom(
+        output_relation->getDefaultStorageBlockLayout().getDescription());
+    const vector<block_id> blocks(physical_plan->catalog_relation()->getBlocksSnapshot());
+    for (const block_id block : blocks) {
+      insert_destination_proto->AddExtension(S::BlockPoolInsertDestination::blocks, block);
+    }
   }
 
   const QueryPlan::DAGNodeIndex scan_operator_index =
@@ -1030,9 +1184,20 @@ void ExecutionGenerator::convertCreateTable(
     catalog_relation->setDefaultStorageBlockLayout(layout.release());
   }
 
+  if (physical_plan->partition_scheme()) {
+    LOG(INFO) << "Relation created with partition scheme." << std::endl;
+    std::size_t num_partitions = physical_plan->partition_scheme()->getPartitionSchemeHeader().getNumPartitions();
+    attribute_id part_attr_id = physical_plan->partition_scheme()->getPartitionSchemeHeader().getPartitionAttributeId();
+    PartitionSchemeHeader *part_scheme_header = new HashPartitionSchemeHeader(num_partitions, part_attr_id);
+    PartitionScheme *partition_scheme = new PartitionScheme(part_scheme_header);
+    catalog_relation->setPartitionScheme(partition_scheme);
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+    NUMAPlacementScheme *placement_scheme = new NUMAPlacementScheme(num_partitions);
+    catalog_relation->setNUMAPlacementScheme(placement_scheme);
+#endif
+  }
   execution_plan_->addRelationalOperator(
-      new CreateTableOperator(catalog_relation.release(),
-                              optimizer_context_->catalog_database()));
+      new CreateTableOperator(catalog_relation.release(), optimizer_context_->catalog_database()));
 }
 
 void ExecutionGenerator::convertDeleteTuples(
@@ -1139,14 +1304,30 @@ void ExecutionGenerator::convertInsertTuple(
       query_context_proto_->insert_destinations_size();
   S::InsertDestination *insert_destination_proto = query_context_proto_->add_insert_destinations();
 
-  insert_destination_proto->set_insert_destination_type(S::InsertDestinationType::BLOCK_POOL);
-  insert_destination_proto->set_relation_id(input_relation.getID());
-  insert_destination_proto->mutable_layout()->MergeFrom(
-      input_relation.getDefaultStorageBlockLayout().getDescription());
-
-  const vector<block_id> blocks(input_relation.getBlocksSnapshot());
-  for (const block_id block : blocks) {
-    insert_destination_proto->AddExtension(S::BlockPoolInsertDestination::blocks, block);
+  if (input_relation_info->relation->hasPartitionScheme()) {
+    const PartitionScheme &partition_scheme = input_relation_info->relation->getPartitionScheme();
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+    const NUMAPlacementScheme &placement_scheme = input_relation_info->relation->getNUMAPlacementScheme();
+#endif
+    insert_destination_proto->set_insert_destination_type(S::InsertDestinationType::PARTITION_AWARE);
+    insert_destination_proto->set_relation_id(input_relation.getID());
+    insert_destination_proto->mutable_layout()->MergeFrom(
+        input_relation.getDefaultStorageBlockLayout().getDescription());
+    insert_destination_proto->MutableExtension(S::PartitionAwareInsertDestination::partition_scheme)
+        ->MergeFrom(partition_scheme.getProto());
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+    insert_destination_proto->MutableExtension(S::PartitionAwareInsertDestination::placement_scheme)
+        ->MergeFrom(placement_scheme.getProto());
+#endif
+  } else {
+    insert_destination_proto->set_insert_destination_type(S::InsertDestinationType::BLOCK_POOL);
+    insert_destination_proto->set_relation_id(input_relation.getID());
+    insert_destination_proto->mutable_layout()->MergeFrom(
+        input_relation.getDefaultStorageBlockLayout().getDescription());
+    const vector<block_id> blocks(input_relation.getBlocksSnapshot());
+    for (const block_id block : blocks) {
+      insert_destination_proto->AddExtension(S::BlockPoolInsertDestination::blocks, block);
+    }
   }
 
   const QueryPlan::DAGNodeIndex insert_operator_index =

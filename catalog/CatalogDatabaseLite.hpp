@@ -23,6 +23,7 @@
 namespace quickstep {
 
 class CatalogRelationSchema;
+class CatalogRelation;
 
 /** \addtogroup Catalog
  *  @{
