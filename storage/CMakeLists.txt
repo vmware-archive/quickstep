@@ -993,6 +993,7 @@ target_link_libraries(quickstep_storage_ValueAccessorUtil
                       quickstep_storage_SplitRowStoreValueAccessor
                       quickstep_storage_ValueAccessor
                       quickstep_types_containers_ColumnVectorsValueAccessor
+                      quickstep_types_containers_TupleVectorValueAccessor
                       quickstep_utility_Macros)
 
 # Module all-in-one library:

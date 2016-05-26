@@ -76,7 +76,9 @@ class ValueAccessor {
     kPackedRowStore,
     kSplitRowStore,
     // Accessor for a group of ColumnVectors:
-    kColumnVectors
+    kColumnVectors,
+    // Accessor for a vector of Tuples:
+    kTupleVector
   };
 
   ValueAccessor() {

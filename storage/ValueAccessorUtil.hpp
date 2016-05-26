@@ -27,6 +27,7 @@
 #include "storage/SplitRowStoreValueAccessor.hpp"
 #include "storage/ValueAccessor.hpp"
 #include "types/containers/ColumnVectorsValueAccessor.hpp"
+#include "types/containers/TupleVectorValueAccessor.hpp"
 #include "utility/Macros.hpp"
 
 #include "glog/logging.h"
@@ -74,6 +75,8 @@ auto InvokeOnValueAccessorNotAdapter(
       return functor(static_cast<SplitRowStoreValueAccessor*>(accessor));
     case ValueAccessor::Implementation::kColumnVectors:
       return functor(static_cast<ColumnVectorsValueAccessor*>(accessor));
+    case ValueAccessor::Implementation::kTupleVector:
+      return functor(static_cast<TupleVectorValueAccessor*>(accessor));
     default: {
       LOG(FATAL) << "Unrecognized ValueAccessor::Implementation: "
                  << static_cast<std::underlying_type<ValueAccessor::Implementation>::type>(
@@ -131,6 +134,10 @@ auto InvokeOnTupleIdSequenceAdapterValueAccessor(
       return functor(
           static_cast<TupleIdSequenceAdapterValueAccessor<ColumnVectorsValueAccessor>*>(
               accessor));
+    case ValueAccessor::Implementation::kTupleVector:
+      return functor(
+          static_cast<TupleIdSequenceAdapterValueAccessor<TupleVectorValueAccessor>*>(
+              accessor));
     default: {
       LOG(FATAL) << "Unrecognized ValueAccessor::Implementation: "
                  << static_cast<std::underlying_type<ValueAccessor::Implementation>::type>(
@@ -186,6 +193,10 @@ auto InvokeOnOrderedTupleIdSequenceAdapterValueAccessor(
     case ValueAccessor::Implementation::kColumnVectors:
       return functor(
           static_cast<OrderedTupleIdSequenceAdapterValueAccessor<ColumnVectorsValueAccessor>*>(
+              accessor));
+    case ValueAccessor::Implementation::kTupleVector:
+      return functor(
+          static_cast<OrderedTupleIdSequenceAdapterValueAccessor<TupleVectorValueAccessor>*>(
               accessor));
     default: {
       LOG(FATAL) << "Unrecognized ValueAccessor::Implementation: "
