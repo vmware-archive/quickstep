@@ -187,6 +187,7 @@ add_library(quickstep_storage_HashTable_proto ${storage_HashTable_proto_srcs})
 add_library(quickstep_storage_HashTableBase ../empty_src.cpp HashTableBase.hpp)
 add_library(quickstep_storage_HashTableFactory HashTableFactory.cpp HashTableFactory.hpp)
 add_library(quickstep_storage_HashTableKeyManager ../empty_src.cpp HashTableKeyManager.hpp)
+add_library(quickstep_storage_HashTablePool ../empty_src.cpp HashTablePool.hpp)
 add_library(quickstep_storage_IndexSubBlock ../empty_src.cpp IndexSubBlock.hpp)
 add_library(quickstep_storage_IndexSubBlockDescriptionFactory ../empty_src.cpp IndexSubBlockDescriptionFactory.hpp)
 add_library(quickstep_storage_InsertDestination InsertDestination.cpp InsertDestination.hpp)
@@ -252,6 +253,7 @@ target_link_libraries(quickstep_storage_AggregationOperationState
                       quickstep_storage_HashTable
                       quickstep_storage_HashTableBase
                       quickstep_storage_HashTableFactory
+                      quickstep_storage_HashTablePool
                       quickstep_storage_InsertDestination
                       quickstep_storage_StorageBlock
                       quickstep_storage_StorageBlockInfo
@@ -585,20 +587,22 @@ target_link_libraries(quickstep_storage_FileManager
                       quickstep_utility_Macros
                       quickstep_utility_StringUtil)
 if (QUICKSTEP_HAVE_FILE_MANAGER_HDFS)
-target_link_libraries(quickstep_storage_FileManagerHdfs
-                      gflags_nothreads-static
-                      quickstep_storage_FileManager
-                      quickstep_storage_StorageBlockInfo
-                      quickstep_storage_StorageConstants
-                      quickstep_storage_StorageErrors
-                      quickstep_utility_Macros
-                      quickstep_utility_StringUtil
-                      ${LIBHDFS3_LIBRARIES})
+  target_link_libraries(quickstep_storage_FileManagerHdfs
+                        glog
+                        gflags_nothreads-static
+                        quickstep_storage_FileManager
+                        quickstep_storage_StorageBlockInfo
+                        quickstep_storage_StorageConstants
+                        quickstep_storage_StorageErrors
+                        quickstep_utility_Macros
+                        quickstep_utility_StringUtil
+                        ${LIBHDFS3_LIBRARIES})
 endif()
 if (QUICKSTEP_HAVE_FILE_MANAGER_POSIX)
   target_link_libraries(quickstep_storage_FileManagerLocal
                         quickstep_storage_FileManagerPosix)
   target_link_libraries(quickstep_storage_FileManagerPosix
+                        glog
                         quickstep_storage_FileManager
                         quickstep_storage_StorageBlockInfo
                         quickstep_storage_StorageConstants
@@ -609,6 +613,7 @@ elseif (QUICKSTEP_HAVE_FILE_MANAGER_WINDOWS)
   target_link_libraries(quickstep_storage_FileManagerLocal
                         quickstep_storage_FileManagerWindows)
   target_link_libraries(quickstep_storage_FileManagerWindows
+                        glog
                         quickstep_storage_FileManager
                         quickstep_storage_StorageBlockInfo
                         quickstep_storage_StorageConstants
@@ -629,6 +634,7 @@ target_link_libraries(quickstep_storage_HashTable
                       quickstep_threading_SpinSharedMutex
                       quickstep_types_Type
                       quickstep_types_TypedValue
+                      quickstep_utility_BloomFilter
                       quickstep_utility_HashPair
                       quickstep_utility_Macros)
 target_link_libraries(quickstep_storage_HashTableBase
@@ -648,6 +654,7 @@ target_link_libraries(quickstep_storage_HashTableFactory
                       quickstep_types_Type
                       quickstep_types_TypeFactory
                       quickstep_types_TypedValue
+                      quickstep_utility_BloomFilter
                       quickstep_utility_Macros)
 target_link_libraries(quickstep_storage_HashTableKeyManager
                       glog
@@ -657,6 +664,13 @@ target_link_libraries(quickstep_storage_HashTableKeyManager
                       quickstep_types_TypedValue
                       quickstep_types_operations_comparisons_ComparisonUtil
                       quickstep_utility_Macros)
+target_link_libraries(quickstep_storage_HashTablePool
+                      glog
+                      quickstep_expressions_aggregation_AggregationHandle
+                      quickstep_storage_HashTableBase
+                      quickstep_threading_SpinMutex
+                      quickstep_utility_Macros
+                      quickstep_utility_StringUtil)
 target_link_libraries(quickstep_storage_IndexSubBlock
                       quickstep_catalog_CatalogTypedefs
                       quickstep_expressions_predicate_PredicateCost
@@ -1007,6 +1021,7 @@ target_link_libraries(quickstep_storage
                       quickstep_storage_HashTableBase
                       quickstep_storage_HashTableFactory
                       quickstep_storage_HashTableKeyManager
+                      quickstep_storage_HashTablePool
                       quickstep_storage_IndexSubBlock
                       quickstep_storage_IndexSubBlockDescriptionFactory
                       quickstep_storage_InsertDestination
@@ -1196,7 +1211,7 @@ target_link_libraries(BloomFilterIndexSubBlock_unittest
 add_test(BloomFilterIndexSubBlock_unittest BloomFilterIndexSubBlock_unittest)
 
 if(QUICKSTEP_HAVE_BITWEAVING)
-  add_executable(BitWeavingIndexSubBlock_unittest 
+  add_executable(BitWeavingIndexSubBlock_unittest
                  "${CMAKE_CURRENT_SOURCE_DIR}/bitweaving/tests/BitWeavingIndexSubBlock_unittest.cpp")
   target_link_libraries(BitWeavingIndexSubBlock_unittest
                         glog
@@ -1446,6 +1461,7 @@ target_link_libraries(SMAIndexSubBlock_unittest
                       quickstep_types_CharType
                       quickstep_types_DoubleType
                       quickstep_types_FloatType
+                      quickstep_types_IntType
                       quickstep_types_LongType
                       quickstep_types_TypeFactory
                       quickstep_types_TypeID

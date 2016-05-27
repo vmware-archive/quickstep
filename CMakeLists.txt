@@ -490,6 +490,9 @@ if(USE_TCMALLOC)
         CXXFLAGS=${THIRD_PARTY_CXX_FLAGS}
     BUILD_COMMAND make
     BUILD_IN_SOURCE 0
+    # Uncomment the next line to change the path of the build by products
+    #   as some generators, e.g. Ninja, may need it to build properly
+    # BUILD_BYPRODUCTS <INSTALL_DIR>/lib/libtcmalloc_minimal.a
   )
   # Static libtcmalloc_minimal.a
   add_library(libtcmalloc_minimal STATIC IMPORTED)
@@ -712,7 +715,8 @@ target_link_libraries(quickstep_cli_shell
                       quickstep_threading_ThreadIDBasedMap
                       quickstep_utility_Macros
                       quickstep_utility_PtrVector
-                      quickstep_utility_SqlError)
+                      quickstep_utility_SqlError
+                      quickstep_utility_StringUtil)
 if (ENABLE_HDFS)
   target_link_libraries(quickstep_cli_shell
                         quickstep_storage_FileManagerHdfs)
