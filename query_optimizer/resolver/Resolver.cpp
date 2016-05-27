@@ -116,6 +116,7 @@
 #include "types/operations/comparisons/ComparisonFactory.hpp"
 #include "types/operations/comparisons/ComparisonID.hpp"
 #include "types/operations/unary_operations/DateExtractOperation.hpp"
+#include "types/operations/unary_operations/SubstringOperation.hpp"
 #include "types/operations/unary_operations/UnaryOperation.hpp"
 #include "utility/PtrList.hpp"
 #include "utility/PtrVector.hpp"
@@ -609,16 +610,21 @@ StorageBlockLayoutDescription* Resolver::resolveBlockProperties(
   // Resolve the Block size (size -> # of slots).
   std::int64_t slots = kDefaultBlockSizeInSlots;
   if (block_properties->hasBlockSizeMb()) {
-    std::int64_t blocksizemb = block_properties->getBlockSizeMbValue();
-    if (blocksizemb == -1) {
+    const std::int64_t block_size_in_mega_bytes = block_properties->getBlockSizeMbValue();
+    if (block_size_in_mega_bytes == -1) {
       // Indicates an error condition if the property is present but getter returns -1.
       THROW_SQL_ERROR_AT(block_properties->getBlockSizeMb())
           << "The BLOCKSIZEMB property must be an integer.";
+    } else if ((block_size_in_mega_bytes * kAMegaByte) % kSlotSizeBytes != 0) {
+      THROW_SQL_ERROR_AT(block_properties->getBlockSizeMb())
+          << "The BLOCKSIZEMB property must be multiple times of "
+          << std::to_string(kSlotSizeBytes / kAMegaByte) << "MB.";
     }
-    slots = (blocksizemb * kAMegaByte) / kSlotSizeBytes;
+
+    slots = (block_size_in_mega_bytes * kAMegaByte) / kSlotSizeBytes;
     DLOG(INFO) << "Resolver using BLOCKSIZEMB of " << slots << " slots"
         << " which is " << (slots * kSlotSizeBytes) << " bytes versus"
-        << " user requested " << (blocksizemb * kAMegaByte) << " bytes.";
+        << " user requested " << (block_size_in_mega_bytes * kAMegaByte) << " bytes.";
     const std::uint64_t max_size_slots = kBlockSizeUpperBoundBytes / kSlotSizeBytes;
     const std::uint64_t min_size_slots = kBlockSizeLowerBoundBytes / kSlotSizeBytes;
     if (static_cast<std::uint64_t>(slots) < min_size_slots ||
@@ -2184,6 +2190,37 @@ E::ScalarPtr Resolver::resolveExpression(
             << argument->getValueType().getName();
       }
 
+      return E::UnaryExpression::Create(op, argument);
+    }
+    case ParseExpression::kSubstring: {
+      const ParseSubstringFunction &parse_substring =
+          static_cast<const ParseSubstringFunction&>(parse_expression);
+
+      // Validate start position and substring length.
+      if (parse_substring.start_position() <= 0) {
+        THROW_SQL_ERROR_AT(&parse_expression)
+            << "The start position must be greater than 0";
+      }
+      if (parse_substring.length() <= 0) {
+        THROW_SQL_ERROR_AT(&parse_expression)
+            << "The substring length must be greater than 0";
+      }
+
+      // Convert 1-base position to 0-base position
+      const std::size_t zero_base_start_position = parse_substring.start_position() - 1;
+      const SubstringOperation &op =
+          SubstringOperation::Instance(zero_base_start_position,
+                                       parse_substring.length());
+
+      const E::ScalarPtr argument =
+          resolveExpression(*parse_substring.operand(),
+                            op.pushDownTypeHint(type_hint),
+                            expression_resolution_info);
+      if (!op.canApplyToType(argument->getValueType())) {
+        THROW_SQL_ERROR_AT(&parse_substring)
+            << "Can not apply substring function to argument of type "
+            << argument->getValueType().getName();
+      }
       return E::UnaryExpression::Create(op, argument);
     }
     default:

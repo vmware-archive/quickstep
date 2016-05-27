@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "catalog/CatalogTypedefs.hpp"
+#include "catalog/CatalogRelation.hpp"
 #include "expressions/aggregation/AggregationHandle.hpp"
 #include "expressions/scalar/Scalar.hpp"
 #include "query_execution/QueryContext.hpp"
@@ -119,7 +120,7 @@ class WindowAggregationOperator : public RelationalOperator {
       const TypedValue &window_duration,
       std::int32_t age_duration,
       const QueryContext::insert_destination_id output_dest_id,
-      const relation_id output_rel_id,
+      const CatalogRelation &output_relation,
       const serialization::HashTableImplType hash_table_impl_type,
       StorageManager *storage_manager);
 
@@ -146,7 +147,7 @@ class WindowAggregationOperator : public RelationalOperator {
   }
 
   const relation_id getOutputRelationID() const override {
-    return output_rel_id_;
+    return output_relation_.getID();
   }
 
  private:
@@ -156,7 +157,7 @@ class WindowAggregationOperator : public RelationalOperator {
   std::vector<block_id>::size_type num_workorders_generated_ = 0;
   std::vector<block_id>::size_type input_write_threshold_;
   const QueryContext::insert_destination_id output_dest_id_;
-  const relation_id output_rel_id_;
+  const CatalogRelation &output_relation_;
   bool started_ = false;
   WindowAggregationState state_;
 
@@ -186,21 +187,23 @@ class WindowAggregationWorkOrder : public WorkOrder {
    * @param state The window aggregation state.
    * @param write_mode The write mode of the work order.
    **/
-  WindowAggregationWorkOrder(const block_id input_block_id,
+   WindowAggregationWorkOrder(const block_id input_block_id,
 				  const relation_id input_rel_id,
-                             const QueryContext::insert_destination_id output_dest_id,
-                             WindowAggregationState *state,
-			     StorageManager *storage_manager,
-			     QueryContext *query_context,
-		             WriteMode write_mode = kChangedBuckets			
+				  InsertDestination *output_destination,
+                  WindowAggregationState *state,
+			      StorageManager *storage_manager,
+			      QueryContext *query_context,
+			      const CatalogRelation &input_relation,
+		          WriteMode write_mode = kChangedBuckets
 				)
       : input_block_id_(input_block_id),
-	 input_rel_id_(input_rel_id),
-        output_dest_id_(output_dest_id),
+	    input_rel_id_(input_rel_id),
+	    output_destination_(DCHECK_NOTNULL(output_destination)),
         state_(state),
-	storage_manager(DCHECK_NOTNULL(storage_manager)),
+	    storage_manager(DCHECK_NOTNULL(storage_manager)),
         query_context(DCHECK_NOTNULL(query_context)),
-	write_mode_(write_mode)
+        input_relation_(input_relation),
+	    write_mode_(write_mode)
         {}
 
   ~WindowAggregationWorkOrder() override {}
@@ -210,11 +213,12 @@ class WindowAggregationWorkOrder : public WorkOrder {
  private:
   const block_id input_block_id_;
 const relation_id input_rel_id_;
-  const QueryContext::insert_destination_id output_dest_id_;
+  InsertDestination *output_destination_;
   WindowAggregationState *state_;
   StorageManager *storage_manager;
-   QueryContext *query_context; 
- const WriteMode write_mode_;		 
+  QueryContext *query_context;
+  const CatalogRelation &input_relation_;
+  const WriteMode write_mode_;		 
   DISALLOW_COPY_AND_ASSIGN(WindowAggregationWorkOrder);
 };
 

@@ -135,7 +135,7 @@ class WindowAggregationOperatorTest : public ::testing::Test {
       for (tuple_id tid = i * kNumTuplesPerBlock;
            tid < (i + 1) * kNumTuplesPerBlock;
            ++tid) {
-        tuple.reset(createTuple(*table_, tid));
+        tuple.reset(createTuple(tid));
         EXPECT_TRUE(storage_block->insertTupleInBatch(*tuple));
       }
       storage_block->rebuild();
@@ -148,7 +148,7 @@ class WindowAggregationOperatorTest : public ::testing::Test {
     thread_id_map_->removeValue();
   }
 
-  Tuple* createTuple(const CatalogRelation &relation, const std::int64_t val) {
+  Tuple* createTuple(const std::int64_t val) {
     std::vector<TypedValue> attributes;
     std::int32_t window_id = val % kNumWindows;
     attributes.push_back(TypedValue(static_cast<IntType::cpptype>(
@@ -200,7 +200,7 @@ class WindowAggregationOperatorTest : public ::testing::Test {
         query_context_proto.add_insert_destinations();
 
     insert_destination_proto->set_insert_destination_type(
-        serialization::InsertDestinationType::BLOCK_POOL);
+        serialization::InsertDestinationType::ALWAYS_CREATE_BLOCK);
     insert_destination_proto->set_relation_id(output_relation_id);
     insert_destination_proto->set_relational_op_index(kOpIndex);
 
@@ -220,7 +220,7 @@ class WindowAggregationOperatorTest : public ::testing::Test {
                                       TypedValue(kWindowDuration),
                                       kAgeDuration,
                                       insert_destination_index,
-                                      output_relation_id,
+                                      *result_table_,
                                       serialization::HashTableImplType::LINEAR_OPEN_ADDRESSING,
                                       storage_manager_.get()));
 
@@ -278,6 +278,7 @@ class WindowAggregationOperatorTest : public ::testing::Test {
             actual0,
             actual1,
             num_block_per_window[window] * kNumTuplesPerBlock / kNumWindows);
+
 #if 0
         LOG(INFO) << ">>>> " << window_col.getLiteral<IntType::cpptype>() << ' '
                   << actual0.getLiteral<LongType::cpptype>() << ' '

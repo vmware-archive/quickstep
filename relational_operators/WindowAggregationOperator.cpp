@@ -68,7 +68,7 @@ WindowAggregationOperator::WindowAggregationOperator(
     const TypedValue &window_duration,
     std::int32_t age_duration,
     const QueryContext::insert_destination_id output_dest_id,
-    const relation_id output_rel_id,
+    const CatalogRelation &output_relation,
     const serialization::HashTableImplType hash_table_impl_type,
     StorageManager *storage_manager)
     : input_relation_(input_relation),
@@ -78,10 +78,10 @@ WindowAggregationOperator::WindowAggregationOperator(
                                  ? input_relation_block_ids_.size() - 1
                                  : 0),
       output_dest_id_(output_dest_id),
-      output_rel_id_(output_rel_id),
+      output_relation_(output_relation),
       state_(window_attribute, std::move(group_by), window_duration, age_duration) {
-  DCHECK(!aggregate_functions.empty());
-  DCHECK_EQ(aggregate_functions.size(), aggregate_arguments.size());
+      DCHECK(!aggregate_functions.empty());
+      DCHECK_EQ(aggregate_functions.size(), aggregate_arguments.size());
 
   state_.arguments = std::move(aggregate_arguments);
 
@@ -138,17 +138,23 @@ bool WindowAggregationOperator::getAllWorkOrders(
     StorageManager *storage_manager,
     const tmb::client_id foreman_client_id,
     tmb::MessageBus *bus) {
-  if (input_relation_is_stored_) {
-    if (!started_) {
-      for (std::size_t i = 0; i < input_relation_block_ids_.size(); ++i) {
-        container->addNormalWorkOrder(
-            new WindowAggregationWorkOrder(input_relation_block_ids_[i],
+  
+	InsertDestination *output_destination =
+	    	       query_context->getInsertDestination(output_dest_id_);
+
+	if (input_relation_is_stored_) {
+      if (!started_) {
+         for (std::size_t i = 0; i < input_relation_block_ids_.size(); ++i) {
+
+            container->addNormalWorkOrder(
+                  new WindowAggregationWorkOrder(input_relation_block_ids_[i],
                                            input_relation_.getID(),
-                                           output_dest_id_,
+                                           output_destination ,
 					    &state_,	
-					   storage_manager,
-					   query_context
-					   ),
+			  		    storage_manager,
+					    query_context,
+					    input_relation_
+			      ),
             op_index_);
       }
       started_ = true;
@@ -160,11 +166,12 @@ bool WindowAggregationOperator::getAllWorkOrders(
     	container->addNormalWorkOrder(
           new WindowAggregationWorkOrder(
         		  input_relation_block_ids_[num_workorders_generated_],
-              input_relation_.getID(),
-              output_dest_id_,
-	      &state_,
+             input_relation_.getID(),
+              output_destination,
+	          &state_,
               storage_manager,
-              query_context
+              query_context,
+              input_relation_
               ),
           op_index_);
       ++num_workorders_generated_;
@@ -202,14 +209,11 @@ struct VecTypedValueEqualTo {
 void WindowAggregationWorkOrder::execute() {
   VLOG(3) << "WindowAggregationWorkOrder::execute() called.";
   DCHECK(query_context != nullptr);
-  //DCHECK(database != nullptr);
   DCHECK(storage_manager != nullptr);
+  DCHECK(output_destination_ != nullptr);
 
-  InsertDestination *output_dest = query_context->getInsertDestination(output_dest_id_);
-  DCHECK(output_dest != nullptr);
-//TODO	
   BlockReference block(storage_manager->getBlock(
-      input_block_id_, output_dest->getRelation()));
+      input_block_id_, input_relation_));
 
   std::unique_ptr<TupleIdSequence> reuse_matches;
   std::vector<std::unique_ptr<ColumnVector>> reuse_group_by_vectors;
@@ -310,7 +314,7 @@ void WindowAggregationWorkOrder::execute() {
   for (auto &col : agg_columns) {
     result.addColumn(col.release());
   }
-  output_dest->bulkInsertTuples(&result, true);
+  output_destination_->bulkInsertTuples(&result, true);
 }
 
 }  // namespace quickstep

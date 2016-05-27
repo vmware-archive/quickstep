@@ -1,6 +1,8 @@
 /**
  *   Copyright 2011-2015 Quickstep Technologies LLC.
  *   Copyright 2015-2016 Pivotal Software, Inc.
+ *   Copyright 2016, Quickstep Research Group, Computer Sciences Department,
+ *     University of Wisconsin—Madison.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -148,6 +150,10 @@ DEFINE_string(worker_affinities, "",
               "means that they will all be runable on any CPU according to "
               "the kernel's own scheduling policy).");
 DEFINE_bool(initialize_db, false, "If true, initialize a database.");
+DEFINE_bool(print_query, false,
+            "Print each input query statement. This is useful when running a "
+            "large number of queries in a batch.");
+
 }  // namespace quickstep
 
 int main(int argc, char* argv[]) {
@@ -263,8 +269,7 @@ int main(int argc, char* argv[]) {
       InputParserUtil::ParseWorkerAffinities(real_num_workers,
                                              quickstep::FLAGS_worker_affinities);
 
-  const std::size_t num_numa_nodes_covered =
-      DefaultsConfigurator::GetNumNUMANodesCoveredByWorkers(worker_cpu_affinities);
+  const std::size_t num_numa_nodes_system = DefaultsConfigurator::GetNumNUMANodes();
 
   if (quickstep::FLAGS_preload_buffer_pool) {
     std::chrono::time_point<std::chrono::steady_clock> preload_start, preload_end;
@@ -285,7 +290,8 @@ int main(int argc, char* argv[]) {
   Foreman foreman(&bus,
                   query_processor->getDefaultDatabase(),
                   query_processor->getStorageManager(),
-                  num_numa_nodes_covered);
+                  -1, /* CPU id to bind foreman. -1 is unbound. */
+                  num_numa_nodes_system);
 
   // Get the NUMA affinities for workers.
   vector<int> cpu_numa_nodes = InputParserUtil::GetNUMANodesForCPUs();
@@ -339,6 +345,10 @@ int main(int argc, char* argv[]) {
     if (command_string->size() == 0) {
       delete command_string;
       break;
+    }
+
+    if (quickstep::FLAGS_print_query) {
+      printf("\n%s\n", command_string->c_str());
     }
 
     parser_wrapper->feedNextBuffer(command_string);
