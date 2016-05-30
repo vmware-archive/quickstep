@@ -28,7 +28,7 @@ struct DecimalLit {
 
   static constexpr std::uint64_t kPrecisionWidth = 4;
 
-  static constexpr std::uint64_t kMaxFractionInt = 10000;
+  static constexpr std::int64_t kMaxFractionInt = 10000;
 
   inline std::uint64_t getFractionalPart() const {
     return static_cast<std::uint64_t>(static_cast<std::uint64_t>(std::abs(data_)) % kMaxFractionInt);
@@ -64,6 +64,26 @@ struct DecimalLit {
 
   inline DecimalLit operator-() const {
     return DecimalLit{-data_};
+  }
+
+  inline DecimalLit operator+(const DecimalLit& other) const {
+    return DecimalLit{data_ + other.data_};
+  }
+
+  inline DecimalLit operator-(const DecimalLit& other) const {
+    return DecimalLit{data_ - other.data_};
+  }
+
+  inline DecimalLit operator*(const DecimalLit& other) const {
+    return DecimalLit{(data_ * other.data_) / kMaxFractionInt};
+  }
+
+  inline DecimalLit operator/(const DecimalLit& other) const {
+    return DecimalLit{(data_ * kMaxFractionInt) / other.data_};
+  }
+
+  inline DecimalLit operator%(const DecimalLit& other) const {
+    return DecimalLit{data_ % other.data_};
   }
 
   inline DecimalLit& operator+=(const DecimalLit& other) {

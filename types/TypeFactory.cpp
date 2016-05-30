@@ -161,6 +161,8 @@ const Type* TypeFactory::GetUnifyingType(const Type &first, const Type &second) 
       if (((first.getTypeID() == kLong) && (second.getTypeID() == kFloat))
             || ((first.getTypeID() == kFloat) && (second.getTypeID() == kLong))) {
         unifier = &(DoubleType::Instance(true));
+      } else if (first.getTypeID() == kDecimal || second.getTypeID() == kDecimal) {
+        unifier = &(DecimalType::Instance(true));
       }
     }
   } else {
@@ -169,6 +171,8 @@ const Type* TypeFactory::GetUnifyingType(const Type &first, const Type &second) 
       if (((first.getTypeID() == kLong) && (second.getTypeID() == kFloat))
             || ((first.getTypeID() == kFloat) && (second.getTypeID() == kLong))) {
         unifier = &(DoubleType::Instance(false));
+      } else if (first.getTypeID() == kDecimal || second.getTypeID() == kDecimal) {
+        unifier = &(DecimalType::Instance(false));
       }
     }
   }
