@@ -42,9 +42,9 @@ install:
   - tar -xzvf protobuf-cpp-3.0.0-beta-3.tar.gz;
   - pushd protobuf-3.0.0-beta-3 && ./configure --prefix=/usr && make && sudo make install && popd;
   - rm -rf protobuf*;
-  # git clone https://github.com/grpc/grpc.git;
-  # pushd grpc && git checkout release-0_14_1 && git submodule update --init && make && sudo make install && popd;
-  # rm -rf grpc;
+  - git clone https://github.com/grpc/grpc.git;
+  - pushd grpc && git checkout release-0_14_1 && git submodule update --init && make && sudo make install && popd;
+  - rm -rf grpc;
 
 before_script:
   - $CC --version
@@ -62,14 +62,14 @@ before_script:
            -D CMAKE_LINKER=$CLINKER
            -D USE_TCMALLOC=0
            -D VECTOR_COPY_ELISION_LEVEL=$VECTOR_COPY_ELISION_LEVEL
-           -D ENABLE_DISTRIBUTED=ON ..)
+           -D ENABLE_NATIVENET=ON ..)
 
 script:
   - ./third_party/cpplint/lint_everything.py
   - ./validate_cmakelists.py
   - ./cyclic_dependency.py
   - (cd build && make -j$MAKE_JOBS)
-  - (cd build && ctest --output-on-failure -j$TEST_JOBS)
+  - (cd build && ctest -E native_net_client_message_bus_unittest --output-on-failure -j$TEST_JOBS)
 
 after_failure:
   - df -h
