@@ -68,6 +68,7 @@ target_link_libraries(quickstep_types_operations_binaryoperations_AddBinaryOpera
                       quickstep_utility_Macros)
 target_link_libraries(quickstep_types_operations_binaryoperations_ArithmeticBinaryOperation
                       glog
+                      quickstep_types_DecimalType
                       quickstep_types_DoubleType
                       quickstep_types_FloatType
                       quickstep_types_IntType

@@ -35,7 +35,7 @@ struct DecimalLit {
   }
 
   inline std::int64_t getIntegerPart() const {
-    return static_cast<std::uint64_t>(static_cast<std::uint64_t>(std::abs(data_)) / kMaxFractionInt);
+    return static_cast<std::int64_t>(data_ / kMaxFractionInt);
   };
 
   inline bool operator<(const DecimalLit& other) const {

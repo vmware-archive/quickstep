@@ -64,9 +64,13 @@ void DecimalType::printValueToFile(const TypedValue &value,
   DCHECK(!value.isNull());
 
   DecimalLit decimal = value.getLiteral<DecimalLit>();
-  std::fprintf(file, "%*ld.%lu",
-               static_cast<int>(padding),
+
+  std::fprintf(file, "%*ld.%0*lu",
+               static_cast<int>(padding -
+                                (DecimalLit::kPrecisionWidth
+                                 + 1 /* Less one space for point. */)),
                decimal.getIntegerPart(),
+               static_cast<int>(DecimalLit::kPrecisionWidth),
                decimal.getFractionalPart());
 }
 
