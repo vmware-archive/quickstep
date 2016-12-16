@@ -42,6 +42,8 @@
 #include "catalog/CatalogRelation.hpp"
 #include "catalog/CatalogRelationSchema.hpp"
 #include "catalog/CatalogTypedefs.hpp"
+#include "catalog/PartitionScheme.hpp"
+#include "catalog/PartitionSchemeHeader.hpp"
 #include "expressions/Expressions.pb.h"
 #include "expressions/aggregation/AggregateFunction.hpp"
 #include "expressions/aggregation/AggregateFunction.pb.h"
@@ -713,25 +715,69 @@ void ExecutionGenerator::convertHashJoin(const P::HashJoinPtr &physical_plan) {
   }
 
   // Create join hash table proto.
-  const QueryContext::join_hash_table_id join_hash_table_index =
-      query_context_proto_->join_hash_tables_size();
-  S::HashTable *hash_table_proto = query_context_proto_->add_join_hash_tables();
+  const QueryContext::join_hash_table_group_id join_hash_table_group_index =
+      query_context_proto_->join_hash_table_groups_size();
+  query_context_proto_->add_join_hash_table_groups();
+  std::vector<S::HashTable *> hash_table_proto;
 
-  // SimplifyHashTableImplTypeProto() switches the hash table implementation
-  // from SeparateChaining to SimpleScalarSeparateChaining when there is a
-  // single scalar key type with a reversible hash function.
-  hash_table_proto->set_hash_table_impl_type(
-      SimplifyHashTableImplTypeProto(
-          HashTableImplTypeProtoFromString(FLAGS_join_hashtable_type),
-          key_types));
+  if (build_relation_info->relation->hasPartitionScheme() && probe_operator_info->relation->hasPartitionScheme()) {
+    if (build_relation_info->relation->getPartitionScheme().getPartitionSchemeHeader().getNumPartitions() ==
+        probe_operator_info->relation->getPartitionScheme().getPartitionSchemeHeader().getNumPartitions()) {
+      // check if partitioning attribute == join attribute for both the probe and the build relations.
+      if (std::find(build_attribute_ids.begin(),
+                    build_attribute_ids.end(),
+                    build_relation_info->relation->getPartitionScheme()
+                        .getPartitionSchemeHeader()
+                        .getPartitionAttributeId()) != build_attribute_ids.end() &&
+          std::find(probe_attribute_ids.begin(),
+                    probe_attribute_ids.end(),
+                    probe_operator_info->relation->getPartitionScheme()
+                        .getPartitionSchemeHeader()
+                        .getPartitionAttributeId()) != probe_attribute_ids.end()) {
+        const std::size_t num_partitions =
+            build_relation_info->relation->getPartitionScheme().getPartitionSchemeHeader().getNumPartitions();
+        hash_table_proto.resize(num_partitions);
+        for (std::size_t part_id = 0; part_id < num_partitions; ++part_id) {
+          hash_table_proto[part_id] = query_context_proto_->mutable_join_hash_table_groups(
+                                                                join_hash_table_group_index)->add_join_hash_tables();
 
-  const CatalogRelationSchema *build_relation = build_relation_info->relation;
-  for (const attribute_id build_attribute : build_attribute_ids) {
-    hash_table_proto->add_key_types()->CopyFrom(
-        build_relation->getAttributeById(build_attribute)->getType().getProto());
+          // SimplifyHashTableImplTypeProto() switches the hash table implementation
+          // from SeparateChaining to SimpleScalarSeparateChaining when there is a
+          // single scalar key type with a reversible hash function.
+          hash_table_proto[part_id]->set_hash_table_impl_type(
+              SimplifyHashTableImplTypeProto(
+                  HashTableImplTypeProtoFromString(FLAGS_join_hashtable_type),
+                  key_types));
+
+          const CatalogRelationSchema *build_relation = build_relation_info->relation;
+          for (const attribute_id build_attribute : build_attribute_ids) {
+            hash_table_proto[part_id]->add_key_types()->CopyFrom(
+                build_relation->getAttributeById(build_attribute)->getType().getProto());
+          }
+
+          hash_table_proto[part_id]->set_estimated_num_entries(build_cardinality);
+        }
+      }
+    }
+  } else {
+    hash_table_proto.emplace_back(
+        query_context_proto_->mutable_join_hash_table_groups(join_hash_table_group_index)->add_join_hash_tables());
+    // SimplifyHashTableImplTypeProto() switches the hash table implementation
+    // from SeparateChaining to SimpleScalarSeparateChaining when there is a
+    // single scalar key type with a reversible hash function.
+    hash_table_proto.front()->set_hash_table_impl_type(
+        SimplifyHashTableImplTypeProto(
+            HashTableImplTypeProtoFromString(FLAGS_join_hashtable_type),
+            key_types));
+
+    const CatalogRelationSchema *build_relation = build_relation_info->relation;
+    for (const attribute_id build_attribute : build_attribute_ids) {
+      hash_table_proto.front()->add_key_types()->CopyFrom(
+          build_relation->getAttributeById(build_attribute)->getType().getProto());
+    }
+
+    hash_table_proto.front()->set_estimated_num_entries(build_cardinality);
   }
-
-  hash_table_proto->set_estimated_num_entries(build_cardinality);
 
   // Create three operators.
   const QueryPlan::DAGNodeIndex build_operator_index =
@@ -741,7 +787,7 @@ void ExecutionGenerator::convertHashJoin(const P::HashJoinPtr &physical_plan) {
               build_relation_info->isStoredRelation(),
               build_attribute_ids,
               any_build_attributes_nullable,
-              join_hash_table_index));
+              join_hash_table_group_index));
 
   // Create InsertDestination proto.
   const CatalogRelation *output_relation = nullptr;
@@ -784,7 +830,7 @@ void ExecutionGenerator::convertHashJoin(const P::HashJoinPtr &physical_plan) {
               any_probe_attributes_nullable,
               *output_relation,
               insert_destination_index,
-              join_hash_table_index,
+              join_hash_table_group_index,
               residual_predicate_index,
               project_expressions_group_index,
               is_selection_on_build.get(),
@@ -793,7 +839,7 @@ void ExecutionGenerator::convertHashJoin(const P::HashJoinPtr &physical_plan) {
 
   const QueryPlan::DAGNodeIndex destroy_operator_index =
       execution_plan_->addRelationalOperator(
-          new DestroyHashOperator(join_hash_table_index));
+          new DestroyHashOperator(*build_relation_info->relation, join_hash_table_group_index));
 
   if (!build_relation_info->isStoredRelation()) {
     execution_plan_->addDirectDependency(build_operator_index,
@@ -835,7 +881,7 @@ void ExecutionGenerator::convertHashJoin(const P::HashJoinPtr &physical_plan) {
                                            referenced_stored_probe_relation,
                                            std::move(build_original_attribute_ids),
                                            std::move(probe_original_attribute_ids),
-                                           join_hash_table_index);
+                                           join_hash_table_group_index);
   }
 }
 

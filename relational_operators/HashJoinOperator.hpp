@@ -27,6 +27,12 @@
 
 #include "catalog/CatalogRelation.hpp"
 #include "catalog/CatalogTypedefs.hpp"
+
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+#include "catalog/NUMAPlacementScheme.hpp"
+#endif
+
+#include "catalog/PartitionSchemeHeader.hpp"
 #include "query_execution/QueryContext.hpp"
 #include "relational_operators/RelationalOperator.hpp"
 #include "relational_operators/WorkOrder.hpp"
@@ -120,7 +126,7 @@ class HashJoinOperator : public RelationalOperator {
                    const bool any_join_key_attributes_nullable,
                    const CatalogRelation &output_relation,
                    const QueryContext::insert_destination_id output_destination_index,
-                   const QueryContext::join_hash_table_id hash_table_index,
+                   const QueryContext::join_hash_table_group_id hash_table_group_index,
                    const QueryContext::predicate_id residual_predicate_index,
                    const QueryContext::scalar_group_id selection_index,
                    const std::vector<bool> *is_selection_on_build = nullptr,
@@ -132,7 +138,7 @@ class HashJoinOperator : public RelationalOperator {
         any_join_key_attributes_nullable_(any_join_key_attributes_nullable),
         output_relation_(output_relation),
         output_destination_index_(output_destination_index),
-        hash_table_index_(hash_table_index),
+        hash_table_group_index_(hash_table_group_index),
         residual_predicate_index_(residual_predicate_index),
         selection_index_(selection_index),
         is_selection_on_build_(is_selection_on_build == nullptr
@@ -147,6 +153,23 @@ class HashJoinOperator : public RelationalOperator {
     DCHECK(join_type != JoinType::kLeftOuterJoin ||
                (is_selection_on_build != nullptr &&
                 residual_predicate_index == QueryContext::kInvalidPredicateId));
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+    probe_relation_placement_scheme_ = probe_relation.getNUMAPlacementSchemePtr();
+#endif
+    if (probe_relation.hasPartitionScheme()) {
+      const PartitionScheme &part_scheme = probe_relation.getPartitionScheme();
+      const std::size_t num_partitions = part_scheme.getPartitionSchemeHeader().getNumPartitions();
+      probe_relation_block_ids_in_partition_.resize(num_partitions);
+      num_workorders_generated_in_partition_.resize(num_partitions);
+      num_workorders_generated_in_partition_.assign(num_partitions, 0);
+      for (std::size_t part_id = 0; part_id < num_partitions; ++part_id) {
+        if (probe_relation_is_stored) {
+          probe_relation_block_ids_in_partition_[part_id] = part_scheme.getBlocksInPartition(part_id);
+        } else {
+          probe_relation_block_ids_in_partition_[part_id] = std::vector<block_id>();
+        }
+      }
+    }
   }
 
   ~HashJoinOperator() override {}
@@ -160,15 +183,29 @@ class HashJoinOperator : public RelationalOperator {
   void feedInputBlock(const block_id input_block_id,
                       const relation_id input_relation_id) override {
     DCHECK(input_relation_id == probe_relation_.getID());
-    probe_relation_block_ids_.push_back(input_block_id);
+    if (probe_relation_.hasPartitionScheme()) {
+      const partition_id part_id =
+          probe_relation_.getPartitionScheme().getPartitionForBlock(input_block_id);
+      probe_relation_block_ids_in_partition_[part_id].push_back(input_block_id);
+    } else {
+      probe_relation_block_ids_.push_back(input_block_id);
+    }
   }
 
   void feedInputBlocks(const relation_id rel_id,
                        std::vector<block_id> *partially_filled_blocks) override {
     DCHECK(rel_id == probe_relation_.getID());
-    probe_relation_block_ids_.insert(probe_relation_block_ids_.end(),
-                                     partially_filled_blocks->begin(),
-                                     partially_filled_blocks->end());
+    if (probe_relation_.hasPartitionScheme()) {
+      for (auto it = partially_filled_blocks->begin(); it != partially_filled_blocks->end(); ++it) {
+        const partition_id part_id = probe_relation_.getPartitionScheme().getPartitionForBlock((*it));
+        probe_relation_block_ids_in_partition_[part_id].insert(probe_relation_block_ids_in_partition_[part_id].end(),
+                                                               *it);
+      }
+    } else {
+      probe_relation_block_ids_.insert(probe_relation_block_ids_.end(),
+                                       partially_filled_blocks->begin(),
+                                       partially_filled_blocks->end());
+    }
   }
 
   QueryContext::insert_destination_id getInsertDestinationID() const override {
@@ -188,6 +225,24 @@ class HashJoinOperator : public RelationalOperator {
     }
   }
 
+  template <class JoinWorkOrderClass>
+  void addWorkOrders(WorkOrdersContainer *container,
+                     QueryContext *query_context,
+                     StorageManager *storage_manager,
+                     const Predicate *predicate,
+                     const std::vector<std::unique_ptr<const Scalar>> &selection,
+                     InsertDestination *output_destination);
+
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+  template <class JoinWorkOrderClass>
+  void addPartitionAwareWorkOrders(WorkOrdersContainer *container,
+                                   QueryContext *query_context,
+                                   StorageManager *storage_manager,
+                                   const Predicate *predicate,
+                                   const std::vector<std::unique_ptr<const Scalar>> &selection,
+                                   InsertDestination *output_destination);
+#endif
+
  private:
   template <class JoinWorkOrderClass>
   bool getAllNonOuterJoinWorkOrders(WorkOrdersContainer *container,
@@ -205,16 +260,23 @@ class HashJoinOperator : public RelationalOperator {
   const bool any_join_key_attributes_nullable_;
   const CatalogRelation &output_relation_;
   const QueryContext::insert_destination_id output_destination_index_;
-  const QueryContext::join_hash_table_id hash_table_index_;
+  const QueryContext::join_hash_table_group_id hash_table_group_index_;
   const QueryContext::predicate_id residual_predicate_index_;
   const QueryContext::scalar_group_id selection_index_;
   const std::vector<bool> is_selection_on_build_;
   const JoinType join_type_;
 
   std::vector<block_id> probe_relation_block_ids_;
+  // A vector of vectors V where V[i] indicates the list of block IDs of the
+  // input relation that belong to the partition i.
+  std::vector<std::vector<block_id>> probe_relation_block_ids_in_partition_;
   std::size_t num_workorders_generated_;
+  std::vector<std::size_t> num_workorders_generated_in_partition_;
 
   bool started_;
+#ifdef QUICKSTEP_HAVE_LIBNUMA
+  const NUMAPlacementScheme *probe_relation_placement_scheme_;
+#endif
 
   DISALLOW_COPY_AND_ASSIGN(HashJoinOperator);
 };
@@ -255,7 +317,8 @@ class HashInnerJoinWorkOrder : public WorkOrder {
                          const std::vector<std::unique_ptr<const Scalar>> &selection,
                          const JoinHashTable &hash_table,
                          InsertDestination *output_destination,
-                         StorageManager *storage_manager)
+                         StorageManager *storage_manager,
+                         const numa_node_id numa_node = -1)
       : build_relation_(build_relation),
         probe_relation_(probe_relation),
         join_key_attributes_(join_key_attributes),
@@ -265,7 +328,11 @@ class HashInnerJoinWorkOrder : public WorkOrder {
         selection_(selection),
         hash_table_(hash_table),
         output_destination_(DCHECK_NOTNULL(output_destination)),
-        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {
+    if (numa_node != -1) {
+      preferred_numa_nodes_.push_back(numa_node);
+    }
+  }
 
   /**
    * @brief Constructor for the distributed version.
@@ -298,7 +365,8 @@ class HashInnerJoinWorkOrder : public WorkOrder {
                          const std::vector<std::unique_ptr<const Scalar>> &selection,
                          const JoinHashTable &hash_table,
                          InsertDestination *output_destination,
-                         StorageManager *storage_manager)
+                         StorageManager *storage_manager,
+                         const numa_node_id numa_node = -1)
       : build_relation_(build_relation),
         probe_relation_(probe_relation),
         join_key_attributes_(std::move(join_key_attributes)),
@@ -308,7 +376,11 @@ class HashInnerJoinWorkOrder : public WorkOrder {
         selection_(selection),
         hash_table_(hash_table),
         output_destination_(DCHECK_NOTNULL(output_destination)),
-        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {
+    if (numa_node != -1) {
+      preferred_numa_nodes_.push_back(numa_node);
+    }
+  }
 
   ~HashInnerJoinWorkOrder() override {}
 
@@ -378,7 +450,8 @@ class HashSemiJoinWorkOrder : public WorkOrder {
                         const std::vector<std::unique_ptr<const Scalar>> &selection,
                         const JoinHashTable &hash_table,
                         InsertDestination *output_destination,
-                        StorageManager *storage_manager)
+                        StorageManager *storage_manager,
+                        const numa_node_id numa_node = -1)
       : build_relation_(build_relation),
         probe_relation_(probe_relation),
         join_key_attributes_(join_key_attributes),
@@ -388,7 +461,11 @@ class HashSemiJoinWorkOrder : public WorkOrder {
         selection_(selection),
         hash_table_(hash_table),
         output_destination_(DCHECK_NOTNULL(output_destination)),
-        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {
+    if (numa_node != -1) {
+      preferred_numa_nodes_.push_back(numa_node);
+    }
+  }
 
   /**
    * @brief Constructor for the distributed version.
@@ -421,7 +498,8 @@ class HashSemiJoinWorkOrder : public WorkOrder {
                         const std::vector<std::unique_ptr<const Scalar>> &selection,
                         const JoinHashTable &hash_table,
                         InsertDestination *output_destination,
-                        StorageManager *storage_manager)
+                        StorageManager *storage_manager,
+                        const numa_node_id numa_node = -1)
       : build_relation_(build_relation),
         probe_relation_(probe_relation),
         join_key_attributes_(std::move(join_key_attributes)),
@@ -431,7 +509,11 @@ class HashSemiJoinWorkOrder : public WorkOrder {
         selection_(selection),
         hash_table_(hash_table),
         output_destination_(DCHECK_NOTNULL(output_destination)),
-        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {
+    if (numa_node != -1) {
+      preferred_numa_nodes_.push_back(numa_node);
+    }
+  }
 
   ~HashSemiJoinWorkOrder() override {}
 
@@ -494,7 +576,8 @@ class HashAntiJoinWorkOrder : public WorkOrder {
                         const std::vector<std::unique_ptr<const Scalar>> &selection,
                         const JoinHashTable &hash_table,
                         InsertDestination *output_destination,
-                        StorageManager *storage_manager)
+                        StorageManager *storage_manager,
+                        const numa_node_id numa_node = -1)
       : build_relation_(build_relation),
         probe_relation_(probe_relation),
         join_key_attributes_(join_key_attributes),
@@ -504,7 +587,11 @@ class HashAntiJoinWorkOrder : public WorkOrder {
         selection_(selection),
         hash_table_(hash_table),
         output_destination_(DCHECK_NOTNULL(output_destination)),
-        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {
+    if (numa_node != -1) {
+      preferred_numa_nodes_.push_back(numa_node);
+    }
+  }
 
   /**
    * @brief Constructor for the distributed version.
@@ -537,7 +624,8 @@ class HashAntiJoinWorkOrder : public WorkOrder {
                         const std::vector<std::unique_ptr<const Scalar>> &selection,
                         const JoinHashTable &hash_table,
                         InsertDestination *output_destination,
-                        StorageManager *storage_manager)
+                        StorageManager *storage_manager,
+                        const numa_node_id numa_node = -1)
       : build_relation_(build_relation),
         probe_relation_(probe_relation),
         join_key_attributes_(std::move(join_key_attributes)),
@@ -547,7 +635,11 @@ class HashAntiJoinWorkOrder : public WorkOrder {
         selection_(selection),
         hash_table_(hash_table),
         output_destination_(DCHECK_NOTNULL(output_destination)),
-        storage_manager_(DCHECK_NOTNULL(storage_manager)) {}
+        storage_manager_(DCHECK_NOTNULL(storage_manager)) {
+    if (numa_node != -1) {
+      preferred_numa_nodes_.push_back(numa_node);
+    }
+  }
 
   ~HashAntiJoinWorkOrder() override {}
 
