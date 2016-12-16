@@ -911,6 +911,7 @@ target_link_libraries(quickstep_storage_StorageBlockInfo
                       quickstep_utility_StringUtil)
 target_link_libraries(quickstep_storage_StorageBlockLayout
                       glog
+                      quickstep_catalog_CatalogDatabase
                       quickstep_catalog_CatalogRelationSchema
                       quickstep_storage_StorageBlockInfo
                       quickstep_storage_StorageBlockLayout_proto

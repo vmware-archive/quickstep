@@ -69,6 +69,23 @@ class StorageBlockLayout {
 
   /**
    * @brief Static method to generate a default layout for a particular
+   *        relation. This may either be the default specified by the user
+   *        with BLOCKPROPERTIES, or the layout generated using the default
+   *        layout policy.
+   * @note The default policy is that a default layout takes up one slot, uses
+   *       PackedRowStoreTupleStorageSubBlock for fixed-length relations or
+   *       SplitRowStoreTupleStorageSubBlock for variable-length relations, and
+   *       has no indices.
+   *
+   * @param relationSchema The relation to generate a layout for.
+   * @return A new StorageBlockLayout for the relation, according to the
+   *         default policies. Caller takes ownership.
+   **/
+  static StorageBlockLayout* GenerateLayout(
+      const CatalogRelationSchema &relationSchema);
+
+  /**
+   * @brief Static method to generate a default layout for a particular
    *        relation.
    * @note The current policy is that a default layout takes up one slot, uses
    *       PackedRowStoreTupleStorageSubBlock for fixed-length relations or
