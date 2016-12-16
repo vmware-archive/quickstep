@@ -87,7 +87,6 @@ addons:
       - protobuf-compiler
       - libgtest-dev
       - python-networkx
-      - libnuma-dev
 
 cache:
   apt: true
