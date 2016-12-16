@@ -60,6 +60,7 @@ void Worker::run() {
         message.getWorkOrder()->execute();
         delete message.getWorkOrder();
 
+        delete message.getWorkOrder();
         sendWorkOrderCompleteMessage(annotated_msg.sender,
                                      message.getRelationalOpIndex(),
                                      tagged_message.message_type() == kRebuildWorkOrderMessage);
