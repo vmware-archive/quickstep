@@ -31,7 +31,7 @@
 // ---
 // Author: Jean Lee <xiaoyur347@gmail.com>
 // based on gcc Code-Gen-Options "-finstrument-functions" listed in
-// http://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html .
+// https://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html .
 // Should run configure with CXXFLAGS="-finstrument-functions".
 
 // This file is a backtrace implementation for systems :
