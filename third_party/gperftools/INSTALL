@@ -43,7 +43,7 @@ For that reason, if you use a 64-bit system, we strongly recommend you
 install libunwind before trying to configure or install gperftools.
 libunwind can be found at
 
-   http://download.savannah.gnu.org/releases/libunwind/libunwind-0.99-beta.tar.gz
+   https://download.savannah.gnu.org/releases/libunwind/libunwind-0.99-beta.tar.gz
 
 Even if you already have libunwind installed, you should check the
 version.  Versions older than this will not work properly; too-new
@@ -51,10 +51,10 @@ versions introduce new code that does not work well with perftools
 (because libunwind can call malloc, which will lead to deadlock).
 
 There have been reports of crashes with libunwind 0.99 (see
-http://code.google.com/p/gperftools/issues/detail?id=374).
+https://code.google.com/p/gperftools/issues/detail?id=374).
 Alternately, you can use a more recent libunwind (e.g. 1.0.1) at the
 cost of adding a bit of boilerplate to your code.  For details, see
-http://groups.google.com/group/google-perftools/msg/2686d9f24ac4365f
+https://groups.google.com/group/google-perftools/msg/2686d9f24ac4365f
 
    CAUTION: if you install libunwind from the url above, be aware that
    you may have trouble if you try to statically link your binary with

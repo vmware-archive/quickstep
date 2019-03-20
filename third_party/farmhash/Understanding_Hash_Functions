@@ -153,10 +153,10 @@ REFERENCES
 [Murmur] Appleby, Austin. https://code.google.com/p/smhasher,
             https://sites.google.com/site/murmurhash/
 [SMHasher] Appleby, Austin. https://code.google.com/p/smhasher
-[SHA-3] Bertoni, Guido, et al. http://keccak.noekeon.org/
-[Jenkins] Jenkins, Bob. http://burtleburtle.net/bob/hash/doobs.html
+[SHA-3] Bertoni, Guido, et al. https://keccak.team/keccak.noekeon.org/
+[Jenkins] Jenkins, Bob. https://burtleburtle.net/bob/hash/doobs.html
 [VHASH] Krovetz, Ted. Message authentication on 64-bit architectures. In
             Selected Areas of Cryptography – SAC 2006.  Springer-Verlag, 2006.
 [CityHash] Pike, Geoff and Alakuijala, Jyrki. https://code.google.com/p/cityhash
 [FarmHash] Pike, Geoff. https://code.google.com/p/farmhash
-[Pike] Pike, Geoff. http://www.stanford.edu/class/ee380/Abstracts/121017-slides.pdf
+[Pike] Pike, Geoff. https://www.stanford.edu/class/ee380/Abstracts/121017-slides.pdf

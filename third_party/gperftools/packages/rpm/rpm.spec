@@ -7,11 +7,11 @@ Summary: Performance tools for C++
 Version: %VERSION
 Release: %rel
 Group: Development/Libraries
-URL: http://code.google.com/p/gperftools/
+URL: https://code.google.com/p/gperftools/
 License: BSD
 Vendor: gperftools Contributors
 Packager: gperftools Contributors <google-perftools@googlegroups.com>
-Source: http://%{NAME}.googlecode.com/files/%{NAME}-%{VERSION}.tar.gz
+Source: https://%{NAME}.googlecode.com/files/%{NAME}-%{VERSION}.tar.gz
 Distribution: Redhat 7 and above.
 Buildroot: %{_tmppath}/%{name}-root
 Prefix: %prefix

@@ -1490,7 +1490,7 @@ int main(int argc, char** argv) {
 
   // Test that various STL allocators work.  Some of these are redundant, but
   // we don't know how STL might change in the future.  For example,
-  // http://wiki/Main/StringNeStdString.
+  // https://wiki/Main/StringNeStdString.
 #define DTSL(a) { DirectTestSTLAlloc(a, #a); \
                   Pause(); }
   DTSL(std::allocator<char>());

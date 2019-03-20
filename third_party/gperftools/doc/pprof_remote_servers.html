@@ -42,13 +42,13 @@ on the commandline, are urls.  In general, you
 specify the host and a port (the port-number is required), and put
 the service-name at the end of the url.:</p>
 <blockquote><pre>
-http://myhost:80/pprof/heap            # retrieves a heap profile
-http://myhost:8008/pprof/profile       # retrieves a CPU profile
-http://myhost:80                       # retrieves a CPU profile (the default)
-http://myhost:8080/                    # retrieves a CPU profile (the default)
+https://myhost:80/pprof/heap            # retrieves a heap profile
+https://myhost:8008/pprof/profile       # retrieves a CPU profile
+https://myhost:80                       # retrieves a CPU profile (the default)
+https://myhost:8080/                    # retrieves a CPU profile (the default)
 myhost:8088/pprof/growth               # "http://" is optional, but port is not
-http://myhost:80/myservice/pprof/heap  # /pprof/heap just has to come at the end
-http://myhost:80/pprof/pmuprofile      # CPU profile using performance counters
+https://myhost:80/myservice/pprof/heap  # /pprof/heap just has to come at the end
+https://myhost:80/pprof/pmuprofile      # CPU profile using performance counters
 </pre></blockquote>
 
 <h2> <code><b>/pprof/heap</b></code> </h2>
@@ -226,7 +226,7 @@ addition to the GET request for this url, the server must accept POST
 requests.  This means that after the HTTP headers, pprof will pass in
 a list of hex addresses connected by <code>+</code>, like so:</p>
 <pre>
-   curl -d '0x0824d061+0x0824d1cf' http://remote_host:80/pprof/symbol
+   curl -d '0x0824d061+0x0824d1cf' https://remote_host:80/pprof/symbol
 </pre>
 
 <p>The server should read the POST data, which will be in one line,
