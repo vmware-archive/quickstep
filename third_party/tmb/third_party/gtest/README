@@ -1,7 +1,7 @@
 Google C++ Testing Framework
 ============================
 
-http://code.google.com/p/googletest/
+https://code.google.com/p/googletest/
 
 Overview
 --------
@@ -85,7 +85,7 @@ formats are provided, but the only difference is the tools used to
 manipulate them, and the size of the resulting file.  Download
 whichever you are most comfortable with.
 
-  [1] http://code.google.com/p/googletest/downloads/list
+  [1] https://code.google.com/p/googletest/downloads/list
 
 Once the package is downloaded, expand it using whichever tools you
 prefer for that type.  This will result in a new directory with the
@@ -101,7 +101,7 @@ some examples on Linux:
 To check out the main branch (also known as the "trunk") of Google
 Test, run the following Subversion command:
 
-  svn checkout http://googletest.googlecode.com/svn/trunk/ gtest-svn
+  svn checkout https://googletest.googlecode.com/svn/trunk/ gtest-svn
 
 Setting up the Build
 --------------------
@@ -159,7 +159,7 @@ it.
 Google Test comes with a CMake build script (CMakeLists.txt) that can
 be used on a wide range of platforms ("C" stands for cross-platofrm.).
 If you don't have CMake installed already, you can download it for
-free from http://www.cmake.org/.
+free from https://www.cmake.org/.
 
 CMake works by generating native makefiles or build projects that can
 be used in the compiler environment of your choice.  The typical
@@ -226,7 +226,7 @@ above, you need to either:
    of MacOS X.
  * Install an SDK for an earlier version. This doesn't appear to be
    supported by Apple, but has been reported to work
-   (http://stackoverflow.com/questions/5378518).
+   (https://stackoverflow.com/questions/5378518).
 
 Tweaking Google Test
 --------------------
@@ -316,7 +316,7 @@ to the compiler flags.
 Note: while the above steps aren't technically necessary today when
 using some compilers (e.g. GCC), they may become necessary in the
 future, if we decide to improve the speed of loading the library (see
-http://gcc.gnu.org/wiki/Visibility for details).  Therefore you are
+https://gcc.gnu.org/wiki/Visibility for details).  Therefore you are
 recommended to always add the above flags when using Google Test as a
 shared library.  Otherwise a future release of Google Test may break
 your build script.
@@ -421,7 +421,7 @@ corresponding .pump files instead and run the pump.py Python script to
 regenerate them.  You can find pump.py in the scripts/ directory.
 Read the Pump manual [2] for how to use it.
 
-  [2] http://code.google.com/p/googletest/wiki/PumpManual
+  [2] https://code.google.com/p/googletest/wiki/PumpManual
 
 ### Contributing a Patch ###
 
@@ -430,6 +430,6 @@ for how you can contribute.  In particular, make sure you have signed
 the Contributor License Agreement, or we won't be able to accept the
 patch.
 
-  [3] http://code.google.com/p/googletest/wiki/GoogleTestDevGuide
+  [3] https://code.google.com/p/googletest/wiki/GoogleTestDevGuide
 
 Happy testing!

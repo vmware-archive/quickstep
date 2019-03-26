@@ -38,9 +38,9 @@
 //
 // It does this by defining these functions with the proper signature.
 // All you need to do is compile this file and the run dumpbin on it.
-// (See http://msdn.microsoft.com/en-us/library/5x49w699.aspx for more
+// (See https://msdn.microsoft.com/en-us/library/5x49w699.aspx for more
 // on dumpbin).  To do this in MSVC, use the MSVC commandline shell:
-//    http://msdn.microsoft.com/en-us/library/ms235639(VS.80).aspx)
+//    https://msdn.microsoft.com/en-us/library/ms235639(VS.80).aspx)
 //
 // The run:
 //    cl /c get_mangled_names.cc

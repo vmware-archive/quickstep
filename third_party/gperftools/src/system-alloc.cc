@@ -70,7 +70,7 @@
 #endif
 
 // Solaris has a bug where it doesn't declare madvise() for C++.
-//    http://www.opensolaris.org/jive/thread.jspa?threadID=21035&tstart=0
+//    https://www.opensolaris.org/jive/thread.jspa?threadID=21035&tstart=0
 #if defined(__sun) && defined(__SVR4)
 # include <sys/types.h>    // for caddr_t
   extern "C" { extern int madvise(caddr_t, size_t, int); }
@@ -233,8 +233,8 @@ void* SbrkSysAllocator::Alloc(size_t size, size_t *actual_size,
   // wrap around the end of the virtual address space.  (This seems
   // like something sbrk() should check for us, and indeed opensolaris
   // does, but glibc does not:
-  //    http://src.opensolaris.org/source/xref/onnv/onnv-gate/usr/src/lib/libc/port/sys/sbrk.c?a=true
-  //    http://sourceware.org/cgi-bin/cvsweb.cgi/~checkout~/libc/misc/sbrk.c?rev=1.1.2.1&content-type=text/plain&cvsroot=glibc
+  //    https://src.opensolaris.org/source/xref/onnv/onnv-gate/usr/src/lib/libc/port/sys/sbrk.c?a=true
+  //    https://sourceware.org/cgi-bin/cvsweb.cgi/~checkout~/libc/misc/sbrk.c?rev=1.1.2.1&content-type=text/plain&cvsroot=glibc
   // Without this check, sbrk may succeed when it ought to fail.)
   if (reinterpret_cast<intptr_t>(sbrk(0)) + size < size) {
     return NULL;

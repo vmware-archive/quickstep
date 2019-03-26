@@ -14,7 +14,7 @@ following command:
 Compiling the source code
 =========================
 
-The build system of gflags is since version 2.1 based on [CMake](http://cmake.org).
+The build system of gflags is since version 2.1 based on [CMake](https://cmake.org).
 The common steps to build, test, and install software are therefore:
 
 1. Extract source files.

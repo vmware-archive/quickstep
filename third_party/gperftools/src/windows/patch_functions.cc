@@ -152,7 +152,7 @@ class LibcInfo {
 
   bool patched() const { return is_valid(); }
   void set_is_valid(bool b) { is_valid_ = b; }
-  // According to http://msdn.microsoft.com/en-us/library/ms684229(VS.85).aspx:
+  // According to https://msdn.microsoft.com/en-us/library/ms684229(VS.85).aspx:
   // "The load address of a module (lpBaseOfDll) is the same as the HMODULE
   // value."
   HMODULE hmodule() const {

@@ -27,7 +27,7 @@ package for CMake that you can install. The same goes for all of the major
 flavors of BSD UNIX (Free/Net/Open/Dragonfly), OpenSolaris, and Cygwin.
 
 If you're using Mac OS X or Windows, you can download CMake binaries from:
-http://www.cmake.org/download/
+https://www.cmake.org/download/
 
 On Mac or Windows, be sure to let the installer put links to the CMake command-
 line tools in bin or add them to your PATH.
