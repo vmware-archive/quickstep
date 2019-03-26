@@ -51,8 +51,8 @@
 // is not much better.
 //
 // 3) Registering a new malloc zone avoids all these issues:
-//  http://www.opensource.apple.com/source/Libc/Libc-583/include/malloc/malloc.h
-//  http://www.opensource.apple.com/source/Libc/Libc-583/gen/malloc.c
+//  https://www.opensource.apple.com/source/Libc/Libc-583/include/malloc/malloc.h
+//  https://www.opensource.apple.com/source/Libc/Libc-583/gen/malloc.c
 // If we make tcmalloc the default malloc zone (undocumented but
 // possible) then all new allocs use it, even those in shared
 // libraries.  Allocs done before tcmalloc was installed, or in libs
