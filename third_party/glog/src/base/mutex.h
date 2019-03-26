@@ -57,7 +57,7 @@
 // in the code below.
 //
 // CYGWIN NOTE: Cygwin support for rwlock seems to be buggy:
-//    http://www.cygwin.com/ml/cygwin/2008-12/msg00017.html
+//    https://www.cygwin.com/ml/cygwin/2008-12/msg00017.html
 // Because of that, we might as well use windows locks for
 // cygwin.  They seem to be more reliable than the cygwin pthreads layer.
 //

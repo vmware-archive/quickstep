@@ -7,7 +7,7 @@ Summary: Performance tools for C++
 Version: %VERSION
 Release: %rel
 Group: Development/Libraries
-URL: http://code.google.com/p/gperftools/
+URL: https://code.google.com/p/gperftools/
 License: BSD
 Vendor: gperftools Contributors
 Packager: gperftools Contributors <google-perftools@googlegroups.com>
