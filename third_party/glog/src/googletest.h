@@ -28,7 +28,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Author: Shinichiro Hamaji
-//   (based on googletest: http://code.google.com/p/googletest/)
+//   (based on googletest: https://code.google.com/p/googletest/)
 
 #ifdef GOOGLETEST_H__
 #error You must not include this file twice.

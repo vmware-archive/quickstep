@@ -21,7 +21,7 @@
 // FarmHash, by Geoff Pike
 
 //
-// http://code.google.com/p/farmhash/
+// https://code.google.com/p/farmhash/
 //
 // This file provides a few functions for hashing strings and other
 // data.  All of them are high-quality functions in the sense that

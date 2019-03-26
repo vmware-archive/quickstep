@@ -73,7 +73,7 @@
  *
  * NOTE: This is a stripped down version of the official opensource
  * version of linux_syscall_support.h, which lives at
- *    http://code.google.com/p/linux-syscall-support/
+ *    https://code.google.com/p/linux-syscall-support/
  * It includes only the syscalls that are used in perftools, plus a
  * few extra.  Here's the breakdown:
  * 1) Perftools uses these: grep -rho 'sys_[a-z0-9_A-Z]* *(' src | sort -u
@@ -1472,8 +1472,8 @@ struct kernel_stat {
                                  (unsigned long)(a)
 
     #if _MIPS_SIM == _MIPS_SIM_ABI32
-    // See http://sources.redhat.com/ml/libc-alpha/2004-10/msg00050.html
-    // or http://www.linux-mips.org/archives/linux-mips/2004-10/msg00142.html
+    // See https://www.sourceware.org/ml/libc-alpha/2004-10/msg00050.html
+    // or https://www.linux-mips.org/archives/linux-mips/2004-10/msg00142.html
     #define MIPS_SYSCALL_CLOBBERS "$1", "$3", "$8", "$9", "$10", "$11", "$12",\
                                 "$13", "$14", "$15", "$24", "$25", "memory"
     #else
