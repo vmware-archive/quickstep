@@ -29,7 +29,7 @@ and the assocaited command line tools.
 Unfortunately, the command line tools do not package `cmake`, which is needed
 to build Quickstep. You can install cmake using brew as follows:
 
-Visit http://brew.sh to determine the instructions to install brew. It will look
+Visit https://brew.sh to determine the instructions to install brew. It will look
 something like:
 
 ```
