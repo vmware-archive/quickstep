@@ -217,7 +217,7 @@
 #define GTEST_FLAG_PREFIX_DASH_ "gtest-"
 #define GTEST_FLAG_PREFIX_UPPER_ "GTEST_"
 #define GTEST_NAME_ "Google Test"
-#define GTEST_PROJECT_URL_ "http://code.google.com/p/googletest/"
+#define GTEST_PROJECT_URL_ "https://code.google.com/p/googletest/"
 
 // Determines the version of gcc that is used to compile this.
 #ifdef __GNUC__
@@ -605,7 +605,7 @@ using ::std::tuple_size;
 // Determines whether clone(2) is supported.
 // Usually it will only be available on Linux, excluding
 // Linux on the Itanium architecture.
-// Also see http://linux.die.net/man/2/clone.
+// Also see https://linux.die.net/man/2/clone.
 #ifndef GTEST_HAS_CLONE
 // The user didn't tell us, so we need to figure it out.
 

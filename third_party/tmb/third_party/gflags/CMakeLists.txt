@@ -22,7 +22,7 @@ if (CMAKE_VERSION VERSION_LESS 100)
   # C language still needed because the following required CMake modules
   # (or their dependencies, respectively) are not correctly handling
   # the case where only CXX is enabled.
-  # - CheckTypeSize.cmake (fixed in CMake 3.1, cf. http://www.cmake.org/Bug/view.php?id=14056)
+  # - CheckTypeSize.cmake (fixed in CMake 3.1, cf. https://www.cmake.org/Bug/view.php?id=14056)
   # - FindThreads.cmake (--> CheckIncludeFiles.cmake <--)
   enable_language (C)
 endif ()
@@ -435,7 +435,7 @@ if (BUILD_PACKAGING)
   # RPM package information -- used in cmake/package.cmake.in also for DEB
   set (CPACK_RPM_PACKAGE_GROUP   "Development/Libraries")
   set (CPACK_RPM_PACKAGE_LICENSE "BSD")
-  set (CPACK_RPM_PACKAGE_URL     "http://schuhschuh.github.com/gflags")
+  set (CPACK_RPM_PACKAGE_URL     "https://schuhschuh.github.com/gflags")
   set (CPACK_RPM_CHANGELOG_FILE  "${CMAKE_CURRENT_LIST_DIR}/ChangeLog.txt")
 
   if (INSTALL_HEADERS)

@@ -233,7 +233,7 @@ inline void Release_Store(volatile Atomic64* ptr, Atomic64 value) {
   //  System Programming Guide, Chatper 7: Multiple-processor management,
   //  Section 7.2, Memory Ordering.
   // Last seen at:
-  //   http://developer.intel.com/design/pentium4/manuals/index_new.htm
+  //   https://corpredirect.intel.com/Redirector/404Redirector.aspx?http://developer.intel.com/design/pentium4/manuals/index_new.htm
   //
   // x86 stores/loads fail to act as barriers for a few instructions (clflush
   // maskmovdqu maskmovq movntdq movnti movntpd movntps movntq) but these are
