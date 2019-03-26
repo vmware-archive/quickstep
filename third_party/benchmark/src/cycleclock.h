@@ -35,7 +35,7 @@
 // environments, <windows.h> and <intrin.h> have conflicting
 // declarations of some other intrinsics, breaking compilation.
 // Therefore, we simply declare __rdtsc ourselves. See also
-// http://connect.microsoft.com/VisualStudio/feedback/details/262047
+// https://connect.microsoft.com/VisualStudio/feedback/details/262047
 #if defined(COMPILER_MSVC) && !defined(_M_IX86)
 extern "C" uint64_t __rdtsc();
 #pragma intrinsic(__rdtsc)
@@ -45,7 +45,7 @@ extern "C" uint64_t __rdtsc();
 namespace benchmark {
 // NOTE: only i386 and x86_64 have been well tested.
 // PPC, sparc, alpha, and ia64 are based on
-//    http://peter.kuscsik.com/wordpress/?p=14
+//    https://peter.kuscsik.com/wordpress/?p=14
 // with modifications by m3b.  See also
 //    https://setisvn.ssl.berkeley.edu/svn/lib/fftw-3.0.1/kernel/cycle.h
 namespace cycleclock {

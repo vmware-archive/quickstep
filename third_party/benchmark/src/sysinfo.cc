@@ -201,7 +201,7 @@ void InitializeSystemInfo() {
 // SMP, APIC, or APM support.  hz should be 64-bit in freebsd 7.0
 // and later.  Before that, it's a 32-bit quantity (and gives the
 // wrong answer on machines faster than 2^32 Hz).  See
-//  http://lists.freebsd.org/pipermail/freebsd-i386/2004-November/001846.html
+//  https://lists.freebsd.org/pipermail/freebsd-i386/2004-November/001846.html
 // But also compare FreeBSD 7.0:
 //  http://fxr.watson.org/fxr/source/i386/i386/tsc.c?v=RELENG70#L223
 //  231         error = sysctl_handle_quad(oidp, &freq, 0, req);
