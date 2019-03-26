@@ -30,7 +30,7 @@
 // Author: Satoru Takabayashi
 //
 // For reference check out:
-// http://www.codesourcery.com/public/cxx-abi/abi.html#mangling
+// https://mentorembedded.github.io/cxx-abi/abi.html#mangling
 //
 // Note that we only have partial C++0x support yet.
 
@@ -468,7 +468,7 @@ static bool ParseSubstitution(State *state);
 //
 // Reference:
 // - Itanium C++ ABI
-//   <http://www.codesourcery.com/cxx-abi/abi.html#mangling>
+//   <https://mentorembedded.github.io/cxx-abi/abi.html#mangling>
 
 // <mangled-name> ::= _Z <encoding>
 static bool ParseMangledName(State *state) {
@@ -610,8 +610,8 @@ static bool ParseSourceName(State *state) {
 // <local-source-name> ::= L <source-name> [<discriminator>]
 //
 // References:
-//   http://gcc.gnu.org/bugzilla/show_bug.cgi?id=31775
-//   http://gcc.gnu.org/viewcvs?view=rev&revision=124467
+//   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=31775
+//   https://gcc.gnu.org/viewcvs?view=rev&revision=124467
 static bool ParseLocalSourceName(State *state) {
   State copy = *state;
   if (ParseOneCharToken(state, 'L') && ParseSourceName(state) &&

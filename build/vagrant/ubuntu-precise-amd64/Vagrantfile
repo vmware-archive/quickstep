@@ -21,8 +21,8 @@ Vagrant.configure(2) do |config|
     sudo apt-get update
     sudo apt-get install -y python-software-properties
     sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-    wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
-    sudo add-apt-repository -y 'deb http://llvm.org/apt/jessie/ llvm-toolchain-jessie-3.7 main'
+    wget -O - https://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
+    sudo add-apt-repository -y 'deb https://llvm.org/apt/jessie/ llvm-toolchain-jessie-3.7 main'
     sudo apt-get update
     sudo apt-get install -y \
         build-essential gcc-4.9 g++-4.9 clang-3.7 gdb cmake git \
