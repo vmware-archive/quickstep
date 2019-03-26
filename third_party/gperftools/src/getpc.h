@@ -156,12 +156,12 @@ inline void* GetPC(const ucontext_t& signal_ucontext) {
 #elif defined(_WIN32) || defined(__CYGWIN__) || defined(__CYGWIN32__) || defined(__MINGW32__)
 // If this is ever implemented, probably the way to do it is to have
 // profiler.cc use a high-precision timer via timeSetEvent:
-//    http://msdn2.microsoft.com/en-us/library/ms712713.aspx
+//    https://msdn.microsoft.com/en-us/library/ms712713.aspx
 // We'd use it in mode TIME_CALLBACK_FUNCTION/TIME_PERIODIC.
 // The callback function would be something like prof_handler, but
 // alas the arguments are different: no ucontext_t!  I don't know
 // how we'd get the PC (using StackWalk64?)
-//    http://msdn2.microsoft.com/en-us/library/ms680650.aspx
+//    https://msdn.microsoft.com/en-us/library/ms680650.aspx
 
 #include "base/logging.h"   // for RAW_LOG
 #ifndef HAVE_CYGWIN_SIGNAL_H

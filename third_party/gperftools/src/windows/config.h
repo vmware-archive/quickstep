@@ -19,7 +19,7 @@
 /* define this if you are linking tcmalloc statically and overriding the
  * default allocators.
  * For instructions on how to use this mode, see
- * http://groups.google.com/group/google-perftools/browse_thread/thread/41cd3710af85e57b
+ * https://groups.google.com/group/google-perftools/browse_thread/thread/41cd3710af85e57b
  */
 #undef WIN32_OVERRIDE_ALLOCATORS
 
