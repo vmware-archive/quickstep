@@ -85,7 +85,7 @@ extern "C" PERFTOOLS_DLL_DECL void WriteToStderr(const char* buf, int len) {
 
 // Windows doesn't support pthread_key_create's destr_function, and in
 // fact it's a bit tricky to get code to run when a thread exits.  This
-// is cargo-cult magic from http://www.codeproject.com/threads/tls.asp.
+// is cargo-cult magic from https://www.codeproject.com/threads/tls.asp.
 // This code is for VC++ 7.1 and later; VC++ 6.0 support is possible
 // but more busy-work -- see the webpage for how to do it.  If all
 // this fails, we could use DllMain instead.  The big problem with

@@ -61,12 +61,12 @@ extern "C" {
 // well on MSVC 8.0 and above).  Unfortunately, in some
 // environments, <windows.h> and <intrin.h> have conflicting
 // declarations of some other intrinsics, breaking compilation:
-//   http://connect.microsoft.com/VisualStudio/feedback/details/262047
+//   https://connect.microsoft.com/VisualStudio/feedback/details/262047
 // Therefore, we simply declare the relevant intrinsics ourself.
 
 // MinGW has a bug in the header files where it doesn't indicate the
 // first argument is volatile -- they're not up to date.  See
-//   http://readlist.com/lists/lists.sourceforge.net/mingw-users/0/3861.html
+//   https://readlist.com/lists/lists.sourceforge.net/mingw-users/0/3861.html
 // We have to const_cast away the volatile to avoid compiler warnings.
 // TODO(csilvers): remove this once MinGW has updated MinGW/include/winbase.h
 #if defined(__MINGW32__)
@@ -85,7 +85,7 @@ inline LONG FastInterlockedExchangeAdd(volatile LONG* ptr, LONG increment) {
 // Unfortunately, in some environments, <windows.h> and <intrin.h>
 // have conflicting declarations of some intrinsics, breaking
 // compilation.  So we declare the intrinsics we need ourselves.  See
-//   http://connect.microsoft.com/VisualStudio/feedback/details/262047
+//   https://connect.microsoft.com/VisualStudio/feedback/details/262047
 LONG _InterlockedCompareExchange(volatile LONG* ptr, LONG newval, LONG oldval);
 #pragma intrinsic(_InterlockedCompareExchange)
 inline LONG FastInterlockedCompareExchange(volatile LONG* ptr,
@@ -311,7 +311,7 @@ inline void Release_Store(volatile Atomic64* ptr, Atomic64 value) {
   //  System Programming Guide, Chatper 7: Multiple-processor management,
   //  Section 7.2, Memory Ordering.
   // Last seen at:
-  //   http://developer.intel.com/design/pentium4/manuals/index_new.htm
+  //   https://corpredirect.intel.com/Redirector/404Redirector.aspx?http://developer.intel.com/design/pentium4/manuals/index_new.htm
 }
 
 inline Atomic64 NoBarrier_Load(volatile const Atomic64* ptr) {
