@@ -32,7 +32,7 @@
 // Author: Riku Voipio, riku.voipio@linaro.org
 //
 // atomic primitives implemented with gcc atomic intrinsics:
-// http://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html
+// https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html
 //
 
 #ifndef BASE_ATOMICOPS_INTERNALS_GCC_GENERIC_H_

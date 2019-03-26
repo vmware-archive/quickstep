@@ -52,7 +52,7 @@ EXAMPLES
 This tool is experimental.  In particular, it assumes that there is no
 conditional inclusion of Google Test headers.  Please report any
 problems to googletestframework@googlegroups.com.  You can read
-http://code.google.com/p/googletest/wiki/GoogleTestAdvancedGuide for
+https://code.google.com/p/googletest/wiki/GoogleTestAdvancedGuide for
 more information.
 """
 

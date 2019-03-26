@@ -35,7 +35,7 @@
  * easier to compile this code under VC++.
  *
  * Several of these are taken from glib:
- *    http://developer.gnome.org/doc/API/glib/glib-windows-compatability-functions.html
+ *    https://developer.gnome.org/doc/API/glib/glib-windows-compatability-functions.html
  */
 
 #ifndef GOOGLE_BASE_WINDOWS_H_
@@ -237,7 +237,7 @@ class SpinLock {
   // Used in assertion checks: assert(lock.IsHeld()) (see base/spinlock.h).
   inline bool IsHeld() const {
     // This works, but probes undocumented internals, so I've commented it out.
-    // c.f. http://msdn.microsoft.com/msdnmag/issues/03/12/CriticalSections/
+    // c.f. https://msdn.microsoft.com/msdnmag/issues/03/12/CriticalSections/
     //return mutex_.LockCount>=0 && mutex_.OwningThread==GetCurrentThreadId();
     return true;
   }

@@ -6,7 +6,7 @@ AC_PREREQ([2.59])
 
 AC_INIT([gperftools],[2.4],[google-perftools@googlegroups.com])
 # Update this value for every release!  (A:B:C will map to foo.so.(A-C).C.B)
-# http://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
+# https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
 TCMALLOC_SO_VERSION=6:6:2
 PROFILER_SO_VERSION=4:5:4
 
@@ -210,9 +210,9 @@ fi
 
 # We need to check for mmap.  cygwin supports mmap, but the autoconf
 # test doesn't work on cygwin:
-#    http://www.cygwin.com/ml/cygwin/2002-04/msg00412.html
+#    https://www.cygwin.com/ml/cygwin/2002-04/msg00412.html
 # This workaround comes from
-#    http://cygwin.com/ml/cygwin/2004-11/msg00138.html
+#    https://cygwin.com/ml/cygwin/2004-11/msg00138.html
 case "$host" in
   *-*-mingw*)
                dnl mingw doesn't have mmap, not worth
@@ -357,7 +357,7 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <unistd.h>],
 # If we support __thread, that can speed up tcmalloc a bit.
 # Note, however, that our code tickles a bug in gcc < 4.1.2
 # involving TLS and -fPIC (which our libraries will use) on x86:
-#   http://gcc.gnu.org/ml/gcc-bugs/2006-09/msg02275.html
+#   https://gcc.gnu.org/ml/gcc-bugs/2006-09/msg02275.html
 #
 # And mingw also does compile __thread but resultant code actually
 # fails to work correctly at least in some not so ancient version:
@@ -367,7 +367,7 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <unistd.h>],
 # __thread but it doesn't really work
 AC_MSG_CHECKING([for __thread])
 AC_LINK_IFELSE([AC_LANG_PROGRAM([#if defined(__GNUC__) && ((__GNUC__ < 4) || (__GNUC__ == 4 && __GNUC_MINOR__ < 1) || (__GNUC__ == 4 && __GNUC_MINOR__ == 1 && __GNUC_PATCHLEVEL__ < 2))
-#error gcc has this bug: http://gcc.gnu.org/ml/gcc-bugs/2006-09/msg02275.html
+#error gcc has this bug: https://gcc.gnu.org/ml/gcc-bugs/2006-09/msg02275.html
 #elif defined(__MINGW32__)
 #error mingw doesnt really support tls
 #elif defined(__APPLE__)
@@ -469,7 +469,7 @@ AC_DEFINE(PERFTOOLS_DLL_DECL,,
 # the end result is if config.h is #included twice, its #undefs get
 # evaluated twice, but all the ones in mingw.h/etc only get evaluated
 # once, potentially causing trouble.  c.f.
-#   http://code.google.com/p/gperftools/issues/detail?id=246
+#   https://code.google.com/p/gperftools/issues/detail?id=246
 AH_TOP([
 #ifndef GPERFTOOLS_CONFIG_H_
 #define GPERFTOOLS_CONFIG_H_
