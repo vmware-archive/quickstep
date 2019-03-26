@@ -3145,7 +3145,7 @@ thread_dealloc_unittest_LDADD = $(LIBTCMALLOC_MINIMAL) $(PTHREAD_LIBS)
 @WITH_CPU_PROFILER_TRUE@@WITH_HEAP_PROFILER_OR_CHECKER_TRUE@tcmalloc_and_profiler_unittest_LDFLAGS = $(tcmalloc_both_unittest_lflags)
 @WITH_CPU_PROFILER_TRUE@@WITH_HEAP_PROFILER_OR_CHECKER_TRUE@tcmalloc_and_profiler_unittest_LDADD = libtcmalloc_and_profiler.la
 
-# http://linux.die.net/man/1/pkg-config, http://pkg-config.freedesktop.org/wiki
+# https://linux.die.net/man/1/pkg-config, https://pkg-config.freedesktop.org/wiki
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libtcmalloc.pc libtcmalloc_minimal.pc \
                  libtcmalloc_debug.pc libtcmalloc_minimal_debug.pc \
