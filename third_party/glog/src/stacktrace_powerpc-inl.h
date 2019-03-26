@@ -31,9 +31,9 @@
 //
 // Produce stack trace.  I'm guessing (hoping!) the code is much like
 // for x86.  For apple machines, at least, it seems to be; see
-//    http://developer.apple.com/documentation/mac/runtimehtml/RTArch-59.html
-//    http://www.linux-foundation.org/spec/ELF/ppc64/PPC-elf64abi-1.9.html#STACK
-// Linux has similar code: http://patchwork.ozlabs.org/linuxppc/patch?id=8882
+//    https://docs.developer.apple.com/documentation/mac/runtimehtml/RTArch-59.html
+//    https://www.linuxfoundation.org/spec/ELF/ppc64/PPC-elf64abi-1.9.html#STACK
+// Linux has similar code: https://patchwork.ozlabs.org/linuxppc/patch?id=8882
 
 #include <stdio.h>
 #include <stdint.h>   // for uintptr_t

@@ -35,7 +35,7 @@
  * easier to compile this code under VC++.
  *
  * Several of these are taken from glib:
- *    http://developer.gnome.org/doc/API/glib/glib-windows-compatability-functions.html
+ *    https://developer.gnome.org/doc/API/glib/glib-windows-compatability-functions.html
  */
 
 #ifndef CTEMPLATE_WINDOWS_PORT_H_

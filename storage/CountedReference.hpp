@@ -87,7 +87,7 @@ class CountedReference {
    *        MutableBlockReference to a BlockReference. The weird template stuff is to
    *        ensure that this code is only generated when T = const StorageBlockBase or const
    *        StorageBlob. See
-   *        http://stackoverflow.com/questions/17842478/select-class-constructor-using-
+   *        https://stackoverflow.com/questions/17842478/select-class-constructor-using-
    *        enable-if.
    * @param other The other block.
    **/

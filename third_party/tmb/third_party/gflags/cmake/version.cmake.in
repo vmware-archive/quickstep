@@ -8,7 +8,7 @@ set (PACKAGE_VERSION "@PACKAGE_VERSION@")
 # check compatibility
 
 # Perform compatibility check here using the input CMake variables.
-# See example in http://www.cmake.org/Wiki/CMake_2.6_Notes.
+# See example in https://www.cmake.org/Wiki/CMake_2.6_Notes.
 
 set (PACKAGE_VERSION_COMPATIBLE TRUE)
 set (PACKAGE_VERSION_UNSUITABLE FALSE)
