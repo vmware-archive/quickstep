@@ -3,7 +3,7 @@
  *
  * You can find the latest source code at:
  *
- *   http://github.com/antirez/linenoise
+ *   https://github.com/antirez/linenoise
  *
  * Does a number of crazy assumptions that happen to be true in 99.9999% of
  * the 2010 UNIX computers around.
@@ -41,7 +41,7 @@
  * ------------------------------------------------------------------------
  *
  * References:
- * - http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+ * - https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
  * - http://www.3waylabs.com/nw/WWW/products/wizcon/vt220.html
  *
  * Todo list:

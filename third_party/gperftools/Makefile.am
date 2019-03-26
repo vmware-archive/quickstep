@@ -1369,7 +1369,7 @@ rpm: dist-gzip packages/rpm.sh packages/rpm/rpm.spec
 deb: dist-gzip packages/deb.sh packages/deb/*
 	@cd packages && ./deb.sh ${PACKAGE} ${VERSION}
 
-# http://linux.die.net/man/1/pkg-config, http://pkg-config.freedesktop.org/wiki
+# https://linux.die.net/man/1/pkg-config, https://pkg-config.freedesktop.org/wiki
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libtcmalloc.pc libtcmalloc_minimal.pc \
                  libtcmalloc_debug.pc libtcmalloc_minimal_debug.pc \
