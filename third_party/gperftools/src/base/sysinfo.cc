@@ -423,7 +423,7 @@ static void InitializeSystemInfo() {
   // SMP, APIC, or APM support.  hz should be 64-bit in freebsd 7.0
   // and later.  Before that, it's a 32-bit quantity (and gives the
   // wrong answer on machines faster than 2^32 Hz).  See
-  //  http://lists.freebsd.org/pipermail/freebsd-i386/2004-November/001846.html
+  //  https://lists.freebsd.org/pipermail/freebsd-i386/2004-November/001846.html
   // But also compare FreeBSD 7.0:
   //  http://fxr.watson.org/fxr/source/i386/i386/tsc.c?v=RELENG70#L223
   //  231         error = sysctl_handle_quad(oidp, &freq, 0, req);
@@ -890,7 +890,7 @@ bool ProcMapsIterator::NextExt(uint64 *start, uint64 *end, char **flags,
 #elif defined(__CYGWIN__) || defined(__CYGWIN32__)
     // cygwin is like linux, except the third field is the "entry point"
     // rather than the offset (see format_process_maps at
-    // http://cygwin.com/cgi-bin/cvsweb.cgi/src/winsup/cygwin/fhandler_process.cc?rev=1.89&content-type=text/x-cvsweb-markup&cvsroot=src
+    // https://cygwin.com/cgi-bin/cvsweb.cgi/src/winsup/cygwin/fhandler_process.cc?rev=1.89&content-type=text/x-cvsweb-markup&cvsroot=src
     // Offset is always be 0 on cygwin: cygwin implements an mmap
     // by loading the whole file and then calling NtMapViewOfSection.
     // Cygwin also seems to set its flags kinda randomly; use windows default.
@@ -906,7 +906,7 @@ bool ProcMapsIterator::NextExt(uint64 *start, uint64 *end, char **flags,
                &major, &minor,
                inode ? inode : &tmpinode, &filename_offset) != 7) continue;
 #elif defined(__FreeBSD__)
-    // For the format, see http://www.freebsd.org/cgi/cvsweb.cgi/src/sys/fs/procfs/procfs_map.c?rev=1.31&content-type=text/x-cvsweb-markup
+    // For the format, see https://www.freebsd.org/cgi/cvsweb.cgi/src/sys/fs/procfs/procfs_map.c?rev=1.31&content-type=text/x-cvsweb-markup
     tmpstart = tmpend = tmpoffset = 0;
     tmpinode = 0;
     major = minor = 0;   // can't get this info in freebsd
@@ -1020,7 +1020,7 @@ bool ProcMapsIterator::NextExt(uint64 *start, uint64 *end, char **flags,
   // We return a separate entry for each segment in the DLL. (TODO(csilvers):
   // can we do better?)  A DLL ("image") has load-commands, some of which
   // talk about segment boundaries.
-  // cf image_for_address from http://svn.digium.com/view/asterisk/team/oej/minivoicemail/dlfcn.c?revision=53912
+  // cf image_for_address from https://svnview.digium.com/svn/asterisk/team/oej/minivoicemail/dlfcn.c?revision=53912
   for (; current_image_ >= 0; current_image_--) {
     const mach_header* hdr = _dyld_get_image_header(current_image_);
     if (!hdr) continue;
