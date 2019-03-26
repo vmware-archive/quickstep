@@ -313,7 +313,7 @@
 #define GTEST_FLAG_PREFIX_DASH_ "gtest-"
 #define GTEST_FLAG_PREFIX_UPPER_ "GTEST_"
 #define GTEST_NAME_ "Google Test"
-#define GTEST_PROJECT_URL_ "http://code.google.com/p/googletest/"
+#define GTEST_PROJECT_URL_ "https://code.google.com/p/googletest/"
 
 // Determines the version of gcc that is used to compile this.
 #ifdef __GNUC__
@@ -1712,7 +1712,7 @@ using ::std::tuple_size;
 // Determines whether clone(2) is supported.
 // Usually it will only be available on Linux, excluding
 // Linux on the Itanium architecture.
-// Also see http://linux.die.net/man/2/clone.
+// Also see https://linux.die.net/man/2/clone.
 #ifndef GTEST_HAS_CLONE
 // The user didn't tell us, so we need to figure it out.
 
@@ -7029,7 +7029,7 @@ struct TypeList<Types<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13,
 //
 // will result in the token foo__LINE__, instead of foo followed by
 // the current line number.  For more details, see
-// http://www.parashift.com/c++-faq-lite/misc-technical-issues.html#faq-39.6
+// https://www.parashift.com/c++-faq-lite/misc-technical-issues.html#faq-39.6
 #define GTEST_CONCAT_TOKEN_(foo, bar) GTEST_CONCAT_TOKEN_IMPL_(foo, bar)
 #define GTEST_CONCAT_TOKEN_IMPL_(foo, bar) foo ## bar
 
@@ -7183,7 +7183,7 @@ GTEST_API_ std::string GetBoolAssertionFailureMessage(
 //   For double, there are 11 exponent bits and 52 fraction bits.
 //
 //   More details can be found at
-//   http://en.wikipedia.org/wiki/IEEE_floating-point_standard.
+//   https://en.wikipedia.org/wiki/IEEE_floating-point_standard.
 //
 // Template parameter:
 //
@@ -7228,7 +7228,7 @@ class FloatingPoint {
   // bits.  Therefore, 4 should be enough for ordinary use.
   //
   // See the following article for more details on ULP:
-  // http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
+  // https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
   static const size_t kMaxUlps = 4;
 
   // Constructs a FloatingPoint from a raw floating-point number.
@@ -7314,7 +7314,7 @@ class FloatingPoint {
   //   N - 1  (the biggest number representable using
   //          sign-and-magnitude) is represented by 2N - 1.
   //
-  // Read http://en.wikipedia.org/wiki/Signed_number_representations
+  // Read https://en.wikipedia.org/wiki/Signed_number_representations
   // for more details on signed number representations.
   static Bits SignAndMagnitudeToBiased(const Bits &sam) {
     if (kSignBitMask & sam) {
