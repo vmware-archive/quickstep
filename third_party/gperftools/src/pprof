@@ -165,7 +165,7 @@ pprof [options] <profile>
                          $GROWTH_PAGE, $CONTENTION_PAGE, /pprof/wall,
                          $CENSUSPROFILE_PAGE, or /pprof/filteredprofile.
    For instance:
-     pprof http://myserver.com:80$HEAP_PAGE
+     pprof https://myserver.com:80$HEAP_PAGE
    If /<service> is omitted, the service defaults to $PROFILE_PAGE (cpu profiling).
 pprof --symbols <program>
    Maps addresses to symbol names.  In this mode, stdin should be a
@@ -2320,7 +2320,7 @@ sub SvgJavascript {
   return <<'EOF';
 <script type="text/ecmascript"><![CDATA[
 // SVGPan
-// http://www.cyberz.org/blog/2009/12/08/svgpan-a-javascript-svg-panzoomdrag-library/
+// https://www.vleo.net/blog/2009/12/08/svgpan-a-javascript-svg-panzoomdrag-library/
 // Local modification: if(true || ...) below to force panning, never moving.
 
 /**

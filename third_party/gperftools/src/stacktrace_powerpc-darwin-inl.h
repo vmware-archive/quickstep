@@ -32,7 +32,7 @@
 // * PowerPC32 ABI: https://www.power.org/documentation/
 // power-architecture-32-bit-abi-supplement-1-0-embeddedlinuxunified/
 // * PowerPC64 ABI:
-// http://www.linux-foundation.org/spec/ELF/ppc64/PPC-elf64abi-1.9.html#STACK
+// https://www.linuxfoundation.org/spec/ELF/ppc64/PPC-elf64abi-1.9.html#STACK
 
 #ifndef BASE_STACKTRACE_POWERPC_INL_H_
 #define BASE_STACKTRACE_POWERPC_INL_H_
