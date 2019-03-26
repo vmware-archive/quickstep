@@ -15,7 +15,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -81,7 +81,7 @@ typedef struct YYLTYPE {
 
 /*
  * Modified from the default YYLLOC_DEFAULT
- * (http://www.gnu.org/software/bison/manual/html_node/Location-Default-Action.html).
+ * (https://www.gnu.org/software/bison/manual/html_node/Location-Default-Action.html).
  * The assignments for last_line and last_column are removed as they are not used.
  */
 #define YYLLOC_DEFAULT(current, rhs, n)                         \

@@ -114,4 +114,4 @@ AGE INTERVAL '60 seconds'  -- Every 60 secs.
 
 ## Complex demo
 TODO(quickstep-team): Looking at replaying hourly logs number of page edits for Wikipages (or Wikipage projects) from
-http://dumps.wikimedia.org/other/pagecounts-raw/.
+https://dumps.wikimedia.org/other/pagecounts-raw/.
