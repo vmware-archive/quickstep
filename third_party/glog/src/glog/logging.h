@@ -1129,7 +1129,7 @@ public:
   // and VC++ produces a warning for this situation.
   // However, MSDN says "C4275 can be ignored in Microsoft Visual C++
   // 2005 if you are deriving from a type in the Standard C++ Library"
-  // http://msdn.microsoft.com/en-us/library/3tdb471s(VS.80).aspx
+  // https://msdn.microsoft.com/en-us/library/3tdb471s(VS.80).aspx
   // Let's just ignore the warning.
 #ifdef _MSC_VER
 # pragma warning(disable: 4275)
