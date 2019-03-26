@@ -1,5 +1,5 @@
 # Per-generator CPack configuration file. See CPACK_PROJECT_CONFIG_FILE documented at
-# http://www.cmake.org/cmake/help/v2.8.12/cpack.html#variable:CPACK_PROJECT_CONFIG_FILE
+# https://www.cmake.org/cmake/help/v2.8.12/cpack.html#variable:CPACK_PROJECT_CONFIG_FILE
 #
 # All common CPACK_* variables are set in CMakeLists.txt already. This file only
 # overrides some of these to provide package generator specific settings.
