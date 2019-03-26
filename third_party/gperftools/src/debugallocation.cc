@@ -718,7 +718,7 @@ class MallocBlock {
     RAW_LOG(FATAL,
             "Memory was written to after being freed.  MallocBlock: %p, user "
             "ptr: %p, size: %zd.  If you can't find the source of the error, "
-            "try using ASan (http://code.google.com/p/address-sanitizer/), "
+            "try using ASan (https://code.google.com/p/address-sanitizer/), "
             "Valgrind, or Purify, or study the "
             "output of the deleter's stack printed above.",
             b, b->data_addr(), size);
@@ -1461,7 +1461,7 @@ extern "C" PERFTOOLS_DLL_DECL void* tc_pvalloc(size_t size) __THROW {
   int pagesize = getpagesize();
   size = RoundUp(size, pagesize);
   if (size == 0) {     // pvalloc(0) should allocate one page, according to
-    size = pagesize;   // http://man.free4web.biz/man3/libmpatrol.3.html
+    size = pagesize;   // https://man.free4web.biz/man3/libmpatrol.3.html
   }
   void *p = do_debug_memalign_or_debug_cpp_memalign(pagesize, size);
   MallocHook::InvokeNewHook(p, size);
