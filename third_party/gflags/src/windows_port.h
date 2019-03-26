@@ -34,7 +34,7 @@
  * easier to compile this code under VC++.
  *
  * Several of these are taken from glib:
- *    http://developer.gnome.org/doc/API/glib/glib-windows-compatability-functions.html
+ *    https://developer.gnome.org/doc/API/glib/glib-windows-compatability-functions.html
  */
 
 #ifndef GFLAGS_WINDOWS_PORT_H_
@@ -80,7 +80,7 @@ inline void setenv(const char* name, const char* value, int) {
   // We handle this by setting it to "0" and the NUL-ing out the \0.
   // That is, we putenv("FOO=0") and then find out where in memory the
   // putenv wrote "FOO=0", and change it in-place to "FOO=\0".
-  // c.f. http://svn.apache.org/viewvc/stdcxx/trunk/tests/src/environ.cpp?r1=611451&r2=637508&pathrev=637508
+  // c.f. https://svn.apache.org/viewvc/stdcxx/trunk/tests/src/environ.cpp?r1=611451&r2=637508&pathrev=637508
   static const char* const kFakeZero = "0";
   if (*value == '\0')
     value = kFakeZero;

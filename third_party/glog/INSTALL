@@ -25,7 +25,7 @@ InstallFailureSignalHandler(), we strongly recommend you install
 libunwind before trying to configure or install google glog.
 libunwind can be found at
 
-   http://download.savannah.nongnu.org/releases/libunwind/libunwind-snap-070410.tar.gz
+   https://download.savannah.nongnu.org/releases/libunwind/libunwind-snap-070410.tar.gz
 
 Even if you already have libunwind installed, you will probably still
 need to install from the snapshot to get the latest version.
