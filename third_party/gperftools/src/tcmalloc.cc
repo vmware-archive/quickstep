@@ -247,7 +247,7 @@ extern "C" {
       ATTRIBUTE_SECTION(google_malloc);
   // Surprisingly, standard C++ library implementations use a
   // nothrow-delete internally.  See, eg:
-  // http://www.dinkumware.com/manuals/?manual=compleat&page=new.html
+  // https://www.dinkumware.com/manuals/?manual=compleat&page=new.html
   void tc_delete_nothrow(void* ptr, const std::nothrow_t&) __THROW
       ATTRIBUTE_SECTION(google_malloc);
   void tc_deletearray_nothrow(void* ptr, const std::nothrow_t&) __THROW
@@ -1705,7 +1705,7 @@ extern "C" PERFTOOLS_DLL_DECL void* tc_pvalloc(size_t size) __THROW {
   // Round up size to a multiple of pagesize
   if (pagesize == 0) pagesize = getpagesize();
   if (size == 0) {     // pvalloc(0) should allocate one page, according to
-    size = pagesize;   // http://man.free4web.biz/man3/libmpatrol.3.html
+    size = pagesize;   // https://man.free4web.biz/man3/libmpatrol.3.html
   }
   size = (size + pagesize - 1) & ~(pagesize - 1);
   void* result = do_memalign_or_cpp_memalign(pagesize, size);

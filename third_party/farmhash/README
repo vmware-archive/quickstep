@@ -135,7 +135,7 @@ Hash Quality
 
 We like to test hash functions with SMHasher, among other things.
 SMHasher isn't perfect, but it seems to find almost any significant flaw.
-SMHasher is available at http://code.google.com/p/smhasher/
+SMHasher is available at https://code.google.com/p/smhasher/
 
 SMHasher is designed to pass a 32-bit seed to the hash functions it tests.
 For our functions that accept a seed, we use the given seed directly (padded
@@ -156,7 +156,7 @@ there is never going to be as portable as the other parts of FarmHash.)
 For more information
 ====================
 
-http://code.google.com/p/farmhash/
+https://code.google.com/p/farmhash/
 
 farmhash-discuss@googlegroups.com
 
