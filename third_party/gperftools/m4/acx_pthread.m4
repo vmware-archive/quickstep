@@ -1,7 +1,7 @@
 # This was retrieved from
-#    http://svn.0pointer.de/viewvc/trunk/common/acx_pthread.m4?revision=1277&root=avahi
+#    http://0pointer.net/?revision=1277&root=avahi
 # See also (perhaps for new versions?)
-#    http://svn.0pointer.de/viewvc/trunk/common/acx_pthread.m4?root=avahi
+#    http://0pointer.net/?root=avahi
 #
 # We've rewritten the inconsistency check code (from avahi), to work
 # more broadly.  In particular, it no longer assumes ld accepts -zdefs.

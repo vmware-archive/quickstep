@@ -38,7 +38,7 @@
 // are required in the VS2005 libcmt in order to link the modified libcmt.
 //
 // See also
-// http://groups.google.com/group/google-perftools/browse_thread/thread/41cd3710af85e57b
+// https://groups.google.com/group/google-perftools/browse_thread/thread/41cd3710af85e57b
 
 #include <config.h>
 
