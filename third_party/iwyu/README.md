@@ -44,7 +44,7 @@ emerge --ask dev-util/include-what-you-use
 ```
 
 ### MacOS X
-If you are using [Homebrew](http://brew.sh/) to manage packages on your Mac,
+If you are using [Homebrew](https://brew.sh/) to manage packages on your Mac,
 the easiest way to install is by using using the recipe at
 [jasonmp85/homebrew-iwyu](https://github.com/jasonmp85/homebrew-iwyu)
 
@@ -55,11 +55,11 @@ brew install iwyu
 
 If you're not using homebrew, there is a pre-built IWYU binary for Mac
 available at the
-[project download page](http://include-what-you-use.org/downloads/).
+[project download page](https://include-what-you-use.org/downloads/).
 
 ### Other Operating Systems
 There are prebuilt IWYU binaries available on the
-[project download page](http://include-what-you-use.org/downloads/) for Ubuntu
+[project download page](https://include-what-you-use.org/downloads/) for Ubuntu
 Linux, Mac OS X, and FreeBSD (all on x86-64) and Win32. If your OS/Arch doesn't
 have prebuilt binaries available, you will have to download the source from
 that page and compile it against LLVM yourself.

@@ -57,7 +57,7 @@
 //#define VC8_OR_ABOVE
 
 #define SEARCH_CAP (1024*1024)
-#define WEBSYM "SRV*c:\\websymbols*http://msdl.microsoft.com/download/symbols"
+#define WEBSYM "SRV*c:\\websymbols*https://msdl.microsoft.com/download/symbols"
 
 typedef struct {
   char *name;

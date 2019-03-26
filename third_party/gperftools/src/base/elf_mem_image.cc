@@ -120,7 +120,7 @@ int ElfMemImage::GetNumSymbols() const {
   if (!hash_) {
     return 0;
   }
-  // See http://www.caldera.com/developers/gabi/latest/ch5.dynamic.html#hash
+  // See https://www.caldera.com/developers/gabi/latest/ch5.dynamic.html#hash
   return hash_[1];
 }
 

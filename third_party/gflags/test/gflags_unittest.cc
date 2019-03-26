@@ -535,7 +535,7 @@ TEST(SetFlagValueTest, OrdinaryValues) {
 
 // Tests that flags can be set to exceptional values.
 // Note: apparently MINGW doesn't parse inf and nan correctly:
-//    http://www.mail-archive.com/bug-gnulib@gnu.org/msg09573.html
+//    https://www.mail-archive.com/bug-gnulib@gnu.org/msg09573.html
 // This url says FreeBSD also has a problem, but I didn't see that.
 TEST(SetFlagValueTest, ExceptionalValues) {
 #if defined(isinf) && !defined(__MINGW32__)
