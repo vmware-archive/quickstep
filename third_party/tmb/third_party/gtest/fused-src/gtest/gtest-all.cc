@@ -720,7 +720,7 @@ void ShuffleRange(internal::Random* random, int begin, int end,
       << begin << ", " << size << "].";
 
   // Fisher-Yates shuffle, from
-  // http://en.wikipedia.org/wiki/Fisher-Yates_shuffle
+  // https://en.wikipedia.org/wiki/Fisher-Yates_shuffle
   for (int range_width = end - begin; range_width >= 2; range_width--) {
     const int last_in_range = begin + range_width - 1;
     const int selected = begin + random->Generate(range_width);
@@ -2001,7 +2001,7 @@ int UnitTestOptions::GTestShouldProcessSEH(DWORD exception_code) {
   //      apparently).
   //
   // SEH exception code for C++ exceptions.
-  // (see http://support.microsoft.com/kb/185294 for more information).
+  // (see https://support.microsoft.com/kb/185294 for more information).
   const DWORD kCxxExceptionCode = 0xe06d7363;
 
   bool should_handle = true;
@@ -2264,7 +2264,7 @@ std::string UnitTestImpl::CurrentOsStackTraceExceptTop(int skip_count) {
 TimeInMillis GetTimeInMillis() {
 #if GTEST_OS_WINDOWS_MOBILE || defined(__BORLANDC__)
   // Difference between 1970-01-01 and 1601-01-01 in milliseconds.
-  // http://analogous.blogspot.com/2005/04/epoch.html
+  // https://analogous.blogspot.com/2005/04/epoch.html
   const TimeInMillis kJavaEpochToWinFileTimeDelta =
     static_cast<TimeInMillis>(116444736UL) * 100000UL;
   const DWORD kTenthMicrosInMilliSecond = 10000;
@@ -5934,7 +5934,7 @@ bool ShouldRunTestOnShard(int total_shards, int shard_index, int test_id) {
 // each TestCase and TestInfo object.
 // If shard_tests == true, further filters tests based on sharding
 // variables in the environment - see
-// http://code.google.com/p/googletest/wiki/GoogleTestAdvancedGuide.
+// https://code.google.com/p/googletest/wiki/GoogleTestAdvancedGuide.
 // Returns the number of tests that should run.
 int UnitTestImpl::FilterTests(ReactionToSharding shard_tests) {
   const Int32 total_shards = shard_tests == HONOR_SHARDING_PROTOCOL ?
@@ -7217,7 +7217,7 @@ DeathTest::TestRole WindowsDeathTest::AssumeRole() {
       StreamableToString(static_cast<unsigned int>(::GetCurrentProcessId())) +
       // size_t has the same width as pointers on both 32-bit and 64-bit
       // Windows platforms.
-      // See http://msdn.microsoft.com/en-us/library/tcxf1dw6.aspx.
+      // See https://msdn.microsoft.com/en-us/library/tcxf1dw6.aspx.
       "|" + StreamableToString(reinterpret_cast<size_t>(write_handle)) +
       "|" + StreamableToString(reinterpret_cast<size_t>(event_handle_.Get()));
 

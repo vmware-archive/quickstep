@@ -50,7 +50,7 @@ When fixing an issue for a pull request through either of these hosting
 platforms, please reference the issue number as
 [described here](https://code.google.com/p/support/wiki/IssueTracker#Integration_with_version_control).
 For the further development, I am following the
-[Git branching model](http://nvie.com/posts/a-successful-git-branching-model/)
+[Git branching model](https://nvie.com/posts/a-successful-git-branching-model/)
 with feature branch names prefixed by "feature/" and bugfix branch names
 prefixed by "bugfix/", respectively.
 
@@ -76,7 +76,7 @@ More than a year has past since I (Andreas) took over the maintenance for
 To get more involved and stimulate participation in the further
 development of the library, I moved the project source code today to
 [GitHub](https://github.com/schuhschuh/gflags).
-I believe that the strengths of [Git](http://git-scm.com/) will allow for better community collaboration
+I believe that the strengths of [Git](https://git-scm.com/) will allow for better community collaboration
 as well as ease the integration of changes made by others. I encourage everyone
 who would like to contribute to send me pull requests.
 Git's lightweight feature branches will also provide the right tool for more
@@ -95,7 +95,7 @@ Please continue to report any issues with gflags on Google Code. The GitHub proj
 only be used to host the Git repository.
 
 One major change of the project structure I have in mind for the next weeks
-is the migration from autotools to [CMake](http://www.cmake.org/).
+is the migration from autotools to [CMake](https://www.cmake.org/).
 Check out the (unstable!)
 [cmake-migration](https://github.com/schuhschuh/gflags/tree/cmake-migration)
 branch on GitHub for details.
@@ -192,7 +192,7 @@ all tests pass.  I **really** never thought non-unix-y Windows folks
 would want gflags, but at least some of them do.
 
 The major news, though, is that I've separated out the python package
-into its own library, [python-gflags](http://code.google.com/p/python-gflags).
+into its own library, [python-gflags](https://code.google.com/p/python-gflags).
 If you're interested in the Python version of gflags, that's the place to
 get it now.
 
